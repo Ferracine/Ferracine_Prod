@@ -13,7 +13,8 @@ e pode ser instalado na tela inicial (PWA). Nenhum dado sai do aparelho: tudo fi
    código em "Outro código".
    - Comercial (3 perguntas): 28, 709, 739, 33, 798
    - Ocorrência (18 perguntas): 508, 509, 503, 531, 324, 533
-3. **Assistente**: uma pergunta por vez, com Pular, Voltar e barra de progresso. A pergunta dos **DITAIS** é
+3. **Assistente**: uma pergunta por vez, com Pular, Voltar e barra de progresso. Voltar (o da tela ou o do
+   Android) vai à pergunta anterior e, na primeira, ao painel. A pergunta dos **DITAIS** é
    obrigatória (não tem Pular). Nas perguntas "Se sim, qual?", marcar SIM exige o complemento. Numa OS "S/N", o
    número respondido na pergunta 2 da ocorrência vira o número da OS.
 4. **OSs do turno**: lápis para preencher/corrigir o número, olho para ver (e editar) as respostas, lixeira para
@@ -24,11 +25,18 @@ e pode ser instalado na tela inicial (PWA). Nenhum dado sai do aparelho: tudo fi
 
 ### O PDF (Espelho de Campo)
 
-Segue o modelo em [design/espelho_de_campo.md](design/espelho_de_campo.md), em A4 paisagem:
-identificação (nomes, matrículas, equipe, viatura, data, horário, bodycams), tabela com uma linha por OS (mínimo de
-20 linhas: OS, tipo de serviço, medidor instalado/retirado e leituras, desvios), produção total e técnico líder
-marcado com [X]. As páginas seguintes trazem o **detalhamento** de cada OS com todas as respostas (DITAIS, KM,
-horários, defeito...), que não têm coluna no espelho. Nome do arquivo: `Nome1_Nome2_N_servicos.pdf`.
+Reproduz a folha de papel [design/ex_pdf.jpeg](design/ex_pdf.jpeg), em A4 paisagem e preto e branco: logo do Grupo
+Energisa, DEPARTAMENTO DE OPERAÇÃO / ESPELHO DE CAMPO, identificação (nomes, matrículas, equipe, viatura, data,
+horário, bodycams), tabela de 15 linhas (item, OS, tipo de serviço, medidor instalado/retirado e leituras e
+**INFO ADICIONAL**), produção total e o técnico líder marcado. INFO ADICIONAL traz tudo o que o eletricista
+respondeu e não tem coluna própria (callback, defeito, dispositivo, DITAIS, KM, horários, dificuldades...).
+Com mais de 15 OSs, a tabela continua na folha seguinte. Nome do arquivo: `Nome1_Nome2_N_servicos.pdf`.
+
+### Aparência
+
+Tema claro e escuro (botão no topo; sem escolha, segue o celular), com as cores do logo: ciano para Comercial e
+ações principais, laranja para Ocorrência e encerramento. O logo do Grupo Energisa aparece no topo do app e no
+PDF; a prancheta é o ícone da aba do navegador e do app instalado.
 
 A OS em preenchimento é salva a cada toque: fechar o navegador ou a aba no meio não perde as respostas.
 
@@ -49,7 +57,8 @@ pnpm check        # tipos + testes unitários + build + testes ponta a ponta
 | `pnpm test pdf` | só os testes cujo arquivo contém "pdf" |
 | `pnpm build` | gera o site estático em `dist/` com service worker |
 | `pnpm test:e2e` | fluxo completo no Chrome com tela de celular (Playwright); rode `pnpm build` antes |
-| `pnpm icons` | regenera os ícones PNG do PWA a partir de `public/icon.png` |
+| `pnpm icons` | regenera favicon e ícones do PWA a partir de `public/icon.png` (prancheta) |
+| `pnpm logo` | regenera o logo do PDF (`src/assets/energisa-pdf.png`) a partir de `src/assets/energisa.svg` |
 
 ## Estrutura
 

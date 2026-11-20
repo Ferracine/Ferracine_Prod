@@ -4,7 +4,7 @@ import { BTN, byId, h, icon } from './dom';
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
 const TOAST_COLORS: Record<ToastType, string> = {
-  info: 'bg-panel2 text-white border-energisa-sky',
+  info: 'bg-card text-fg border-brand',
   success: 'bg-emerald-600 text-white border-emerald-300',
   warning: 'bg-amber-600 text-white border-amber-300',
   error: 'bg-rose-600 text-white border-rose-300',
@@ -40,21 +40,25 @@ let lastFocus: Element | null = null;
 export function openModal(title: string, body: Node, actions: ModalAction[]): void {
   lastFocus = document.activeElement;
   const modal = byId('modal');
-  const close = h('button', { type: 'button', class: 'text-slate-400 hover:text-white p-1 rounded-lg', 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
+  const close = h('button', { type: 'button', class: 'text-muted hover:text-fg p-1 rounded-lg', 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
   const buttons = actions.map((a) => h('button', { type: 'button', class: BTN[a.variant], onClick: a.onClick }, a.label));
   modal.replaceChildren(
     h(
       'div',
-      { class: 'bg-panel rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/10', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' },
-      h('div', { class: 'px-6 py-4 flex justify-between items-center gap-3 border-b border-white/10' }, h('h3', { id: 'modal-title', class: 'font-bold text-lg text-white' }, title), close),
-      h('div', { class: 'p-6 max-h-[70vh] overflow-y-auto text-sm text-slate-200 space-y-3' }, body),
-      h('div', { class: 'bg-black/20 px-6 py-4 flex flex-wrap justify-end gap-3 border-t border-white/10' }, buttons),
+      { class: 'bg-card rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-fg/10', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' },
+      h('div', { class: 'px-6 py-4 flex justify-between items-center gap-3 border-b border-fg/10' }, h('h3', { id: 'modal-title', class: 'font-bold text-lg text-fg' }, title), close),
+      h('div', { class: 'p-6 max-h-[70vh] overflow-y-auto text-sm text-fg space-y-3' }, body),
+      h('div', { class: 'bg-fg/5 px-6 py-4 flex flex-wrap justify-end gap-3 border-t border-fg/10' }, buttons),
     ),
   );
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   const focusIndex = actions.findIndex((a) => a.autofocus);
   (buttons[focusIndex >= 0 ? focusIndex : buttons.length - 1] ?? close).focus();
+}
+
+export function isModalOpen(): boolean {
+  return !byId('modal').classList.contains('hidden');
 }
 
 export function closeModal(): void {

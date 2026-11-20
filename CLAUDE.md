@@ -17,6 +17,8 @@ pnpm test wizard       # um arquivo: filtre pelo nome; passar o caminho completo
 pnpm build             # dist/ + service worker (vite-plugin-pwa, generateSW)
 pnpm test:e2e          # Playwright contra o build (pnpm preview :4173), Chrome instalado, viewport Pixel 7
 pnpm check             # lint + test + build + e2e: rode antes de commitar
+pnpm logo              # regenera src/assets/energisa-pdf.png (logo do PDF) a partir de src/assets/energisa.svg
+pnpm icons             # regenera favicon/ícones do PWA a partir de public/icon.png (prancheta)
 ```
 
 O e2e usa o build de produção: depois de mudar `src/`, rode `pnpm build` antes de `pnpm test:e2e`.
@@ -36,7 +38,7 @@ abra `http://localhost:4173/` no Chrome do aparelho (`am start -a android.intent
   - `wizard.ts`: o assistente como funções imutáveis (`startDraft`, `setText/setChoice/setDetail`, `next`, `skip`,
     `back`, `finalize`). `next`/`skip` devolvem `StepResult` com a mensagem de erro; a UI só exibe.
     `finalize` normaliza respostas vazias para `skipped`, então nada vai em branco ao PDF.
-    `answerRows` é a única fonte das linhas pergunta/resposta para o modal "Ver respostas" e para o PDF.
+    `answerRows` é a fonte das linhas pergunta/resposta do modal "Ver respostas".
 - `src/storage.ts`: um único JSON `AppData` (versão 2) na chave `ferracine_prod:v2`: cabeçalho, OSs, rascunho do
   assistente (`draft`) e `lastSheet`. Dado corrompido ou de outra versão vira estado vazio. Campo novo no
   cabeçalho: acrescente em `HEADER_FIELDS` (types.ts); o tipo `ShiftHeader`, o formulário e `normalizeHeader`
@@ -44,25 +46,34 @@ abra `http://localhost:4173/` no Chrome do aparelho (`am start -a android.intent
   (renomear/remover campo, mudar `Answer`): suba a versão e escreva a migração, senão o turno em andamento se perde.
 - `src/app.ts`: controlador. A tela é derivada do estado (`draft` → assistente; `header` → painel; senão
   cabeçalho). Toda mutação passa por `update()`, que persiste e re-renderiza; digitação persiste sem re-render.
+  No assistente, uma entrada extra no `history` faz o voltar do Android agir como o botão Voltar (`wizardBack`).
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado (só os usados entram no bundle).
+- Tema claro/escuro (`src/theme.ts` + script no `<head>` do index.html, mesma chave `ferracine_prod:theme`):
+  `data-theme` no `<html>`; sem escolha salva segue o celular. Cores em `src/styles.css`, derivadas do logo:
+  `brand` = ciano `#0fabcc`, `accent` = laranja `#f36f23` (`-600/-700` para botões com texto branco, `-fg` para
+  texto). Superfícies/texto são variáveis por tema: use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
+  `bg-fg/5`, `border-fg/10`, nunca cores fixas (slate/white). Comercial = ciano, Ocorrência = laranja.
+- Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`)
+  continua como favicon, ícone do PWA e base do ícone do futuro APK.
 - `src/pdf.ts`: jsPDF 4 + `autoTable(doc, opts)` (jspdf-autotable 5), lido via `doc.lastAutoTable.finalY`.
-  É importado dinamicamente em `app.ts` para não pesar a abertura do app. Página 1 = Espelho de Campo
-  (A4 paisagem, modelo em `design/espelho_de_campo.md`); depois, o detalhamento de cada OS. As colunas do espelho
-  vêm das perguntas marcadas com `espelho: '<coluna>'` no catálogo (`domain/espelho.ts` só percorre as marcas).
-  O espelho tem de caber numa folha com 20 linhas: células longas são cortadas com "..." e o teste trava isso.
-  Em `app.ts` o PDF vira um Blob uma vez (memo por folha) e o módulo `./pdf` é carregado sob demanda.
-- `design/`: referências que o dono mandou (layout `index_base.html` em tema escuro, `new_icon.png`, modelo do PDF).
-  O tema (`ink`, `panel`, `energisa-sky`, classes `field`/`lbl`/`card`) está em `src/styles.css`.
-  Não coloque arquivos em `dist/`: o build apaga a pasta.
+  Reproduz a folha de papel `design/ex_pdf.jpeg` (A4 paisagem, preto e branco, 15 linhas, larguras medidas na
+  foto); logo, ITEM vertical, produção total e quadradinhos dos técnicos são desenhados em `didDrawCell`.
+  As colunas vêm das perguntas com `espelho: '<coluna>'` no catálogo; as demais respostas vão para INFO ADICIONAL
+  como "`short`: resposta" (`domain/espelho.ts`). Nenhuma célula corta texto (o PDF é o único registro):
+  texto longo quebra linha; o rodapé usa `pageBreak: 'avoid'` para nunca se dividir. Testes travam: 15 OSs
+  completas numa folha. É importado sob demanda em `app.ts`, que serializa o PDF uma vez (memo por folha).
+- `design/`: referências que o dono mandou (layout, logo, ícone, modelo e foto do PDF). Não coloque arquivos em
+  `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
-- A pergunta dos DITAIS (`o6`) é a única obrigatória; não tem botão Pular e sai destacada no detalhamento do PDF.
+- A pergunta dos DITAIS (`o6`) é a única obrigatória; não tem botão Pular e sai em INFO ADICIONAL ("DITAIS: Sim").
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`). Se a OS começou sem número e a
   pergunta `o2` foi respondida, `finalize` adota esse número; `withOSNumber` (lápis da lista) mantém `o2` coerente.
 - Gerar o PDF não encerra o turno: só o botão "Encerrar turno" da janela "PDF gerado" limpa cabeçalho e OSs e
   guarda a folha em `lastSheet` (baixar/compartilhar de novo pela tela inicial).
-- `TECNICOS_LIDERES` (catalog.ts) são os nomes/telefones do rodapé do modelo de papel; o escolhido sai com [X].
+- `TECNICOS_LIDERES` (catalog.ts) são os nomes/telefones do rodapé do modelo de papel ("NOME - TELEFONE"); o
+  escolhido sai com o quadradinho marcado.
 - Testes de PDF procuram texto direto em `doc.output()`: o jsPDF grava sem compressão e com acentos em latin-1.
 
 ## Pendências conhecidas

@@ -43,6 +43,17 @@ export function withOSNumber(os: OrdemServico, osNumber: string): OrdemServico {
   return { ...os, osNumber: number, answers: withOSAnswer(os.serviceType, os.answers, number) };
 }
 
+/**
+ * Nada mudou desde que o assistente abriu (comparado às respostas pré-preenchidas numa OS nova, ou às da OS salva
+ * `original` numa edição): pode sair sem confirmação. Texto apagado ou "Sim" sem complemento contam como não respondidos.
+ */
+export function isUnchanged(draft: WizardDraft, original?: OrdemServico): boolean {
+  const baseline = original?.answers ?? startDraft(draft.osNumber, draft.serviceType, draft.serviceCode).answers;
+  return questionsFor(draft.serviceType).every(
+    (q) => JSON.stringify(normalizeAnswer(q, draft.answers[q.id])) === JSON.stringify(normalizeAnswer(q, baseline[q.id])),
+  );
+}
+
 export function draftFromOS(os: OrdemServico): WizardDraft {
   return {
     osNumber: os.osNumber,
@@ -169,7 +180,7 @@ function normalizeAnswer(q: Question, ans: Answer | undefined): Answer {
   return detail ? { kind: 'choice', choice: 'Sim', detail } : { kind: 'skipped' };
 }
 
-export function describeAnswer(ans: Answer | undefined): string | null {
+function describeAnswer(ans: Answer | undefined): string | null {
   if (!ans || ans.kind === 'skipped') return null;
   if (ans.kind === 'text') return ans.value;
   return ans.choice === 'Sim' && ans.detail ? `Sim — ${ans.detail}` : ans.choice;

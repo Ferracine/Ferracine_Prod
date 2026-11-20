@@ -31,12 +31,12 @@ function field(id: keyof ShiftHeader, label: string, attrs: Record<string, strin
 function group(title: string, node: Parameters<typeof icon>[0], hint: string | null, ...children: HTMLElement[]) {
   return h(
     'div',
-    { class: 'bg-white/[0.03] p-4 rounded-xl border border-white/10 space-y-4' },
+    { class: 'bg-fg/[0.03] p-4 rounded-xl border border-fg/10 space-y-4' },
     h(
       'div',
       { class: 'flex items-center justify-between gap-2' },
-      h('div', { class: 'flex items-center gap-2 text-energisa-sky font-bold text-sm' }, icon(node), title),
-      hint && h('span', { class: 'text-xs text-slate-500 font-medium' }, hint),
+      h('div', { class: 'flex items-center gap-2 text-brand-fg font-bold text-sm' }, icon(node), title),
+      hint && h('span', { class: 'text-xs text-subtle font-medium' }, hint),
     ),
     ...children,
   );
@@ -49,12 +49,12 @@ function lastSheetCard(sheet: ClosedSheet, p: HeaderScreenProps): HTMLElement {
     h(
       'div',
       { class: 'flex items-center gap-3 min-w-0' },
-      h('div', { class: 'bg-energisa-blue/20 text-energisa-sky p-2 rounded-lg shrink-0' }, icon(FileDown, 'w-5 h-5')),
+      h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg shrink-0' }, icon(FileDown, 'w-5 h-5')),
       h(
         'div',
         { class: 'min-w-0' },
-        h('p', { class: 'text-sm font-bold text-white' }, 'Última folha encerrada'),
-        h('p', { class: 'text-xs text-slate-400' }, `${formatDateBR(sheet.header.data)} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`),
+        h('p', { class: 'text-sm font-bold text-fg' }, 'Última folha encerrada'),
+        h('p', { class: 'text-xs text-muted' }, `${formatDateBR(sheet.header.data)} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`),
       ),
     ),
     h(
@@ -162,10 +162,10 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       { class: 'card overflow-hidden' },
       h(
         'div',
-        { class: 'px-6 py-5 border-b border-white/10 bg-gradient-to-r from-energisa-navy to-panel' },
-        h('p', { class: 'text-[11px] uppercase tracking-widest text-energisa-sky font-bold' }, 'Departamento de Operação'),
-        h('h2', { class: 'text-xl font-extrabold mt-0.5 text-white' }, init ? 'Corrigir cabeçalho do turno' : 'Identificação da equipe e turno'),
-        h('p', { class: 'text-xs text-slate-400 mt-1' }, init ? 'As OSs já registradas são mantidas.' : 'Preencha os dados obrigatórios para liberar o registro de Ordens de Serviço.'),
+        { class: 'px-6 py-5 border-b border-fg/10 bg-brand/10' },
+        h('p', { class: 'text-[11px] uppercase tracking-widest text-brand-fg font-bold' }, 'Departamento de Operação'),
+        h('h2', { class: 'text-xl font-extrabold mt-0.5 text-fg' }, init ? 'Corrigir cabeçalho do turno' : 'Identificação da equipe e turno'),
+        h('p', { class: 'text-xs text-muted mt-1' }, init ? 'As OSs já registradas são mantidas.' : 'Preencha os dados obrigatórios para liberar o registro de Ordens de Serviço.'),
       ),
       !init && previous && h('div', { class: 'px-6 pt-5' }, h('button', { type: 'button', class: `${BTN.neutral} w-full`, onClick: fillTeam }, 'Usar equipe do último turno')),
       form,

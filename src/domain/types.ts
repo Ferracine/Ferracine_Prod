@@ -5,8 +5,8 @@ export type QuestionType = 'text' | 'yesno' | 'yesno_detail';
 /** Teclado sugerido no celular para a resposta de texto. */
 export type InputKind = 'text' | 'numeric' | 'decimal' | 'time';
 
-/** Coluna do Espelho de Campo alimentada pela resposta da pergunta. */
-export type EspelhoColumn = 'tipo' | 'medidorInstalado' | 'leituraInstalado' | 'medidorRetirado' | 'leituraRetirado' | 'desvios';
+/** Coluna própria do Espelho de Campo; perguntas sem coluna vão para INFO ADICIONAL. */
+export type EspelhoColumn = 'tipo' | 'medidorInstalado' | 'leituraInstalado' | 'medidorRetirado' | 'leituraRetirado';
 
 export interface Question {
   id: string;
@@ -23,6 +23,8 @@ export interface Question {
   /** Pergunta do número da OS: começa com o número do painel e, respondida, define o número. */
   prefillOS?: boolean;
   espelho?: EspelhoColumn;
+  /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho` e que não são o número da OS). */
+  short?: string;
 }
 
 export type Choice = 'Sim' | 'Não';

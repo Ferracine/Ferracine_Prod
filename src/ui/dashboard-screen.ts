@@ -18,10 +18,10 @@ export interface DashboardProps {
   onFinish: () => void;
 }
 
-/** Cores do selo de tipo (lista, assistente e contador de perguntas). */
+/** Cores do selo de tipo (lista, assistente e contador): Comercial = ciano do logo, Ocorrência = laranja do logo. */
 export const TYPE_BADGE: Record<ServiceType, string> = {
-  COMERCIAL: 'bg-emerald-500/15 text-emerald-300',
-  OCORRENCIA: 'bg-amber-500/15 text-amber-300',
+  COMERCIAL: 'bg-brand/15 text-brand-fg',
+  OCORRENCIA: 'bg-accent/15 text-accent-fg',
 };
 
 const BADGE = 'text-[11px] font-bold px-2 py-0.5 rounded-md';
@@ -29,18 +29,18 @@ const BADGE = 'text-[11px] font-bold px-2 py-0.5 rounded-md';
 // Só as cores mudam entre os tipos; o Tailwind precisa das classes escritas por extenso.
 const TYPE_COLORS: Record<ServiceType, { box: string; title: string; code: string; start: string; divider: string }> = {
   COMERCIAL: {
-    box: 'border-emerald-500/30 bg-emerald-500/[0.06]',
-    title: 'text-emerald-300',
-    code: 'bg-emerald-500/10 hover:bg-emerald-500 text-emerald-200 hover:text-emerald-950 border-emerald-400/40',
-    start: 'bg-emerald-500 hover:bg-emerald-400 text-emerald-950',
-    divider: 'border-emerald-500/20',
+    box: 'border-brand/35 bg-brand/[0.06]',
+    title: 'text-brand-fg',
+    code: 'bg-brand/10 hover:bg-brand-600 text-brand-fg hover:text-white border-brand/40',
+    start: 'bg-brand-600 hover:bg-brand-700 text-white',
+    divider: 'border-brand/20',
   },
   OCORRENCIA: {
-    box: 'border-amber-500/30 bg-amber-500/[0.06]',
-    title: 'text-amber-300',
-    code: 'bg-amber-500/10 hover:bg-amber-500 text-amber-200 hover:text-amber-950 border-amber-400/40',
-    start: 'bg-amber-500 hover:bg-amber-400 text-amber-950',
-    divider: 'border-amber-500/20',
+    box: 'border-accent/35 bg-accent/[0.06]',
+    title: 'text-accent-fg',
+    code: 'bg-accent/10 hover:bg-accent-600 text-accent-fg hover:text-white border-accent/40',
+    start: 'bg-accent-600 hover:bg-accent-700 text-white',
+    divider: 'border-accent/20',
   },
 };
 
@@ -50,30 +50,30 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
   const time = new Date(os.registradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const label = osLabel(os.osNumber);
   const action = (title: string, cls: string, node: Parameters<typeof icon>[0], onClick: () => void) =>
-    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: `p-3 rounded-xl bg-white/5 border border-white/10 transition-colors ${cls}`, onClick }, icon(node));
+    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: `p-3 rounded-xl bg-fg/5 border border-fg/10 transition-colors ${cls}`, onClick }, icon(node));
 
   return h(
     'li',
-    { class: 'flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/[0.03] gap-3', 'data-testid': 'os-item' },
+    { class: 'flex items-center justify-between p-4 rounded-xl border border-fg/10 bg-fg/[0.03] gap-3', 'data-testid': 'os-item' },
     h(
       'div',
       { class: 'min-w-0' },
-      h('span', { class: 'font-extrabold text-white text-base break-all' }, `#${index + 1} • OS ${label}`),
+      h('span', { class: 'font-extrabold text-fg text-base break-all' }, `#${index + 1} • OS ${label}`),
       h(
         'div',
         { class: 'flex items-center gap-1.5 flex-wrap mt-1' },
-        !os.osNumber && h('span', { class: `${BADGE} bg-rose-500/15 text-rose-300` }, 'sem nº'),
+        !os.osNumber && h('span', { class: `${BADGE} bg-rose-500/15 text-danger-fg` }, 'sem nº'),
         h('span', { class: `${BADGE} ${TYPE_BADGE[os.serviceType]}` }, SERVICE_LABEL[os.serviceType]),
-        h('span', { class: `${BADGE} bg-white/10 text-slate-200` }, `Cód. ${os.serviceCode}`),
+        h('span', { class: `${BADGE} bg-fg/10 text-fg` }, `Cód. ${os.serviceCode}`),
       ),
-      h('p', { class: 'text-xs text-slate-400 mt-1' }, `${answered} de ${rows.length} respondidas • ${time}`),
+      h('p', { class: 'text-xs text-muted mt-1' }, `${answered} de ${rows.length} respondidas • ${time}`),
     ),
     h(
       'div',
       { class: 'flex items-center gap-1.5 shrink-0' },
-      action('Editar nº', 'text-amber-300 hover:bg-white/10', Pencil, () => p.onEditNumber(os)),
-      action('Ver respostas', 'text-energisa-sky hover:bg-white/10', Eye, () => p.onView(os)),
-      action('Excluir', 'text-rose-400 hover:bg-rose-500/10', Trash2, () => p.onDelete(os)),
+      action('Editar nº', 'text-accent-fg hover:bg-fg/10', Pencil, () => p.onEditNumber(os)),
+      action('Ver respostas', 'text-brand-fg hover:bg-fg/10', Eye, () => p.onView(os)),
+      action('Excluir', 'text-danger-fg hover:bg-rose-500/10', Trash2, () => p.onDelete(os)),
     ),
   );
 }
@@ -122,7 +122,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         h('span', { class: `font-extrabold text-sm flex items-center gap-1.5 ${c.title}` }, icon(type === 'COMERCIAL' ? Briefcase : TriangleAlert), SERVICE_LABEL[type]),
         h('span', { class: `${BADGE} ${TYPE_BADGE[type]}` }, plural(questionsFor(type).length, 'pergunta', 'perguntas')),
       ),
-      h('p', { class: 'text-xs text-slate-400' }, 'Toque no código para iniciar:'),
+      h('p', { class: 'text-xs text-muted' }, 'Toque no código para iniciar:'),
       h(
         'div',
         { class: 'flex flex-wrap gap-2' },
@@ -137,7 +137,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       h(
         'div',
         { class: `pt-2 border-t ${c.divider}` },
-        h('label', { for: customId, class: 'text-xs text-slate-400 mb-1.5 block' }, 'Outro código:'),
+        h('label', { for: customId, class: 'text-xs text-muted mb-1.5 block' }, 'Outro código:'),
         h(
           'div',
           { class: 'flex gap-2' },
@@ -152,9 +152,9 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     ordens.length === 0
       ? h(
           'div',
-          { class: 'text-center py-8 px-4 bg-white/[0.03] rounded-xl border border-dashed border-white/15' },
-          h('p', { class: 'text-sm font-semibold text-slate-300' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
-          h('p', { class: 'text-xs text-slate-500 mt-1' }, 'Digite o número da OS (ou deixe vazio) e toque no código para começar.'),
+          { class: 'text-center py-8 px-4 bg-fg/[0.03] rounded-xl border border-dashed border-fg/15' },
+          h('p', { class: 'text-sm font-semibold text-muted' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
+          h('p', { class: 'text-xs text-subtle mt-1' }, 'Digite o número da OS (ou deixe vazio) e toque no código para começar.'),
         )
       : h('ul', { class: 'space-y-3' }, ordens.map((os, i) => osRow(os, i, p)));
 
@@ -166,16 +166,16 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     { id: 'screen-dashboard', class: 'space-y-6' },
     h(
       'div',
-      { class: 'card p-5 border-l-4 border-l-energisa-orange' },
+      { class: 'card p-5 border-l-4 border-l-accent' },
       h(
         'div',
-        { class: 'flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/10' },
-        h('span', { class: 'text-[11px] font-extrabold uppercase tracking-widest text-energisa-orange' }, 'Cabeçalho ativo do turno'),
+        { class: 'flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-fg/10' },
+        h('span', { class: 'text-[11px] font-extrabold uppercase tracking-widest text-accent-fg' }, 'Cabeçalho ativo do turno'),
         h(
           'div',
           { class: 'flex items-center gap-2' },
-          h('span', { class: 'text-xs bg-white/10 px-3 py-1 rounded-full font-semibold text-slate-200' }, `${formatDateBR(header.data)} | ${formatHorario(header)}`),
-          h('button', { type: 'button', class: 'text-xs font-bold bg-white/10 hover:bg-white/15 text-slate-200 px-3 py-1 rounded-full flex items-center gap-1', onClick: p.onEditHeader }, icon(Pencil, 'w-3 h-3'), 'Corrigir'),
+          h('span', { class: 'text-xs bg-fg/10 px-3 py-1 rounded-full font-semibold text-fg' }, `${formatDateBR(header.data)} | ${formatHorario(header)}`),
+          h('button', { type: 'button', class: 'text-xs font-bold bg-fg/10 hover:bg-fg/15 text-fg px-3 py-1 rounded-full flex items-center gap-1', onClick: p.onEditHeader }, icon(Pencil, 'w-3 h-3'), 'Corrigir'),
         ),
       ),
       h(
@@ -184,11 +184,11 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         h(
           'div',
           null,
-          h('span', { class: 'text-slate-500 text-xs block' }, 'Equipe'),
-          h('p', { class: 'font-bold text-white leading-snug' }, teamLabel(header)),
-          teamExtra && h('p', { class: 'text-xs text-slate-400 mt-0.5' }, teamExtra),
+          h('span', { class: 'text-subtle text-xs block' }, 'Equipe'),
+          h('p', { class: 'font-bold text-fg leading-snug' }, teamLabel(header)),
+          teamExtra && h('p', { class: 'text-xs text-muted mt-0.5' }, teamExtra),
         ),
-        h('div', { class: 'sm:text-right' }, h('span', { class: 'text-slate-500 text-xs block' }, 'Bodycam'), h('p', { class: 'font-bold text-energisa-sky' }, orDash(bodycams))),
+        h('div', { class: 'sm:text-right' }, h('span', { class: 'text-subtle text-xs block' }, 'Bodycam'), h('p', { class: 'font-bold text-brand-fg' }, orDash(bodycams))),
       ),
     ),
     h(
@@ -196,13 +196,13 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       { class: 'card p-6 space-y-5' },
       h(
         'div',
-        { class: 'flex items-center gap-3 border-b border-white/10 pb-4' },
-        h('div', { class: 'bg-energisa-blue/20 text-energisa-sky p-2 rounded-lg' }, icon(CirclePlus, 'w-5 h-5')),
+        { class: 'flex items-center gap-3 border-b border-fg/10 pb-4' },
+        h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg' }, icon(CirclePlus, 'w-5 h-5')),
         h(
           'div',
           null,
-          h('h2', { class: 'text-base font-extrabold text-white' }, 'Registrar nova Ordem de Serviço'),
-          h('p', { class: 'text-xs text-slate-400' }, 'Número opcional: se não lembrar, deixe vazio e preencha depois.'),
+          h('h2', { class: 'text-base font-extrabold text-fg' }, 'Registrar nova Ordem de Serviço'),
+          h('p', { class: 'text-xs text-muted' }, 'Número opcional: se não lembrar, deixe vazio e preencha depois.'),
         ),
       ),
       h('div', null, h('label', { for: 'input-os-number', class: 'lbl' }, 'Número da OS (opcional)'), osInput),
@@ -218,9 +218,9 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       { class: 'card p-6 space-y-4' },
       h(
         'div',
-        { class: 'flex items-center justify-between border-b border-white/10 pb-3' },
-        h('div', { class: 'flex items-center gap-2' }, icon(ClipboardList, 'w-5 h-5 text-energisa-sky'), h('h3', { class: 'font-extrabold text-white text-base' }, 'OSs concluídas no turno')),
-        h('span', { id: 'os-count-badge', class: 'bg-energisa-blue text-white text-xs font-bold px-3 py-1 rounded-full' }, plural(ordens.length, 'OS', 'OSs')),
+        { class: 'flex items-center justify-between border-b border-fg/10 pb-3' },
+        h('div', { class: 'flex items-center gap-2' }, icon(ClipboardList, 'w-5 h-5 text-brand-fg'), h('h3', { class: 'font-extrabold text-fg text-base' }, 'OSs concluídas no turno')),
+        h('span', { id: 'os-count-badge', class: 'bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full' }, plural(ordens.length, 'OS', 'OSs')),
       ),
       list,
     ),
@@ -229,11 +229,11 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       { class: 'pt-2 pb-8' },
       h(
         'button',
-        { type: 'button', id: 'btn-finish', class: 'w-full bg-gradient-to-r from-energisa-orange to-amber-500 hover:brightness-110 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-3 text-base active:scale-[0.99]', onClick: p.onFinish },
+        { type: 'button', id: 'btn-finish', class: 'w-full bg-accent-600 hover:bg-accent-700 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl shadow-accent/20 transition-all flex items-center justify-center gap-3 text-base active:scale-[0.99]', onClick: p.onFinish },
         icon(FileDown, 'w-6 h-6'),
         'Finalizar turno e gerar PDF',
       ),
-      h('p', { class: 'text-center text-xs text-slate-500 mt-2.5' }, 'Gera o Espelho de Campo. O turno só é encerrado depois que você confirmar que tem o PDF em mãos.'),
+      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Gera o Espelho de Campo. O turno só é encerrado depois que você confirmar que tem o PDF em mãos.'),
     ),
   );
 }

@@ -18,10 +18,11 @@ export interface WizardProps {
 }
 
 const CHOICE_ON: Record<Choice, string> = {
-  Sim: 'border-energisa-sky bg-energisa-blue text-white shadow-lg shadow-sky-500/20',
-  Não: 'border-slate-300 bg-slate-200 text-slate-900 shadow-lg',
+  Sim: 'border-brand bg-brand-600 text-white shadow-lg shadow-brand/20',
+  // Inverso do tema (escuro no claro, claro no escuro): distingue bem do SIM.
+  Não: 'border-fg bg-fg text-app shadow-lg',
 };
-const CHOICE_OFF = 'border-white/15 bg-white/5 text-slate-200 hover:border-energisa-sky';
+const CHOICE_OFF = 'border-fg/15 bg-fg/5 text-fg hover:border-brand';
 
 function inputAttrs(q: Question): Record<string, string> {
   switch (q.input) {
@@ -115,21 +116,21 @@ export function wizardScreen(p: WizardProps): HTMLElement {
           'div',
           { class: 'flex items-center gap-2 flex-wrap' },
           h('span', { class: `text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md ${TYPE_BADGE[draft.serviceType]}` }, SERVICE_LABEL[draft.serviceType]),
-          h('span', { class: 'text-xs font-bold bg-white/10 text-slate-200 px-2.5 py-0.5 rounded-md' }, `Código ${draft.serviceCode}`),
-          draft.editingId && h('span', { class: 'text-xs font-bold bg-energisa-blue/20 text-energisa-sky px-2.5 py-0.5 rounded-md' }, 'Editando'),
+          h('span', { class: 'text-xs font-bold bg-fg/10 text-fg px-2.5 py-0.5 rounded-md' }, `Código ${draft.serviceCode}`),
+          draft.editingId && h('span', { class: 'text-xs font-bold bg-brand/15 text-brand-fg px-2.5 py-0.5 rounded-md' }, 'Editando'),
         ),
-        h('p', { class: 'text-sm font-extrabold text-white mt-1 break-all' }, 'OS: ', h('span', { id: 'wiz-os-number', class: 'text-energisa-sky' }, osLabel(draft.osNumber))),
+        h('p', { class: 'text-sm font-extrabold text-fg mt-1 break-all' }, 'OS: ', h('span', { id: 'wiz-os-number', class: 'text-brand-fg' }, osLabel(draft.osNumber))),
       ),
-      h('button', { type: 'button', class: 'shrink-0 text-xs font-bold text-rose-300 hover:bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-400/30 transition-colors', onClick: p.onCancel }, draft.editingId ? 'Cancelar edição' : 'Cancelar OS'),
+      h('button', { type: 'button', class: 'shrink-0 text-xs font-bold text-danger-fg hover:bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-500/40 transition-colors', onClick: p.onCancel }, draft.editingId ? 'Cancelar edição' : 'Cancelar OS'),
     ),
     h(
       'div',
       { class: 'space-y-1.5' },
-      h('div', { class: 'flex justify-between text-xs font-bold text-slate-400' }, h('span', { id: 'wiz-step-label' }, `Pergunta ${num} de ${total}`), h('span', null, `${percent}%`)),
+      h('div', { class: 'flex justify-between text-xs font-bold text-muted' }, h('span', { id: 'wiz-step-label' }, `Pergunta ${num} de ${total}`), h('span', null, `${percent}%`)),
       h(
         'div',
-        { class: 'w-full bg-white/10 h-2.5 rounded-full overflow-hidden', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': draft.index },
-        h('div', { class: 'bg-gradient-to-r from-energisa-blue to-energisa-sky h-full transition-all duration-300 rounded-full', style: `width: ${percent}%` }),
+        { class: 'w-full bg-fg/10 h-2.5 rounded-full overflow-hidden', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': draft.index },
+        h('div', { class: 'bg-brand h-full transition-all duration-300 rounded-full', style: `width: ${percent}%` }),
       ),
     ),
     h(
@@ -139,34 +140,34 @@ export function wizardScreen(p: WizardProps): HTMLElement {
         h(
           'div',
           { id: 'wiz-mandatory-alert', class: 'bg-rose-500/10 border-l-4 border-rose-500 p-3.5 rounded-r-xl flex items-start gap-3' },
-          icon(ShieldAlert, 'w-5 h-5 text-rose-400 shrink-0 mt-0.5'),
+          icon(ShieldAlert, 'w-5 h-5 text-danger-fg shrink-0 mt-0.5'),
           h(
             'div',
             null,
-            h('p', { class: 'text-xs font-extrabold text-rose-300 uppercase' }, 'Resposta obrigatória de segurança'),
-            h('p', { class: 'text-xs text-rose-200/80 mt-0.5' }, 'Esta etapa não pode ser pulada. Selecione SIM ou NÃO para continuar.'),
+            h('p', { class: 'text-xs font-extrabold text-danger-fg uppercase' }, 'Resposta obrigatória de segurança'),
+            h('p', { class: 'text-xs text-danger-fg/90 mt-0.5' }, 'Esta etapa não pode ser pulada. Selecione SIM ou NÃO para continuar.'),
           ),
         ),
       h(
         'div',
         null,
-        h('span', { class: 'text-xs font-bold uppercase tracking-widest text-energisa-sky block mb-1' }, `Pergunta ${num}`),
-        h('h2', { id: 'wiz-question-text', class: 'text-xl sm:text-2xl font-extrabold text-white leading-snug' }, q.text),
+        h('span', { class: 'text-xs font-bold uppercase tracking-widest text-brand-fg block mb-1' }, `Pergunta ${num}`),
+        h('h2', { id: 'wiz-question-text', class: 'text-xl sm:text-2xl font-extrabold text-fg leading-snug' }, q.text),
       ),
       inputArea,
       h(
         'div',
-        { class: 'pt-4 border-t border-white/10 flex flex-col-reverse sm:flex-row items-center justify-between gap-3' },
+        { class: 'pt-4 border-t border-fg/10 flex flex-col-reverse sm:flex-row items-center justify-between gap-3' },
         h(
           'button',
           {
             type: 'button',
             id: 'btn-wiz-prev',
-            class: `${draft.index === 0 ? 'invisible' : ''} w-full sm:w-auto px-5 py-3.5 rounded-xl border border-white/15 text-slate-200 font-bold text-sm hover:bg-white/5 transition-colors flex items-center justify-center gap-2`,
+            class: 'w-full sm:w-auto px-5 py-3.5 rounded-xl border border-fg/15 text-fg font-bold text-sm hover:bg-fg/5 transition-colors flex items-center justify-center gap-2',
             onClick: p.onBack,
           },
           icon(ArrowLeft),
-          'Voltar',
+          draft.index === 0 ? 'Voltar ao painel' : 'Voltar',
         ),
         h(
           'div',
@@ -174,13 +175,13 @@ export function wizardScreen(p: WizardProps): HTMLElement {
           !q.required &&
             h(
               'button',
-              { type: 'button', id: 'btn-wiz-skip', class: 'flex-1 sm:flex-initial px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-sm transition-colors flex items-center justify-center gap-1.5', onClick: p.onSkip },
+              { type: 'button', id: 'btn-wiz-skip', class: 'flex-1 sm:flex-initial px-5 py-3.5 rounded-xl bg-fg/10 hover:bg-fg/15 text-fg font-bold text-sm transition-colors flex items-center justify-center gap-1.5', onClick: p.onSkip },
               'Pular',
               icon(SkipForward),
             ),
           h(
             'button',
-            { type: 'button', id: 'btn-wiz-next', class: 'flex-1 sm:flex-initial whitespace-nowrap px-6 py-3.5 rounded-xl bg-gradient-to-r from-energisa-blue to-sky-500 hover:brightness-110 text-white font-extrabold text-sm shadow-md shadow-sky-500/20 transition-all flex items-center justify-center gap-2', onClick: p.onNext },
+            { type: 'button', id: 'btn-wiz-next', class: 'flex-1 sm:flex-initial whitespace-nowrap px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm shadow-md shadow-brand/20 transition-all flex items-center justify-center gap-2', onClick: p.onNext },
             isLastQuestion(draft) ? (draft.editingId ? 'Salvar alterações' : 'Concluir OS') : 'Próximo',
             icon(ArrowRight),
           ),

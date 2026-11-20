@@ -64,6 +64,18 @@ describe('assistente', () => {
     expect(edited.answers.o2).toEqual({ kind: 'text', value: '101' });
   });
 
+  it('isUnchanged: compara com o ponto de partida e trata texto apagado como não respondido', () => {
+    const d = wiz.startDraft('5', 'OCORRENCIA', '508');
+    expect(wiz.isUnchanged(d)).toBe(true);
+    expect(wiz.isUnchanged(wiz.setText(d, ''))).toBe(true);
+    expect(wiz.isUnchanged(wiz.setText(d, 'Falta'))).toBe(false);
+
+    const os = wiz.finalize(wiz.setText(d, 'Falta'), 'id', new Date());
+    const edit = wiz.draftFromOS(os);
+    expect(wiz.isUnchanged(edit, os)).toBe(true);
+    expect(wiz.isUnchanged(wiz.setText(edit, 'Outra'), os)).toBe(false);
+  });
+
   it('editar o número depois mantém a pergunta 2 coerente', () => {
     const os = wiz.finalize(wiz.startDraft('', 'OCORRENCIA', '508'), 'x', new Date());
     const comNumero = wiz.withOSNumber(os, ' 777 ');

@@ -1,205 +1,183 @@
 import { jsPDF } from 'jspdf';
-import { autoTable, type RowInput } from 'jspdf-autotable';
-import { SERVICE_LABEL, TECNICOS_LIDERES } from './domain/catalog';
-import { ESPELHO_MIN_LINHAS, espelhoRows } from './domain/espelho';
-import { formatDateBR, formatHorario, orDash, osLabel } from './domain/format';
+import { autoTable, type CellHookData, type RowInput, type UserOptions } from 'jspdf-autotable';
+import logoPng from './assets/energisa-pdf.png?inline';
+import { TECNICOS_LIDERES } from './domain/catalog';
+import { espelhoRows } from './domain/espelho';
+import { formatDateBR, formatHorario } from './domain/format';
 import type { OrdemServico, ShiftHeader } from './domain/types';
-import { answerRows } from './domain/wizard';
+
+/**
+ * Espelho de Campo idêntico à folha de papel (design/ex_pdf.jpeg): A4 paisagem, preto e branco, um bloco
+ * contínuo de tabelas. As larguras das colunas foram medidas na foto e somam a largura útil (281 mm) em cada tabela.
+ */
 
 type RGB = [number, number, number];
+const BLACK: RGB = [0, 0, 0];
+const MARGIN = { top: 10, left: 8, right: 8, bottom: 8 };
+const LARGURA_UTIL = 297 - MARGIN.left - MARGIN.right;
+/** Linhas impressas na folha, como no papel; com mais OSs a tabela continua na folha seguinte. */
+const LINHAS_FOLHA = 15;
+const FONT = 'helvetica';
 
-const NAVY: RGB = [15, 41, 74];
-const BLUE: RGB = [0, 114, 206];
-const GREEN: RGB = [16, 110, 75];
-const ORANGE: RGB = [243, 112, 33];
-const GRAY_LABEL: RGB = [230, 234, 240];
-const LINE: RGB = [120, 130, 145];
-const DITAIS_BG: RGB = [254, 242, 242];
-const DITAIS_TEXT: RGB = [185, 28, 28];
-const MUTED: RGB = [140, 140, 140];
-
-// A4 paisagem: 297 x 210 mm, 277 mm úteis entre margens.
-const PAGE_W = 297;
-const PAGE_H = 210;
-const MARGIN = { top: 10, left: 10, right: 10, bottom: 12 };
-
-const GRID = { font: 'helvetica', fontSize: 8, cellPadding: 1.8, lineColor: LINE, lineWidth: 0.25, textColor: [20, 20, 20] as RGB, valign: 'middle' as const };
-const LABEL = { fontStyle: 'bold' as const, fillColor: GRAY_LABEL };
+const BASE: UserOptions['styles'] = {
+  font: FONT,
+  fontSize: 8,
+  textColor: BLACK,
+  lineColor: BLACK,
+  lineWidth: 0.3,
+  cellPadding: 1,
+  valign: 'middle',
+  // Nada é cortado: o PDF é o único registro das respostas, então texto longo quebra linha.
+  overflow: 'linebreak',
+};
+const LABEL = { fontStyle: 'bold' as const, fontSize: 7 };
 
 function finalY(doc: jsPDF): number {
   return (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY;
 }
 
+/** Tabela "grudada" na anterior, como na folha (sem espaço entre os blocos). */
+function block(doc: jsPDF, options: UserOptions, startY = finalY(doc)): void {
+  autoTable(doc, { startY, margin: MARGIN, theme: 'grid', styles: BASE, tableWidth: LARGURA_UTIL, ...options });
+}
+
+function pen(doc: jsPDF, size: number, bold = true): void {
+  doc.setFont(FONT, bold ? 'bold' : 'normal');
+  doc.setFontSize(size);
+}
+
+/** Logo à esquerda (ocupando duas linhas) + DEPARTAMENTO DE OPERAÇÃO / ESPELHO DE CAMPO. */
+function titulo(doc: jsPDF): void {
+  // Linhas um pouco mais altas que na folha para o logo (mais "quadrado" que o impresso) ocupar a célula.
+  const title = { fontStyle: 'bold' as const, fontSize: 7.5, halign: 'center' as const, minCellHeight: 6.8 };
+  const logo = doc.getImageProperties(logoPng);
+  const ratio = logo.width / logo.height;
+  block(
+    doc,
+    {
+      columnStyles: { 0: { cellWidth: 52.7 }, 1: { cellWidth: 228.3 } },
+      body: [
+        [{ content: '', rowSpan: 2 }, { content: 'DEPARTAMENTO DE OPERAÇÃO', styles: title }],
+        [{ content: 'ESPELHO DE CAMPO', styles: title }],
+      ],
+      didDrawCell: ({ cell, column, row, section }: CellHookData) => {
+        if (section !== 'body' || column.index !== 0 || row.index !== 0) return;
+        const w = Math.min((cell.height - 1.6) * ratio, cell.width - 3);
+        const h = w / ratio;
+        doc.addImage(logoPng, 'PNG', cell.x + (cell.width - w) / 2, cell.y + (cell.height - h) / 2, w, h);
+      },
+    },
+    MARGIN.top,
+  );
+}
+
+/** NOME / MAT / EQUIPE|VIATURA / DATA|HORARIO / BODYCAM|BODYCAM2, rótulo e valor lado a lado. */
 function identificacao(doc: jsPDF, h: ShiftHeader): void {
-  autoTable(doc, {
-    startY: MARGIN.top,
-    margin: MARGIN,
-    theme: 'grid',
-    styles: { ...GRID, overflow: 'ellipsize' },
-    columnStyles: { 0: { cellWidth: 18 }, 1: { cellWidth: 72 }, 2: { cellWidth: 40 }, 3: { cellWidth: 45 }, 4: { cellWidth: 22 }, 5: { cellWidth: 30 }, 6: { cellWidth: 22 }, 7: { cellWidth: 28 } },
+  const linha = (...pares: [string, string][]): RowInput =>
+    pares.flatMap(([rotulo, valor]) => [
+      { content: rotulo, styles: LABEL },
+      { content: valor, styles: { fontSize: 9 } },
+    ]);
+  block(doc, {
+    styles: { ...BASE, minCellHeight: 6 },
+    columnStyles: { 0: { cellWidth: 11 }, 1: { cellWidth: 62 }, 2: { cellWidth: 9 }, 3: { cellWidth: 36 }, 4: { cellWidth: 15 }, 5: { cellWidth: 19 }, 6: { cellWidth: 16 }, 7: { cellWidth: 31 }, 8: { cellWidth: 18 }, 9: { cellWidth: 64 } },
     body: [
-      [
-        { content: 'GRUPO ENERGISA', rowSpan: 2, colSpan: 2, styles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 13, halign: 'center' } },
-        { content: 'DEPARTAMENTO DE OPERAÇÃO', colSpan: 6, styles: { fontStyle: 'bold', fontSize: 10, halign: 'center', fillColor: GRAY_LABEL } },
-      ],
-      [{ content: 'ESPELHO DE CAMPO', colSpan: 6, styles: { fontStyle: 'bold', fontSize: 12, halign: 'center', textColor: ORANGE } }],
-      [
-        { content: 'NOME:', styles: LABEL },
-        orDash(h.nome1),
-        `MAT: ${h.mat1}`,
-        `EQUIPE: ${h.equipe}`,
-        { content: 'DATA:', styles: LABEL },
-        formatDateBR(h.data),
-        { content: 'BODYCAM:', styles: LABEL },
-        orDash(h.bodycam1),
-      ],
-      [
-        { content: 'NOME:', styles: LABEL },
-        orDash(h.nome2),
-        `MAT: ${h.mat2}`,
-        `VIATURA: ${h.viatura}`,
-        { content: 'HORARIO:', styles: LABEL },
-        formatHorario(h),
-        { content: 'BODYCAM2:', styles: LABEL },
-        orDash(h.bodycam2),
-      ],
+      linha(['NOME:', h.nome1], ['MAT:', h.mat1], ['EQUIPE:', h.equipe], ['DATA:', formatDateBR(h.data)], ['BODYCAM:', h.bodycam1]),
+      linha(['NOME:', h.nome2], ['MAT:', h.mat2], ['VIATURA:', h.viatura], ['HORARIO:', formatHorario(h)], ['BODYCAM2:', h.bodycam2]),
     ],
   });
 }
 
+/** ITEM (vertical) | OS/OCORRÊNCIA | TIPO DE SERVIÇO | MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | INFO ADICIONAL */
 function tabelaServicos(doc: jsPDF, ordens: readonly OrdemServico[]): void {
-  const rows: RowInput[] = espelhoRows(ordens).map((r) => [
-    r.item,
-    r.os,
-    r.tipo,
-    r.medidorInstalado,
-    r.leituraInstalado,
-    r.medidorRetirado,
-    r.leituraRetirado,
-    r.desvios,
-  ]);
-  for (let i = rows.length; i < ESPELHO_MIN_LINHAS; i++) rows.push([i + 1, '', '', '', '', '', '', '']);
+  const rows: RowInput[] = espelhoRows(ordens).map((r) => [r.item, r.os, r.tipo, r.medidorInstalado, r.leituraInstalado, r.medidorRetirado, r.leituraRetirado, r.info]);
+  for (let i = rows.length; i < LINHAS_FOLHA; i++) rows.push([i + 1, '', '', '', '', '', '', '']);
 
-  autoTable(doc, {
-    startY: finalY(doc) + 3,
-    margin: MARGIN,
-    theme: 'grid',
+  block(doc, {
     showHead: 'everyPage',
     rowPageBreak: 'avoid',
-    // Uma linha por OS (~5,7 mm): as 20 linhas + identificação + rodapé cabem numa folha A4 paisagem.
-    // Texto longo é cortado com "..." aqui; a resposta completa está no detalhamento.
-    styles: { ...GRID, cellPadding: 1.2, overflow: 'ellipsize' },
-    headStyles: { fillColor: NAVY, textColor: [255, 255, 255], fontStyle: 'bold', halign: 'center', fontSize: 7.5 },
+    styles: { ...BASE, fontSize: 9, minCellHeight: 7.6 },
+    // Pouco espaçamento: "LEITURA" cabe na coluna estreita (11 mm) como na folha.
+    headStyles: { fillColor: false, fontStyle: 'bold', fontSize: 6.5, halign: 'center', minCellHeight: 6.7, cellPadding: 0.4 },
     columnStyles: {
-      0: { cellWidth: 12, halign: 'center', fontStyle: 'bold' },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 58 },
-      3: { cellWidth: 32 },
-      4: { cellWidth: 22 },
-      5: { cellWidth: 32 },
-      6: { cellWidth: 22 },
-      7: { cellWidth: 69 },
+      0: { cellWidth: 4.7, halign: 'center', fontStyle: 'bold', fontSize: 7, cellPadding: 0.3 },
+      1: { cellWidth: 48 },
+      2: { cellWidth: 33.3 },
+      3: { cellWidth: 52.5 },
+      // LEITURA é estreita como na folha: fonte menor para caber leitura de 6-7 dígitos numa linha.
+      4: { cellWidth: 11.4, fontSize: 7, cellPadding: 0.5 },
+      5: { cellWidth: 46.2 },
+      6: { cellWidth: 11.2, fontSize: 7, cellPadding: 0.5 },
+      // Tudo o que o eletricista respondeu sem coluna própria, em fonte pequena para a folha caber 15 OSs.
+      7: { cellWidth: 73.7, fontSize: 6, cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 } },
     },
-    head: [['ITEM', 'OS/OCORRÊNCIA', 'TIPO DE SERVIÇO', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'INFORMAÇÕES DESVIOS']],
+    head: [['', 'OS/OCORRÊNCIA', 'TIPO DE SERVIÇO', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'INFO ADICIONAL']],
     body: rows,
+    didDrawCell: ({ cell, column, section }: CellHookData) => {
+      if (section !== 'head' || column.index !== 0) return;
+      pen(doc, 6);
+      doc.text('ITEM', cell.x + cell.width / 2 + 1, cell.y + cell.height - 0.8, { angle: 90 });
+    },
   });
 }
 
-function rodapeEspelho(doc: jsPDF, h: ShiftHeader, total: number): void {
-  autoTable(doc, {
-    startY: finalY(doc) + 3,
-    margin: MARGIN,
-    theme: 'grid',
-    rowPageBreak: 'avoid',
-    styles: GRID,
-    columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 74 }, 2: { cellWidth: 74 }, 3: { cellWidth: 74 } },
+/** Separa "TEC. NOME - 69 99999-9999" em nome e telefone. */
+function splitLider(lider: string): [string, string] {
+  const i = lider.lastIndexOf(' - ');
+  return i < 0 ? [lider, ''] : [lider.slice(0, i), lider.slice(i + 3)];
+}
+
+/** TEC.LIDER RESPONSAVEL PELA EQUIPE + PRODUÇÃO TOTAL e os técnicos com o quadradinho de marcar. */
+function rodape(doc: jsPDF, h: ShiftHeader, total: number): void {
+  block(doc, {
+    // As duas linhas do rodapé ficam sempre juntas: se não couberem, vão inteiras para a folha seguinte.
+    pageBreak: 'avoid',
+    columnStyles: { 0: { cellWidth: 53.7 }, 1: { cellWidth: 65.4 }, 2: { cellWidth: 77 }, 3: { cellWidth: 84.9 } },
     body: [
-      [{ content: 'TEC.LIDER RESPONSAVEL PELA EQUIPE', colSpan: 4, styles: { ...LABEL, halign: 'center' } }],
-      [
-        { content: `PRODUÇÃO TOTAL: ${total}`, styles: { fontStyle: 'bold' } },
-        ...TECNICOS_LIDERES.map((lider) => ({
-          content: `[${lider === h.lider ? 'X' : ' '}] ${lider}`,
-          styles: { fontStyle: lider === h.lider ? ('bold' as const) : ('normal' as const) },
-        })),
-      ],
+      [{ content: 'TEC.LIDER RESPONSAVEL PELA EQUIPE', colSpan: 4, styles: { ...LABEL, fontSize: 7.5, halign: 'center', minCellHeight: 5 } }],
+      [{ content: '', styles: { minCellHeight: 16 } }, '', '', ''],
     ],
+    didDrawCell: ({ cell, column, row, section }: CellHookData) => {
+      if (section !== 'body' || row.index !== 1) return;
+      if (column.index === 0) {
+        const label = 'PRODUÇÃO TOTAL:';
+        const x = cell.x + 4;
+        const y = cell.y + cell.height / 2;
+        pen(doc, 7.5);
+        doc.text(label, x, y);
+        doc.setLineWidth(0.3);
+        doc.line(x, y + 0.8, x + doc.getTextWidth(label), y + 0.8);
+        pen(doc, 12);
+        doc.text(String(total), x + 4, cell.y + cell.height - 2);
+        return;
+      }
+      const lider = TECNICOS_LIDERES[column.index - 1];
+      if (!lider) return;
+      const [nome, telefone] = splitLider(lider);
+      const cx = cell.x + cell.width / 2;
+      pen(doc, 7.5);
+      doc.text(nome, cx, cell.y + 5, { align: 'center' });
+      pen(doc, 7);
+      doc.text(telefone, cx, cell.y + 9.5, { align: 'center' });
+      // Quadradinho de marcar no canto inferior esquerdo; com X no técnico escolhido.
+      const box = { x: cell.x + 4, y: cell.y + cell.height - 6, s: 3.6 };
+      doc.setLineWidth(0.35);
+      doc.rect(box.x, box.y, box.s, box.s);
+      if (lider === h.lider) {
+        doc.setLineWidth(0.5);
+        doc.line(box.x + 0.6, box.y + 0.6, box.x + box.s - 0.6, box.y + box.s - 0.6);
+        doc.line(box.x + box.s - 0.6, box.y + 0.6, box.x + 0.6, box.y + box.s - 0.6);
+      }
+    },
   });
 }
 
-/** Anexo: todas as respostas de cada OS (DITAIS, KM, horários...), que não têm coluna no espelho. */
-function detalhamento(doc: jsPDF, ordens: readonly OrdemServico[]): void {
-  doc.addPage();
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.setTextColor(...NAVY);
-  doc.text('DETALHAMENTO DAS ORDENS DE SERVIÇO', MARGIN.left, MARGIN.top + 4);
-  let y = MARGIN.top + 8;
-
-  ordens.forEach((os, idx) => {
-    autoTable(doc, {
-      startY: y,
-      margin: MARGIN,
-      theme: 'grid',
-      showHead: 'everyPage',
-      rowPageBreak: 'avoid',
-      head: [[{
-        content: `ITEM ${idx + 1}  |  OS: ${osLabel(os.osNumber)}  |  TIPO: ${SERVICE_LABEL[os.serviceType]} (CÓDIGO ${os.serviceCode})`,
-        colSpan: 2,
-        styles: { fillColor: os.serviceType === 'COMERCIAL' ? GREEN : BLUE, textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 8.5 },
-      }]],
-      body: answerRows(os).map((row, qIdx) => [
-        {
-          content: `${qIdx + 1}. ${row.question}`,
-          styles: { cellWidth: 140, fontStyle: row.isDitais ? 'bold' : 'normal', fillColor: row.isDitais ? DITAIS_BG : [250, 251, 252] },
-        },
-        {
-          content: row.display,
-          styles: {
-            fontStyle: row.skipped ? 'italic' : 'bold',
-            textColor: row.skipped ? MUTED : row.isDitais ? DITAIS_TEXT : NAVY,
-            fillColor: row.isDitais ? DITAIS_BG : [255, 255, 255],
-          },
-        },
-      ]),
-      styles: { ...GRID, lineColor: [200, 208, 218], lineWidth: 0.2 },
-    });
-    y = finalY(doc) + 4;
-  });
-}
-
-export function newSheetDoc(): jsPDF {
-  return new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-}
-
-/** Desenha o Espelho de Campo (identificação, tabela de serviços e rodapé) a partir da página atual. */
-export function drawEspelho(doc: jsPDF, header: ShiftHeader, ordens: readonly OrdemServico[]): void {
+/** PDF do Espelho de Campo (A4 paisagem), idêntico ao modelo de papel. */
+export function buildSheetPdf(header: ShiftHeader, ordens: readonly OrdemServico[]): jsPDF {
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  titulo(doc);
   identificacao(doc, header);
   tabelaServicos(doc, ordens);
-  rodapeEspelho(doc, header, ordens.length);
-}
-
-/** Monta o PDF do Espelho de Campo (A4 paisagem) seguido do detalhamento das OSs. */
-export function buildSheetPdf(header: ShiftHeader, ordens: readonly OrdemServico[], emitidoEm: Date): jsPDF {
-  const doc = newSheetDoc();
-
-  drawEspelho(doc, header, ordens);
-  if (ordens.length > 0) detalhamento(doc, ordens);
-
-  const emitido = emitidoEm.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-  const data = formatDateBR(header.data);
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7);
-    doc.setTextColor(120, 120, 120);
-    doc.text(
-      `Grupo Energisa - Espelho de Campo | Equipe: ${header.nome1} | Data: ${data} | Emitido em ${emitido} | Página ${i} de ${totalPages}`,
-      PAGE_W / 2,
-      PAGE_H - 5,
-      { align: 'center' },
-    );
-  }
-
+  rodape(doc, header, ordens.length);
   return doc;
 }

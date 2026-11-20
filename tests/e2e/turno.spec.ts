@@ -128,6 +128,55 @@ test('número repetido pelo lápis pede confirmação', async ({ page }) => {
   await expect(page.getByTestId('os-item').nth(1)).toContainText('sem nº');
 });
 
+test('voltar da tela e do Android: pergunta anterior e, na primeira, volta ao painel', async ({ page }) => {
+  await iniciarTurno(page);
+  await abrirOS(page, '901', '508');
+  await page.locator('#wiz-text-input').fill('Falta de energia');
+  await proximo(page);
+  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 2 de 18');
+
+  // Voltar do sistema (botão/gesto do Android) = pergunta anterior, sem sair do app.
+  await page.goBack();
+  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 1 de 18');
+  await expect(page.locator('#btn-wiz-prev')).toHaveText('Voltar ao painel');
+
+  // Já há resposta: pede confirmação antes de descartar.
+  await page.locator('#btn-wiz-prev').click();
+  await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
+  await page.getByRole('button', { name: 'Descartar OS' }).click();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+
+  // OS aberta e nada respondido: volta direto, também pelo voltar do sistema.
+  await abrirOS(page, '902', '28');
+  await page.goBack();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.getByTestId('os-item')).toHaveCount(0);
+});
+
+test('recarregar no meio da OS não deixa um "voltar" morto no histórico', async ({ page }) => {
+  await iniciarTurno(page);
+  await abrirOS(page, '903', '28');
+  await page.reload();
+  await page.reload();
+  await expect(page.locator('#screen-wizard')).toBeVisible();
+  await page.locator('#btn-wiz-prev').click(); // nada respondido: volta direto ao painel
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  // Uma única entrada de histórico do app deve ter sobrado (a da página).
+  await expect.poll(() => page.evaluate(() => history.state?.ferracineBackTrap ?? false)).toBe(false);
+});
+
+test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
+  await page.goto('/');
+  const html = page.locator('html');
+  const inicial = await html.getAttribute('data-theme');
+  expect(['light', 'dark']).toContain(inicial);
+  await page.locator('#theme-toggle').click();
+  const trocado = inicial === 'dark' ? 'light' : 'dark';
+  await expect(html).toHaveAttribute('data-theme', trocado);
+  await page.reload();
+  await expect(html).toHaveAttribute('data-theme', trocado);
+});
+
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
   await abrirOS(page, '789', '28');

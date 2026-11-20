@@ -1,26 +1,63 @@
 @import 'tailwindcss';
 
-/* Tema escuro do layout de referência (design/index_base.html). */
+/* Tema escuro ativo quando <html data-theme="dark"> (definido antes da pintura em index.html). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Paleta do logo Energisa (src/assets/energisa.svg): ciano #0fabcc e laranja #f36f23. */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --color-ink: #0b1220;
-  --color-panel: #111a2e;
-  --color-panel2: #17223b;
-  --color-energisa-navy: #0f294a;
-  --color-energisa-blue: #0072ce;
-  --color-energisa-sky: #38bdf8;
-  --color-energisa-orange: #f37021;
+  --color-brand: #0fabcc;
+  --color-accent: #f36f23;
+  /* Tons mais escuros das cores do logo, para texto branco por cima com contraste AA. */
+  --color-brand-600: #087f9a;
+  --color-brand-700: #066a81;
+  --color-accent-600: #c4500d;
+  --color-accent-700: #a5430b;
+}
+
+/* Cores que mudam com o tema: superfícies, texto e as cores do logo usadas como texto. */
+@theme inline {
+  --color-app: var(--app);
+  --color-card: var(--card);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-subtle: var(--subtle);
+  --color-brand-fg: var(--brand-fg);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger-fg: var(--danger-fg);
 }
 
 @layer base {
   :root {
-    /* Seletores nativos de data e hora no tema escuro. */
+    --app: #eef4f7;
+    --card: #ffffff;
+    --field: #ffffff;
+    --fg: #0b2230;
+    --muted: #4a6573;
+    --subtle: #6b8592;
+    --brand-fg: #087f9a;
+    --accent-fg: #c4500d;
+    --danger-fg: #be123c;
+    color-scheme: light;
+  }
+
+  :root[data-theme='dark'] {
+    --app: #06141c;
+    --card: #0c212c;
+    --field: #06141c;
+    --fg: #e8f4f8;
+    --muted: #9fb8c3;
+    --subtle: #6d8b97;
+    --brand-fg: #3cc4e2;
+    --accent-fg: #ff8a4c;
+    --danger-fg: #fda4af;
     color-scheme: dark;
   }
 
   /* Sem "fixed": no Chrome do Android o fundo fixo é repintado a cada quadro de rolagem. */
   body {
-    background: radial-gradient(1200px 500px at 50% -10%, #12315c 0%, #0b1220 60%) no-repeat #0b1220;
+    background: radial-gradient(1200px 500px at 50% -10%, rgb(15 171 204 / 0.16) 0%, transparent 60%) no-repeat var(--app);
+    color: var(--fg);
   }
 
   button {
@@ -34,21 +71,21 @@
     width: 100%;
     padding: 0.85rem 1rem;
     border-radius: 0.9rem;
-    background: #0b1220;
-    border: 1.5px solid rgb(255 255 255 / 0.12);
-    color: #f1f5f9;
+    background: var(--field);
+    border: 1.5px solid color-mix(in oklab, var(--fg) 16%, transparent);
+    color: var(--fg);
     font-weight: 600;
     font-size: 1rem;
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .field::placeholder {
-    color: #64748b;
+    color: var(--subtle);
     font-weight: 500;
   }
   .field:focus {
-    border-color: #38bdf8;
-    box-shadow: 0 0 0 3px rgb(56 189 248 / 0.18);
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 3px rgb(15 171 204 / 0.2);
   }
 
   .lbl {
@@ -57,13 +94,14 @@
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: var(--muted);
     margin-bottom: 0.35rem;
   }
 
   .card {
-    background: #111a2e;
-    border: 1px solid rgb(255 255 255 / 0.08);
+    background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--fg) 10%, transparent);
     border-radius: 1.25rem;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
   }
 }

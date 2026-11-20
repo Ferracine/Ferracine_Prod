@@ -3,29 +3,38 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#06141c" />
     <meta name="description" content="Folha de Produção Diária: registro das OSs do turno e Espelho de Campo em PDF, funciona sem internet." />
     <title>Folha de Produção Diária - Energisa</title>
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" href="/pwa-64x64.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
+    <script>
+      // Tema antes da primeira pintura (evita piscar). Mesma chave e regra de src/theme.ts.
+      (function () {
+        var t;
+        try { t = localStorage.getItem('ferracine_prod:theme'); } catch (e) {}
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
   </head>
-  <body class="text-slate-100 font-sans min-h-screen flex flex-col">
+  <body class="font-sans min-h-screen flex flex-col">
     <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
-    <div id="modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4"></div>
+    <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4"></div>
 
-    <header class="sticky top-0 z-30 bg-ink/95 border-b border-white/10">
-      <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <img src="/pwa-64x64.png" alt="" class="w-10 h-10 rounded-xl bg-white/90 p-1" />
-          <div>
-            <span class="text-[10px] font-bold tracking-[0.2em] text-energisa-orange uppercase block">Energisa • Operação</span>
-            <h1 class="text-base font-extrabold leading-tight text-white">Folha de Produção Diária</h1>
-          </div>
+    <header class="sticky top-0 z-30 bg-card/95 border-b border-fg/10">
+      <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 min-w-0">
+          <img src="/src/assets/energisa.svg" alt="Grupo Energisa" class="h-9 w-auto shrink-0" />
+          <h1 class="text-sm font-extrabold leading-tight text-fg border-l border-fg/15 pl-3">Folha de Produção Diária</h1>
         </div>
-        <div class="hidden sm:flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-200">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span id="badge-status" aria-live="polite"></span>
+        <div class="flex items-center gap-2 shrink-0">
+          <div class="hidden sm:flex items-center gap-2 bg-fg/5 border border-fg/10 px-3 py-1.5 rounded-full text-xs font-semibold text-muted">
+            <span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
+            <span id="badge-status" aria-live="polite"></span>
+          </div>
+          <button id="theme-toggle" type="button" class="p-2 rounded-xl border border-fg/10 bg-fg/5 hover:bg-fg/10 text-fg"></button>
         </div>
       </div>
     </header>

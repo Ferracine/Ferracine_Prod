@@ -20,8 +20,8 @@ export default defineConfig({
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        theme_color: '#0b1220',
-        background_color: '#0b1220',
+        theme_color: '#06141c',
+        background_color: '#06141c',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -31,8 +31,16 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // A Inter traz vários alfabetos; o app só usa o latino.
-        globIgnores: ['**/*cyrillic*', '**/*greek*', '**/*vietnamese*'],
+        globIgnores: [
+          // A Inter traz vários alfabetos; o app só usa o latino.
+          '**/*cyrillic*',
+          '**/*greek*',
+          '**/*vietnamese*',
+          // Dependências opcionais do jsPDF (doc.html() e SVG), que o app não usa: ~380 KB a menos no cache.
+          '**/html2canvas-*.js',
+          '**/purify.es-*.js',
+          '**/index.es-*.js',
+        ],
       },
     }),
   ],

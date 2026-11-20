@@ -1,29 +1,34 @@
 import { questionsFor } from './catalog';
 import { osLabel } from './format';
-import type { Answer, EspelhoColumn, OrdemServico } from './types';
+import type { Answer, EspelhoColumn, OrdemServico, Question } from './types';
 
 /**
- * Linhas da tabela do Espelho de Campo (modelo em design/espelho_de_campo.md).
- * Cada coluna vem das perguntas etiquetadas com `espelho` no catálogo; as demais respostas vão para o
- * anexo de detalhamento do PDF.
+ * Linhas da tabela do Espelho de Campo (modelo em design/ex_pdf.jpeg).
+ * As colunas próprias vêm das perguntas etiquetadas com `espelho` no catálogo; todas as outras respostas
+ * preenchidas pelo eletricista vão para INFO ADICIONAL, como "Rótulo: resposta".
  */
 
-export const ESPELHO_MIN_LINHAS = 20;
+export type EspelhoRow = { item: number; os: string; info: string } & Record<EspelhoColumn, string>;
 
-export type EspelhoRow = { item: number; os: string } & Record<EspelhoColumn, string>;
-
-/** Texto que a resposta leva ao espelho: o texto digitado ou o complemento de um "Sim, qual?". */
-function value(ans: Answer | undefined): string {
-  if (ans?.kind === 'text') return ans.value;
-  if (ans?.kind === 'choice' && ans.choice === 'Sim') return ans.detail ?? '';
-  return '';
+/**
+ * Texto que a resposta leva à folha: o texto digitado, SIM/NÃO, ou o complemento de um "Sim, qual?".
+ * O "Não" de uma pergunta "se sim, qual?" não acrescenta nada e fica vazio (economiza espaço na célula).
+ */
+function answerValue(q: Question, ans: Answer | undefined): string {
+  if (!ans || ans.kind === 'skipped') return '';
+  if (ans.kind === 'text') return ans.value;
+  if (q.type === 'yesno_detail') return ans.choice === 'Sim' ? (ans.detail ?? '') : '';
+  return ans.choice;
 }
 
 function espelhoRow(os: OrdemServico, item: number): EspelhoRow {
-  const cols: Record<EspelhoColumn, string[]> = { tipo: [], medidorInstalado: [], leituraInstalado: [], medidorRetirado: [], leituraRetirado: [], desvios: [] };
+  const cols: Record<EspelhoColumn, string[]> = { tipo: [], medidorInstalado: [], leituraInstalado: [], medidorRetirado: [], leituraRetirado: [] };
+  const info: string[] = [];
   for (const q of questionsFor(os.serviceType)) {
-    const v = q.espelho && value(os.answers[q.id]);
-    if (q.espelho && v) cols[q.espelho].push(v);
+    const v = answerValue(q, os.answers[q.id]);
+    if (!v || q.prefillOS) continue; // o número da OS já tem coluna própria
+    if (q.espelho) cols[q.espelho].push(v);
+    else info.push(`${q.short ?? q.text}: ${v}`);
   }
   const join = (c: EspelhoColumn) => cols[c].join('; ');
   return {
@@ -34,7 +39,7 @@ function espelhoRow(os: OrdemServico, item: number): EspelhoRow {
     leituraInstalado: join('leituraInstalado'),
     medidorRetirado: join('medidorRetirado'),
     leituraRetirado: join('leituraRetirado'),
-    desvios: join('desvios'),
+    info: info.join('; '),
   };
 }
 

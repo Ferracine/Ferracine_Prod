@@ -6,7 +6,7 @@ import * as wiz from './domain/wizard';
 import { loadData, saveData, type KeyValueStore } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { CALLOUT, byId, h, icon, onEnter } from './ui/dom';
-import { closeModal, confirmModal, openModal, showToast, type ModalAction } from './ui/feedback';
+import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
 import { headerScreen } from './ui/header-screen';
 import { wizardScreen } from './ui/wizard-screen';
 
@@ -45,7 +45,7 @@ let pdfMemo: { sheet: ClosedSheet; pdf: Pdf } | null = null;
 
 function buildPdf(mod: PdfModule, sheet: ClosedSheet): Pdf {
   if (pdfMemo?.sheet === sheet) return pdfMemo.pdf;
-  const doc = mod.buildSheetPdf(sheet.header, sheet.ordens, new Date(sheet.fechadaEm));
+  const doc = mod.buildSheetPdf(sheet.header, sheet.ordens);
   const pdf = { blob: doc.output('blob'), fileName: pdfFileName(sheet.header, sheet.ordens.length) };
   pdfMemo = { sheet, pdf };
   return pdf;
@@ -152,7 +152,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         onDetail: (v) => setDraft(wiz.setDetail(data.draft!, v), false),
         onNext: () => step(wiz.next(data.draft!)),
         onSkip: () => step(wiz.skip(data.draft!)),
-        onBack: () => setDraft(wiz.back(data.draft!)),
+        onBack: wizardBack,
         onCancel: cancelWizard,
       });
     }
@@ -160,6 +160,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     root.replaceChildren(view);
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
+    syncBackButton(screen);
     if (screen === 'wizard') document.getElementById('wiz-text-input')?.focus();
     // Compartilhar precisa chamar navigator.share logo após o toque: deixa o jsPDF carregado em segundo plano.
     if (screen === 'header' && !editingHeader && data.lastSheet && shareSupported) {
@@ -204,9 +205,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     const rows = wiz.answerRows(os).map((r, i) =>
       h(
         'div',
-        { class: 'border-b border-white/10 pb-2.5 last:border-none' },
-        h('p', { class: 'text-xs font-bold text-slate-400' }, `${i + 1}. ${r.question}`),
-        h('p', { class: `text-sm font-semibold mt-0.5 ${r.skipped ? 'text-slate-500 italic' : r.isDitais ? 'text-rose-300' : 'text-white'}` }, r.display),
+        { class: 'border-b border-fg/10 pb-2.5 last:border-none' },
+        h('p', { class: 'text-xs font-bold text-muted' }, `${i + 1}. ${r.question}`),
+        h('p', { class: `text-sm font-semibold mt-0.5 ${r.skipped ? 'text-subtle italic' : r.isDitais ? 'text-danger-fg' : 'text-fg'}` }, r.display),
       ),
     );
     openModal(`OS ${osLabel(os.osNumber)} (${SERVICE_LABEL[os.serviceType]} - Cód. ${os.serviceCode})`, h('div', { class: 'space-y-3' }, rows), [
@@ -273,8 +274,44 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     else commit();
   }
 
+  /** Voltar no assistente: pergunta anterior; na primeira, sai da OS (como "Cancelar OS"). */
+  function wizardBack(): void {
+    const draft = data.draft!;
+    if (draft.index > 0) setDraft(wiz.back(draft));
+    else cancelWizard();
+  }
+
+  // Botão/gesto "voltar" do Android: no assistente ele faz o mesmo que o Voltar da tela (em vez de fechar o app).
+  // Uma entrada extra no histórico "segura" o voltar enquanto o assistente está aberto. Depois de recarregar no
+  // assistente, a entrada da sessão anterior ainda é a atual: reaproveita em vez de empilhar outra.
+  let backTrap = (history.state as { ferracineBackTrap?: boolean } | null)?.ferracineBackTrap === true;
+
+  function syncBackButton(screen: Screen): void {
+    if (screen === 'wizard' && !backTrap) {
+      history.pushState({ ferracineBackTrap: true }, '');
+      backTrap = true;
+    } else if (screen !== 'wizard' && backTrap) {
+      backTrap = false;
+      history.back(); // desfaz a entrada extra ao sair do assistente pelos botões (o popstate é ignorado abaixo)
+    }
+  }
+
+  window.addEventListener('popstate', () => {
+    if (!backTrap) return;
+    backTrap = false;
+    if (isModalOpen()) closeModal();
+    else wizardBack();
+    syncBackButton(currentScreen()); // ainda no assistente: segura o próximo voltar
+  });
+
+  /** Sai da OS em preenchimento; só pede confirmação se algo mudou desde que ela foi aberta. */
   function cancelWizard(): void {
     const draft = data.draft!;
+    const original = draft.editingId ? data.ordens.find((o) => o.id === draft.editingId) : undefined;
+    if (wiz.isUnchanged(draft, original)) {
+      update((d) => { d.draft = null; });
+      return;
+    }
     const label = osLabel(draft.osNumber);
     confirmModal(
       draft.editingId ? 'Cancelar edição' : 'Cancelar registro da OS',
@@ -344,8 +381,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       h(
         'div',
         { class: 'space-y-3' },
-        h('p', null, 'Arquivo: ', h('strong', { class: 'text-white break-all' }, pdf.fileName)),
-        h('p', { class: 'text-slate-300' }, 'Confira se o PDF foi salvo. Se não baixou, use os botões abaixo.'),
+        h('p', null, 'Arquivo: ', h('strong', { class: 'text-fg break-all' }, pdf.fileName)),
+        h('p', { class: 'text-muted' }, 'Confira se o PDF foi salvo. Se não baixou, use os botões abaixo.'),
         h(
           'div',
           { class: CALLOUT.warning },

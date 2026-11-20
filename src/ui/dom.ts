@@ -59,17 +59,18 @@ export function onEnter(action: () => void): Handler {
 
 /** Caixa de aviso dentro de janelas. */
 export const CALLOUT = {
-  warning: 'bg-amber-500/10 border border-amber-400/30 p-3 rounded-xl text-xs text-amber-200 font-medium',
-  danger: 'bg-rose-500/10 border border-rose-400/30 p-3 rounded-xl text-xs text-rose-200 font-medium',
+  warning: 'bg-accent/10 border border-accent/30 p-3 rounded-xl text-xs text-accent-fg font-medium',
+  danger: 'bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl text-xs text-danger-fg font-medium',
 } as const;
 
+/** Botões: ciano do logo para ações principais, laranja do logo para encerrar/gerar. */
 export const BTN = {
-  primary: 'px-5 py-2.5 bg-energisa-blue hover:brightness-110 text-white font-bold rounded-xl text-sm',
-  neutral: 'px-4 py-2.5 bg-white/10 hover:bg-white/15 text-slate-100 font-bold rounded-xl text-sm',
-  danger: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-sm',
-  accent: 'px-5 py-2.5 bg-energisa-orange hover:brightness-110 text-white font-extrabold rounded-xl text-sm flex items-center gap-2',
+  primary: 'px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm',
+  neutral: 'px-4 py-2.5 bg-fg/10 hover:bg-fg/15 text-fg font-bold rounded-xl text-sm',
+  danger: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm',
+  accent: 'px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white font-extrabold rounded-xl text-sm flex items-center gap-2',
 } as const;
 
-/** Botão grande de ação principal (gradiente azul do layout). */
+/** Botão grande de ação principal. */
 export const BTN_PRIMARY_LG =
-  'bg-gradient-to-r from-energisa-blue to-sky-500 hover:brightness-110 text-white font-extrabold py-4 px-6 rounded-xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-2 text-base active:scale-[0.99]';
+  'bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-4 px-6 rounded-xl shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 text-base active:scale-[0.99]';
