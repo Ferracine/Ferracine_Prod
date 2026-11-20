@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --color-energisa-navy: #0f294a;
+  --color-energisa-blue: #0072ce;
+  --color-energisa-light: #e6f2fb;
+  --color-energisa-orange: #f37021;
+}
+
+@layer base {
+  /* Alvos de toque confortáveis para uso em campo (luva, sol, pressa). */
+  button {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+}

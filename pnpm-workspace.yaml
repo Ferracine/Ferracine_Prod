@@ -1,0 +1,3 @@
+allowBuilds:
+  # postinstall do core-js só imprime um banner; não é necessário.
+  core-js: false

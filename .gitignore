@@ -1,0 +1,9 @@
+node_modules/
+dist/
+dev-dist/
+.pnpm-store/
+test-results/
+playwright-report/
+*.log
+.env
+.env.*
