@@ -48,14 +48,28 @@ export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
-export const INPUT_CLS =
-  'w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-energisa-blue focus:ring-2 focus:ring-energisa-blue/20 outline-none text-base font-medium bg-white';
+/** Handler de `onKeydown` que executa `action` ao apertar Enter (tecla "Próximo"/"OK" do teclado do celular). */
+export function onEnter(action: () => void): Handler {
+  return (ev) => {
+    if ((ev as KeyboardEvent).key !== 'Enter') return;
+    ev.preventDefault();
+    action();
+  };
+}
 
-export const LABEL_CLS = 'block text-xs font-bold text-slate-700 uppercase mb-1';
+/** Caixa de aviso dentro de janelas. */
+export const CALLOUT = {
+  warning: 'bg-amber-500/10 border border-amber-400/30 p-3 rounded-xl text-xs text-amber-200 font-medium',
+  danger: 'bg-rose-500/10 border border-rose-400/30 p-3 rounded-xl text-xs text-rose-200 font-medium',
+} as const;
 
 export const BTN = {
-  primary: 'px-5 py-2.5 bg-energisa-blue hover:bg-energisa-navy text-white font-bold rounded-xl text-sm',
-  neutral: 'px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm',
-  danger: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm',
-  accent: 'px-5 py-2.5 bg-energisa-orange hover:bg-orange-600 text-white font-extrabold rounded-xl text-sm flex items-center gap-2',
+  primary: 'px-5 py-2.5 bg-energisa-blue hover:brightness-110 text-white font-bold rounded-xl text-sm',
+  neutral: 'px-4 py-2.5 bg-white/10 hover:bg-white/15 text-slate-100 font-bold rounded-xl text-sm',
+  danger: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-sm',
+  accent: 'px-5 py-2.5 bg-energisa-orange hover:brightness-110 text-white font-extrabold rounded-xl text-sm flex items-center gap-2',
 } as const;
+
+/** Botão grande de ação principal (gradiente azul do layout). */
+export const BTN_PRIMARY_LG =
+  'bg-gradient-to-r from-energisa-blue to-sky-500 hover:brightness-110 text-white font-extrabold py-4 px-6 rounded-xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-2 text-base active:scale-[0.99]';

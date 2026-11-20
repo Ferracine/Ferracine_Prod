@@ -43,6 +43,40 @@ describe('assistente', () => {
     expect(wiz.startDraft('1', 'COMERCIAL', '28').answers).toEqual({});
   });
 
+  it('OS sem número (S/N) não pré-preenche e adota o número respondido na pergunta 2', () => {
+    const d = wiz.startDraft('', 'OCORRENCIA', '508');
+    expect(d.answers).toEqual({});
+    expect(wiz.finalize(d, 'a', new Date()).osNumber).toBe('');
+    const answered = { ...d, answers: { o2: { kind: 'text' as const, value: ' 4455 ' } } };
+    expect(wiz.finalize(answered, 'b', new Date()).osNumber).toBe('4455');
+  });
+
+  it('corrigir a pergunta 2 corrige o número da OS; pulá-la mantém o número do painel', () => {
+    const d = wiz.startDraft('100', 'OCORRENCIA', '508');
+    expect(wiz.finalize({ ...d, answers: { o2: { kind: 'text', value: '200' } } }, 'x', new Date()).osNumber).toBe('200');
+    expect(wiz.finalize({ ...d, answers: { o2: { kind: 'skipped' } } }, 'x', new Date()).osNumber).toBe('100');
+
+    // Edição de OS concluída: o número e a resposta da pergunta 2 não podem divergir.
+    const os = wiz.finalize(d, 'id', new Date());
+    const onO2 = { ...wiz.draftFromOS(os), index: 1 }; // pergunta 2 = número da OS
+    const edited = wiz.finalize(wiz.setText(onO2, '101'), 'id', new Date());
+    expect(edited.osNumber).toBe('101');
+    expect(edited.answers.o2).toEqual({ kind: 'text', value: '101' });
+  });
+
+  it('editar o número depois mantém a pergunta 2 coerente', () => {
+    const os = wiz.finalize(wiz.startDraft('', 'OCORRENCIA', '508'), 'x', new Date());
+    const comNumero = wiz.withOSNumber(os, ' 777 ');
+    expect(comNumero.osNumber).toBe('777');
+    expect(comNumero.answers.o2).toEqual({ kind: 'text', value: '777' });
+    const semNumero = wiz.withOSNumber(comNumero, '  ');
+    expect(semNumero.osNumber).toBe('');
+    expect(semNumero.answers.o2).toEqual({ kind: 'skipped' });
+
+    const comercial = wiz.finalize(wiz.startDraft('', 'COMERCIAL', '28'), 'y', new Date());
+    expect(wiz.withOSNumber(comercial, '9').answers).toEqual(comercial.answers);
+  });
+
   it('não avança com texto vazio e apara espaços', () => {
     let d = wiz.startDraft('1', 'COMERCIAL', '28');
     expect(wiz.next(d).ok).toBe(false);

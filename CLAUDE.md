@@ -31,26 +31,38 @@ abra `http://localhost:4173/` no Chrome do aparelho (`am start -a android.intent
 ## Arquitetura
 
 - `src/domain/` é puro (sem DOM, sem storage) e é onde estão as regras:
-  - `catalog.ts`: códigos por tipo (COMERCIAL/OCORRENCIA) e a lista exata de perguntas. Os textos vieram da
-    conversa original com o Gemini; o contador "N perguntas" do painel e o PDF derivam daqui.
+  - `catalog.ts`: códigos por tipo (COMERCIAL/OCORRENCIA) e a lista exata de perguntas. Os textos vêm da versão
+    original do app (primeiro commit) e de `design/index_base.html`; o contador "N perguntas" e o PDF derivam daqui.
   - `wizard.ts`: o assistente como funções imutáveis (`startDraft`, `setText/setChoice/setDetail`, `next`, `skip`,
     `back`, `finalize`). `next`/`skip` devolvem `StepResult` com a mensagem de erro; a UI só exibe.
     `finalize` normaliza respostas vazias para `skipped`, então nada vai em branco ao PDF.
     `answerRows` é a única fonte das linhas pergunta/resposta para o modal "Ver respostas" e para o PDF.
 - `src/storage.ts`: um único JSON `AppData` (versão 2) na chave `ferracine_prod:v2`: cabeçalho, OSs, rascunho do
-  assistente (`draft`) e `lastSheet`. Dado corrompido ou de outra versão vira estado vazio. Mudou o formato?
-  Suba a versão e decida a migração.
+  assistente (`draft`) e `lastSheet`. Dado corrompido ou de outra versão vira estado vazio. Campo novo no
+  cabeçalho: acrescente em `HEADER_FIELDS` (types.ts); o tipo `ShiftHeader`, o formulário e `normalizeHeader`
+  (que preenche com vazio o que faltar em dados antigos) derivam dessa lista. Mudança incompatível
+  (renomear/remover campo, mudar `Answer`): suba a versão e escreva a migração, senão o turno em andamento se perde.
 - `src/app.ts`: controlador. A tela é derivada do estado (`draft` → assistente; `header` → painel; senão
   cabeçalho). Toda mutação passa por `update()`, que persiste e re-renderiza; digitação persiste sem re-render.
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado (só os usados entram no bundle).
 - `src/pdf.ts`: jsPDF 4 + `autoTable(doc, opts)` (jspdf-autotable 5), lido via `doc.lastAutoTable.finalY`.
-  É importado dinamicamente em `app.ts` para não pesar a abertura do app.
+  É importado dinamicamente em `app.ts` para não pesar a abertura do app. Página 1 = Espelho de Campo
+  (A4 paisagem, modelo em `design/espelho_de_campo.md`); depois, o detalhamento de cada OS. As colunas do espelho
+  vêm das perguntas marcadas com `espelho: '<coluna>'` no catálogo (`domain/espelho.ts` só percorre as marcas).
+  O espelho tem de caber numa folha com 20 linhas: células longas são cortadas com "..." e o teste trava isso.
+  Em `app.ts` o PDF vira um Blob uma vez (memo por folha) e o módulo `./pdf` é carregado sob demanda.
+- `design/`: referências que o dono mandou (layout `index_base.html` em tema escuro, `new_icon.png`, modelo do PDF).
+  O tema (`ink`, `panel`, `energisa-sky`, classes `field`/`lbl`/`card`) está em `src/styles.css`.
+  Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
-- A pergunta dos DITAIS (`o6`) é a única obrigatória; não tem botão Pular e sai destacada no PDF.
-- Finalizar turno só limpa cabeçalho e OSs **depois** de o PDF ser gerado; a folha fechada vai para
-  `lastSheet` (baixar/compartilhar de novo pela tela inicial). Reiniciar o cabeçalho a cada folha é requisito.
+- A pergunta dos DITAIS (`o6`) é a única obrigatória; não tem botão Pular e sai destacada no detalhamento do PDF.
+- Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`). Se a OS começou sem número e a
+  pergunta `o2` foi respondida, `finalize` adota esse número; `withOSNumber` (lápis da lista) mantém `o2` coerente.
+- Gerar o PDF não encerra o turno: só o botão "Encerrar turno" da janela "PDF gerado" limpa cabeçalho e OSs e
+  guarda a folha em `lastSheet` (baixar/compartilhar de novo pela tela inicial).
+- `TECNICOS_LIDERES` (catalog.ts) são os nomes/telefones do rodapé do modelo de papel; o escolhido sai com [X].
 - Testes de PDF procuram texto direto em `doc.output()`: o jsPDF grava sem compressão e com acentos em latin-1.
 
 ## Pendências conhecidas
@@ -60,5 +72,4 @@ Regras de negócio que não são óbvias no código:
 - O Chrome grava o `localStorage` em disco com atraso. Testado no A23: app em segundo plano e depois morto não
   perde nada; Chrome morto com o app na tela perdeu o último passo do assistente. Se isso virar problema em campo,
   migrar o estado para IndexedDB.
-- A conversa do Gemini (`conversa_com_gemini.txt`) só abre no navegador; não foi possível lê-la por fetch.
 - Sem repositório remoto nem publicação. Criar repositório, `git push` e publicar só com OK explícito do Bruno.

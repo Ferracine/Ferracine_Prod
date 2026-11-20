@@ -10,12 +10,37 @@ export type StepResult =
   | { ok: true; draft: WizardDraft; done: boolean }
   | { ok: false; error: string; focus?: 'detail' };
 
+/**
+ * Regras do número da OS. Ele vive em `osNumber` e, na ocorrência, também na pergunta marcada com `prefillOS`
+ * ("Qual número da Ordem de serviço?"). Tudo que lê ou grava o número passa por estas três funções.
+ */
+function osNumberQuestionId(type: ServiceType): string | undefined {
+  return questionsFor(type).find((q) => q.prefillOS)?.id;
+}
+
+/** Grava o número na pergunta do número (vazio = pulada). */
+function withOSAnswer(type: ServiceType, answers: Record<string, Answer>, osNumber: string): Record<string, Answer> {
+  const id = osNumberQuestionId(type);
+  return id ? { ...answers, [id]: osNumber ? { kind: 'text', value: osNumber } : { kind: 'skipped' } } : answers;
+}
+
+/** A pergunta do número, quando respondida, define o número; senão vale o número atual. */
+function osNumberFrom(type: ServiceType, answers: Record<string, Answer>, current: string): string {
+  const id = osNumberQuestionId(type);
+  const ans = id ? answers[id] : undefined;
+  return ans?.kind === 'text' ? ans.value : current;
+}
+
+/** `osNumber` vazio = OS sem número (S/N); a pergunta do número fica para ser respondida no assistente. */
 export function startDraft(osNumber: string, serviceType: ServiceType, serviceCode: string): WizardDraft {
-  const answers: Record<string, Answer> = {};
-  for (const q of questionsFor(serviceType)) {
-    if (q.prefillOS) answers[q.id] = { kind: 'text', value: osNumber };
-  }
+  const answers = osNumber ? withOSAnswer(serviceType, {}, osNumber) : {};
   return { osNumber, serviceType, serviceCode, index: 0, answers };
+}
+
+/** Troca o número de uma OS concluída (lápis da lista), mantendo coerente a pergunta do número. */
+export function withOSNumber(os: OrdemServico, osNumber: string): OrdemServico {
+  const number = osNumber.trim();
+  return { ...os, osNumber: number, answers: withOSAnswer(os.serviceType, os.answers, number) };
 }
 
 export function draftFromOS(os: OrdemServico): WizardDraft {
@@ -123,7 +148,7 @@ export function finalize(draft: WizardDraft, id: string, now: Date): OrdemServic
   }
   return {
     id,
-    osNumber: draft.osNumber,
+    osNumber: osNumberFrom(draft.serviceType, answers, draft.osNumber),
     serviceType: draft.serviceType,
     serviceCode: draft.serviceCode,
     answers,

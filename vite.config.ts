@@ -10,18 +10,18 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       injectRegister: false,
-      includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'Folha de Produção Diária',
         short_name: 'Produção',
-        description: 'Registro das OSs do turno e PDF oficial, funciona sem internet.',
+        description: 'Registro das OSs do turno e Espelho de Campo em PDF, funciona sem internet.',
         lang: 'pt-BR',
         start_url: './',
         scope: './',
         display: 'standalone',
         orientation: 'portrait',
-        theme_color: '#0f294a',
-        background_color: '#f1f5f9',
+        theme_color: '#0b1220',
+        background_color: '#0b1220',
         icons: [
           { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
           { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },

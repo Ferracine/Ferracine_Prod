@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1220">
+    <title>Folha de Produção Diária - Energisa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        ink: '#0b1220',
+                        panel: '#111a2e',
+                        panel2: '#17223b',
+                        energisa: {
+                            navy: '#0f294a',
+                            blue: '#0072ce',
+                            sky: '#38bdf8',
+                            orange: '#f37021'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: radial-gradient(1200px 500px at 50% -10%, #12315c 0%, #0b1220 60%) fixed; }
+        .field {
+            width: 100%; padding: 0.85rem 1rem; border-radius: 0.9rem;
+            background: #0b1220; border: 1.5px solid rgba(255,255,255,0.12);
+            color: #f1f5f9; font-weight: 600; font-size: 0.95rem; outline: none;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .field::placeholder { color: #64748b; font-weight: 500; }
+        .field:focus { border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56,189,248,0.18); }
+        .lbl { display:block; font-size: 0.68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; margin-bottom: .35rem; }
+        .card { background: #111a2e; border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .animate-fade-in { animation: fadeIn .2s ease-out; }
+    </style>
+</head>
+<body class="text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-panel rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/10 animate-fade-in">
+            <div class="px-6 py-4 flex justify-between items-center border-b border-white/10">
+                <h3 id="modal-title" class="font-bold text-lg text-white">Detalhes</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div id="modal-body" class="p-6 max-h-[70vh] overflow-y-auto text-sm space-y-3 text-slate-200"></div>
+            <div id="modal-footer" class="bg-black/20 px-6 py-4 flex justify-end gap-3 border-t border-white/10"></div>
+        </div>
+    </div>
+
+    <!-- Topo -->
+    <header class="sticky top-0 z-30 bg-ink/80 backdrop-blur border-b border-white/10">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-energisa-orange to-amber-500 p-2 rounded-xl shadow-lg shadow-orange-500/20">
+                    <i data-lucide="zap" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold tracking-[0.2em] text-energisa-orange uppercase block">Energisa • Operação</span>
+                    <h1 class="text-base font-extrabold leading-tight text-white">Folha de Produção Diária</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-200">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span id="badge-status">Aguardando Turno</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-6">
+
+        <!-- TELA 1: CABEÇALHO -->
+        <section id="screen-header" class="space-y-6">
+            <div class="card overflow-hidden">
+                <div class="px-6 py-5 border-b border-white/10 bg-gradient-to-r from-energisa-navy to-panel">
+                    <p class="text-[11px] uppercase tracking-widest text-energisa-sky font-bold">Departamento de Operação</p>
+                    <h2 class="text-xl font-extrabold mt-0.5 text-white">Identificação da Equipe e Turno</h2>
+                    <p class="text-xs text-slate-400 mt-1">Preencha os dados obrigatórios para liberar o registro de Ordens de Serviço.</p>
+                </div>
+
+                <form id="header-form" class="p-6 space-y-5" onsubmit="handleHeaderSubmit(event)">
+                    <div class="bg-white/[0.03] p-4 rounded-xl border border-white/10 space-y-4">
+                        <div class="flex items-center gap-2 text-energisa-sky font-bold text-sm">
+                            <i data-lucide="user-check" class="w-4 h-4"></i>
+                            <span>Integrante Principal (Obrigatório)</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="sm:col-span-2">
+                                <label for="nome1" class="lbl">Nome 1 *</label>
+                                <input type="text" id="nome1" required placeholder="Nome completo do eletricista 1" class="field">
+                            </div>
+                            <div>
+                                <label for="mat1" class="lbl">Mat. 1 *</label>
+                                <input type="text" id="mat1" required placeholder="Ex: 123456" class="field">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white/[0.03] p-4 rounded-xl border border-white/10 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-energisa-sky font-bold text-sm">
+                                <i data-lucide="users" class="w-4 h-4"></i>
+                                <span>Integrante Auxiliar / Dupla</span>
+                            </div>
+                            <span class="text-xs text-slate-500 font-medium">Opcional se solo</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="sm:col-span-2">
+                                <label for="nome2" class="lbl">Nome 2</label>
+                                <input type="text" id="nome2" placeholder="Nome completo do eletricista 2" class="field">
+                            </div>
+                            <div>
+                                <label for="mat2" class="lbl">Mat. 2</label>
+                                <input type="text" id="mat2" placeholder="Ex: 654321" class="field">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label for="dataTurno" class="lbl">Data *</label>
+                            <input type="text" id="dataTurno" required placeholder="DD/MM/AAAA" class="field">
+                        </div>
+                        <div>
+                            <label for="horarioTurno" class="lbl">Horário *</label>
+                            <input type="text" id="horarioTurno" required placeholder="Ex: 07:00 às 17:00" class="field">
+                        </div>
+                        <div>
+                            <label for="bodycam1" class="lbl">Bodycam 1</label>
+                            <input type="text" id="bodycam1" placeholder="Nº da câmera" class="field">
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-gradient-to-r from-energisa-blue to-sky-500 hover:brightness-110 text-white font-extrabold py-4 px-6 rounded-xl shadow-lg shadow-sky-500/20 transition-all flex items-center justify-center gap-2 text-base active:scale-[0.99]">
+                        <span>Iniciar Turno e Liberar OSs</span>
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- TELA 2: PAINEL -->
+        <section id="screen-dashboard" class="hidden space-y-6">
+
+            <div class="card p-5 border-l-4 border-l-energisa-orange">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-white/10">
+                    <span class="text-[11px] font-extrabold uppercase tracking-widest text-energisa-orange">Cabeçalho Ativo do Turno</span>
+                    <span id="dash-data-horario" class="text-xs bg-white/10 px-3 py-1 rounded-full font-semibold text-slate-200"></span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                        <span class="text-slate-500 text-xs block">Equipe</span>
+                        <p id="dash-equipe" class="font-bold text-white leading-snug"></p>
+                    </div>
+                    <div class="sm:text-right">
+                        <span class="text-slate-500 text-xs block">Bodycam 1</span>
+                        <p id="dash-bodycam" class="font-bold text-energisa-sky"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6 space-y-5">
+                <div class="flex items-center gap-3 border-b border-white/10 pb-4">
+                    <div class="bg-energisa-blue/20 text-energisa-sky p-2 rounded-lg">
+                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-extrabold text-white">Registrar Nova Ordem de Serviço</h2>
+                        <p class="text-xs text-slate-400">Número opcional: se não lembrar, deixe vazio e preencha depois.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="input-os-number" class="lbl">Número da OS (opcional)</label>
+                    <input type="text" id="input-os-number" placeholder="Digite o número ou deixe vazio (S/N)" class="field text-base">
+                </div>
+
+                <div class="space-y-3">
+                    <label class="lbl">Selecione o tipo e o código do serviço *</label>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Comercial -->
+                        <div class="rounded-xl p-4 space-y-3 border border-emerald-500/30 bg-emerald-500/[0.06]">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-emerald-300 text-sm flex items-center gap-1.5">
+                                    <i data-lucide="briefcase" class="w-4 h-4"></i> COMERCIAL
+                                </span>
+                                <span class="text-[11px] font-bold bg-emerald-500/15 text-emerald-300 px-2 py-0.5 rounded-md">3 perguntas</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Toque no código para iniciar:</p>
+                            <div class="flex flex-wrap gap-2" id="codes-comercial"></div>
+                            <div class="pt-2 border-t border-emerald-500/20">
+                                <p class="text-xs text-slate-400 mb-1.5">Outro código:</p>
+                                <div class="flex gap-2">
+                                    <input type="text" id="custom-code-comercial" placeholder="Ex: 710" inputmode="numeric" class="field !py-2.5 !text-sm">
+                                    <button type="button" onclick="startCustomOS('COMERCIAL')"
+                                        class="shrink-0 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-extrabold text-sm active:scale-95 transition">
+                                        Iniciar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ocorrência -->
+                        <div class="rounded-xl p-4 space-y-3 border border-amber-500/30 bg-amber-500/[0.06]">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-amber-300 text-sm flex items-center gap-1.5">
+                                    <i data-lucide="alert-triangle" class="w-4 h-4"></i> OCORRÊNCIA
+                                </span>
+                                <span class="text-[11px] font-bold bg-amber-500/15 text-amber-300 px-2 py-0.5 rounded-md">18 perguntas</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Toque no código para iniciar:</p>
+                            <div class="flex flex-wrap gap-2" id="codes-ocorrencia"></div>
+                            <div class="pt-2 border-t border-amber-500/20">
+                                <p class="text-xs text-slate-400 mb-1.5">Outro código:</p>
+                                <div class="flex gap-2">
+                                    <input type="text" id="custom-code-ocorrencia" placeholder="Ex: 510" inputmode="numeric" class="field !py-2.5 !text-sm">
+                                    <button type="button" onclick="startCustomOS('OCORRENCIA')"
+                                        class="shrink-0 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-amber-950 font-extrabold text-sm active:scale-95 transition">
+                                        Iniciar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="clipboard-list" class="w-5 h-5 text-energisa-sky"></i>
+                        <h3 class="font-extrabold text-white text-base">OSs Concluídas no Turno</h3>
+                    </div>
+                    <span id="os-count-badge" class="bg-energisa-blue text-white text-xs font-bold px-3 py-1 rounded-full">0 OS</span>
+                </div>
+                <div id="os-list-container" class="space-y-3"></div>
+            </div>
+
+            <div class="pt-2 pb-8">
+                <button onclick="confirmGeneratePDF()"
+                    class="w-full bg-gradient-to-r from-energisa-orange to-amber-500 hover:brightness-110 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl shadow-orange-500/20 transition-all flex items-center justify-center gap-3 text-base active:scale-[0.99]">
+                    <i data-lucide="file-down" class="w-6 h-6"></i>
+                    <span>Finalizar Turno e Gerar PDF</span>
+                </button>
+                <p class="text-center text-xs text-slate-500 mt-2.5">
+                    Atenção: ao gerar o PDF, esta folha será encerrada e os dados do cabeçalho serão reiniciados para o próximo turno.
+                </p>
+            </div>
+        </section>
+
+        <!-- TELA 3: WIZARD -->
+        <section id="screen-wizard" class="hidden space-y-5">
+
+            <div class="card p-4 flex items-center justify-between">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="wiz-type-badge" class="text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md"></span>
+                        <span id="wiz-code-badge" class="text-xs font-bold bg-white/10 text-slate-200 px-2.5 py-0.5 rounded-md"></span>
+                    </div>
+                    <p class="text-sm font-extrabold text-white mt-1">OS: <span id="wiz-os-number" class="text-energisa-sky"></span></p>
+                </div>
+                <button onclick="cancelWizard()" class="text-xs font-bold text-rose-300 hover:bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-400/30 transition-colors">
+                    Cancelar OS
+                </button>
+            </div>
+
+            <div class="space-y-1.5">
+                <div class="flex justify-between text-xs font-bold text-slate-400">
+                    <span id="wiz-step-label">Pergunta 1 de 18</span>
+                    <span id="wiz-percent-label">0%</span>
+                </div>
+                <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
+                    <div id="wiz-progress-bar" class="bg-gradient-to-r from-energisa-blue to-energisa-sky h-full transition-all duration-300 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="card p-6 sm:p-8 space-y-6 shadow-2xl shadow-black/30">
+
+                <div id="wiz-mandatory-alert" class="hidden bg-rose-500/10 border-l-4 border-rose-500 p-3.5 rounded-r-xl flex items-start gap-3">
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-rose-400 shrink-0 mt-0.5"></i>
+                    <div>
+                        <p class="text-xs font-extrabold text-rose-300 uppercase">Resposta Obrigatória de Segurança</p>
+                        <p class="text-xs text-rose-200/80 mt-0.5">Esta etapa não pode ser pulada. Selecione Sim ou Não para continuar.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-widest text-energisa-sky block mb-1" id="wiz-question-tag">Etapa</span>
+                    <h2 id="wiz-question-text" class="text-xl sm:text-2xl font-extrabold text-white leading-snug">Carregando pergunta...</h2>
+                </div>
+
+                <div id="wiz-input-area" class="space-y-4"></div>
+
+                <div class="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button type="button" id="btn-wiz-prev" onclick="prevQuestion()"
+                        class="w-full sm:w-auto px-5 py-3.5 rounded-xl border border-white/15 text-slate-200 font-bold text-sm hover:bg-white/5 transition-colors flex items-center justify-center gap-2">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        <span>Voltar</span>
+                    </button>
+
+                    <div class="w-full sm:w-auto flex items-center gap-3">
+                        <button type="button" id="btn-wiz-skip" onclick="skipQuestion()"
+                            class="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-sm transition-colors flex items-center justify-center gap-1.5">
+                            <span>Pular</span>
+                            <i data-lucide="skip-forward" class="w-4 h-4"></i>
+                        </button>
+
+                        <button type="button" id="btn-wiz-next" onclick="nextQuestion()"
+                            class="flex-1 sm:flex-initial px-6 py-3.5 rounded-xl bg-gradient-to-r from-energisa-blue to-sky-500 hover:brightness-110 text-white font-extrabold text-sm shadow-md shadow-sky-500/20 transition-all flex items-center justify-center gap-2">
+                            <span id="btn-wiz-next-text">Próximo</span>
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        const STORAGE_KEY_HEADER = 'energisa_fp_header_v1';
+        const STORAGE_KEY_OSS = 'energisa_fp_oss_v1';
+        const NO_OS_LABEL = 'S/N';
+
+        const CODES_COMERCIAL = ['28', '709', '739', '33', '798'];
+        const CODES_OCORRENCIA = ['508', '509', '503', '531', '324', '533'];
+
+        const QUESTIONS_COMERCIAL = [
+            { id: 'c1', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o serviço comercial executado...', required: false },
+            { id: 'c2', text: 'Cliente presente?', type: 'yesno', required: false },
+            { id: 'c3', text: 'Foi necessário lançar ramal?', type: 'yesno', required: false }
+        ];
+
+        const QUESTIONS_OCORRENCIA = [
+            { id: 'o1', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o tipo de serviço...', required: false },
+            { id: 'o2', text: 'Qual número da Ordem de serviço?', type: 'text', placeholder: 'Número da OS', prefillOS: true, required: false },
+            { id: 'o3', text: 'Tentou callback?', type: 'yesno', required: false },
+            { id: 'o4', text: 'Qual foi o defeito?', type: 'text', placeholder: 'Informe o defeito encontrado...', required: false },
+            { id: 'o5', text: 'Qual dispositivo manobrado?', type: 'text', placeholder: 'Ex: Chave fusível, religador, disjuntor...', required: false },
+            { id: 'o6', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true },
+            { id: 'o7', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', required: false },
+            { id: 'o8', text: 'Deseja informar o KM Final?', type: 'text', placeholder: 'Ex: 45235', required: false },
+            { id: 'o9', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', required: false },
+            { id: 'o10', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', required: false },
+            { id: 'o11', text: 'Houve alguma dificuldade, se sim qual?', type: 'yesno_detail', detailLabel: 'Qual foi a dificuldade?', placeholder: 'Descreva a dificuldade encontrada...', required: false },
+            { id: 'o12', text: 'Foi instalado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor instalado:', placeholder: 'Digite o nº do medidor instalado...', required: false },
+            { id: 'o13', text: 'Foi retirado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor retirado:', placeholder: 'Digite o nº do medidor retirado...', required: false },
+            { id: 'o14', text: 'Qual leitura do medidor instalado?', type: 'text', placeholder: 'Digite a leitura atual...', required: false },
+            { id: 'o15', text: 'Qual leitura do medidor retirado?', type: 'text', placeholder: 'Digite a leitura final...', required: false },
+            { id: 'o16', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45235', required: false },
+            { id: 'o17', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45250', required: false },
+            { id: 'o18', text: 'Houve alguma dificuldade na execução desse serviço? Se sim relate!', type: 'yesno_detail', detailLabel: 'Relate a dificuldade na execução:', placeholder: 'Relate detalhadamente...', required: false }
+        ];
+
+        let appState = {
+            header: null,
+            completedOS: [],
+            wizard: { active: false, osNumber: '', serviceType: '', serviceCode: '', questions: [], currentIndex: 0, answers: {} }
+        };
+
+        window.onload = function () {
+            lucide.createIcons();
+            renderCodeButtons();
+            loadStateFromStorage();
+        };
+
+        // ---------- Toast e Modal ----------
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-panel2 text-white border-energisa-sky',
+                success: 'bg-emerald-600 text-white border-emerald-300',
+                warning: 'bg-amber-600 text-white border-amber-300',
+                error: 'bg-rose-600 text-white border-rose-300'
+            };
+            toast.className = `${colors[type] || colors.info} border-l-4 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all duration-300`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function openModal(title, bodyHtml, footerHtml) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-body').innerHTML = bodyHtml;
+            document.getElementById('modal-footer').innerHTML = footerHtml;
+            const modal = document.getElementById('custom-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('custom-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // ---------- Estado e telas ----------
+        function loadStateFromStorage() {
+            try {
+                const savedHeader = localStorage.getItem(STORAGE_KEY_HEADER);
+                const savedOSs = localStorage.getItem(STORAGE_KEY_OSS);
+                if (savedHeader) appState.header = JSON.parse(savedHeader);
+                if (savedOSs) appState.completedOS = JSON.parse(savedOSs);
+            } catch (e) {
+                console.error('Erro ao ler localStorage:', e);
+            }
+            showScreen(appState.header ? 'dashboard' : 'header');
+        }
+
+        function saveStateToStorage() {
+            try {
+                if (appState.header) {
+                    localStorage.setItem(STORAGE_KEY_HEADER, JSON.stringify(appState.header));
+                } else {
+                    localStorage.removeItem(STORAGE_KEY_HEADER);
+                }
+                localStorage.setItem(STORAGE_KEY_OSS, JSON.stringify(appState.completedOS));
+            } catch (e) {
+                console.error('Erro ao salvar no localStorage:', e);
+            }
+        }
+
+        function showScreen(screenName) {
+            document.getElementById('screen-header').classList.add('hidden');
+            document.getElementById('screen-dashboard').classList.add('hidden');
+            document.getElementById('screen-wizard').classList.add('hidden');
+            const badge = document.getElementById('badge-status');
+
+            if (screenName === 'header') {
+                document.getElementById('screen-header').classList.remove('hidden');
+                badge.innerText = 'Aguardando Cabeçalho';
+            } else if (screenName === 'dashboard') {
+                updateDashboardUI();
+                document.getElementById('screen-dashboard').classList.remove('hidden');
+                badge.innerText = `Turno Ativo (${appState.completedOS.length} OS)`;
+            } else if (screenName === 'wizard') {
+                document.getElementById('screen-wizard').classList.remove('hidden');
+                badge.innerText = `Preenchendo OS ${appState.wizard.osNumber}`;
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ---------- Tela 1 ----------
+        function handleHeaderSubmit(event) {
+            event.preventDefault();
+            const nome1 = document.getElementById('nome1').value.trim();
+            const mat1 = document.getElementById('mat1').value.trim();
+            const nome2 = document.getElementById('nome2').value.trim();
+            const mat2 = document.getElementById('mat2').value.trim();
+            const dataTurno = document.getElementById('dataTurno').value.trim();
+            const horarioTurno = document.getElementById('horarioTurno').value.trim();
+            const bodycam1 = document.getElementById('bodycam1').value.trim();
+
+            if (!nome1 || !mat1 || !dataTurno || !horarioTurno) {
+                showToast('Preencha Nome 1, Matrícula 1, Data e Horário para liberar o turno.', 'error');
+                return;
+            }
+
+            appState.header = { nome1, mat1, nome2: nome2 || '-', mat2: mat2 || '-', dataTurno, horarioTurno, bodycam1: bodycam1 || '-' };
+            saveStateToStorage();
+            showToast('Turno iniciado! Registro de OSs liberado.', 'success');
+            showScreen('dashboard');
+        }
+
+        // ---------- Tela 2 ----------
+        function renderCodeButtons() {
+            document.getElementById('codes-comercial').innerHTML = CODES_COMERCIAL.map(code => `
+                <button type="button" onclick="startNewOS('COMERCIAL', '${code}')"
+                    class="px-3.5 py-2.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500 text-emerald-200 hover:text-emerald-950 border border-emerald-400/40 font-extrabold text-sm transition-all active:scale-95">
+                    ${code}
+                </button>
+            `).join('');
+
+            document.getElementById('codes-ocorrencia').innerHTML = CODES_OCORRENCIA.map(code => `
+                <button type="button" onclick="startNewOS('OCORRENCIA', '${code}')"
+                    class="px-3.5 py-2.5 rounded-xl bg-amber-500/10 hover:bg-amber-500 text-amber-200 hover:text-amber-950 border border-amber-400/40 font-extrabold text-sm transition-all active:scale-95">
+                    ${code}
+                </button>
+            `).join('');
+        }
+
+        function updateDashboardUI() {
+            if (!appState.header) return;
+            const h = appState.header;
+            let equipeTexto = `${h.nome1} (Mat: ${h.mat1})`;
+            if (h.nome2 && h.nome2 !== '-') equipeTexto += ` • ${h.nome2} (Mat: ${h.mat2})`;
+
+            document.getElementById('dash-equipe').innerText = equipeTexto;
+            document.getElementById('dash-data-horario').innerText = `${h.dataTurno} | ${h.horarioTurno}`;
+            document.getElementById('dash-bodycam').innerText = h.bodycam1;
+
+            const listContainer = document.getElementById('os-list-container');
+            const countBadge = document.getElementById('os-count-badge');
+            countBadge.innerText = `${appState.completedOS.length} ${appState.completedOS.length === 1 ? 'OS' : 'OSs'}`;
+
+            if (appState.completedOS.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-8 px-4 bg-white/[0.03] rounded-xl border border-dashed border-white/15">
+                        <p class="text-sm font-semibold text-slate-300">Nenhuma Ordem de Serviço registrada ainda.</p>
+                        <p class="text-xs text-slate-500 mt-1">Digite o número da OS (ou deixe vazio) e toque no código para começar.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listContainer.innerHTML = appState.completedOS.map((os, index) => {
+                const isComercial = os.serviceType === 'COMERCIAL';
+                const badgeColor = isComercial ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300';
+                const answeredCount = os.items.filter(i => !i.skipped).length;
+                const noNumber = os.osNumber === NO_OS_LABEL;
+
+                return `
+                    <div class="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-colors gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-extrabold text-white text-base">OS #${escapeHtml(os.osNumber)}</span>
+                                ${noNumber ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-300">sem nº</span>' : ''}
+                                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md ${badgeColor}">${os.serviceType} • Cód. ${escapeHtml(os.serviceCode)}</span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-1">${answeredCount} de ${os.items.length} perguntas respondidas</p>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button" onclick="editOSNumber(${index})" title="Editar nº da OS"
+                                class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-amber-300 hover:bg-white/10 transition-colors">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="viewOSDetails(${index})" title="Ver respostas"
+                                class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-energisa-sky hover:bg-white/10 transition-colors">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                            <button type="button" onclick="confirmDeleteOS(${index})" title="Excluir OS"
+                                class="p-2.5 rounded-xl bg-white/5 border border-white/10 text-rose-400 hover:bg-rose-500/10 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        function viewOSDetails(index) {
+            const os = appState.completedOS[index];
+            if (!os) return;
+
+            const rowsHtml = os.items.map((item, idx) => `
+                <div class="border-b border-white/10 pb-2.5 last:border-none">
+                    <p class="text-xs font-bold text-slate-400">${idx + 1}. ${escapeHtml(item.question)}</p>
+                    <p class="text-sm font-semibold mt-0.5 ${item.skipped ? 'text-slate-500 italic' : 'text-white'}">
+                        ${item.skipped ? 'Pulado / Não informado' : escapeHtml(item.answerDisplay)}
+                    </p>
+                </div>
+            `).join('');
+
+            openModal(
+                `OS #${os.osNumber} (${os.serviceType} - Cód. ${os.serviceCode})`,
+                `<div class="space-y-3">${rowsHtml}</div>`,
+                `<button onclick="closeModal()" class="px-5 py-2.5 bg-energisa-blue text-white font-bold rounded-xl text-sm">Fechar</button>`
+            );
+        }
+
+        // Editar o número da OS depois de concluída (para quem não lembrava)
+        function editOSNumber(index) {
+            const os = appState.completedOS[index];
+            if (!os) return;
+            const current = os.osNumber === NO_OS_LABEL ? '' : os.osNumber;
+            openModal(
+                'Editar número da OS',
+                `
+                    <label class="lbl">Número da OS</label>
+                    <input type="text" id="edit-os-input" value="${escapeHtml(current)}" placeholder="Deixe vazio para ${NO_OS_LABEL}" class="field">
+                `,
+                `
+                    <button onclick="closeModal()" class="px-4 py-2.5 bg-white/10 text-slate-200 font-bold rounded-xl text-sm">Cancelar</button>
+                    <button onclick="saveOSNumber(${index})" class="px-4 py-2.5 bg-energisa-blue text-white font-bold rounded-xl text-sm">Salvar</button>
+                `
+            );
+            setTimeout(() => {
+                const el = document.getElementById('edit-os-input');
+                if (el) el.focus();
+            }, 50);
+        }
+
+        function saveOSNumber(index) {
+            const os = appState.completedOS[index];
+            if (!os) return;
+            const val = document.getElementById('edit-os-input').value.trim();
+            os.osNumber = val || NO_OS_LABEL;
+
+            // Mantém a pergunta "Qual número da Ordem de serviço?" (Ocorrência) coerente
+            const o2 = os.items.find(i => i.id === 'o2');
+            if (o2) {
+                if (val) {
+                    o2.skipped = false;
+                    o2.answerDisplay = val;
+                } else {
+                    o2.skipped = true;
+                    o2.answerDisplay = 'Não informado';
+                }
+            }
+
+            saveStateToStorage();
+            closeModal();
+            updateDashboardUI();
+            showToast('Número da OS atualizado.', 'success');
+        }
+
+        function confirmDeleteOS(index) {
+            const os = appState.completedOS[index];
+            openModal(
+                'Excluir Ordem de Serviço',
+                `<p>Tem certeza que deseja remover a <strong>OS #${escapeHtml(os.osNumber)}</strong> (Código ${escapeHtml(os.serviceCode)}) desta folha de produção?</p>`,
+                `
+                    <button onclick="closeModal()" class="px-4 py-2.5 bg-white/10 text-slate-200 font-bold rounded-xl text-sm">Cancelar</button>
+                    <button onclick="deleteOS(${index})" class="px-4 py-2.5 bg-rose-600 text-white font-bold rounded-xl text-sm">Sim, Excluir</button>
+                `
+            );
+        }
+
+        function deleteOS(index) {
+            appState.completedOS.splice(index, 1);
+            saveStateToStorage();
+            closeModal();
+            updateDashboardUI();
+            showToast('Ordem de serviço removida.', 'info');
+        }
+
+        // ---------- Tela 3: Wizard ----------
+        function startCustomOS(serviceType) {
+            const inputId = serviceType === 'COMERCIAL' ? 'custom-code-comercial' : 'custom-code-ocorrencia';
+            const input = document.getElementById(inputId);
+            const code = input.value.trim().toUpperCase();
+            if (!code) {
+                showToast('Digite o código do serviço.', 'warning');
+                input.focus();
+                return;
+            }
+            startNewOS(serviceType, code);
+            input.value = '';
+        }
+
+        function startNewOS(serviceType, serviceCode) {
+            const osInput = document.getElementById('input-os-number');
+            const typedNumber = osInput.value.trim();
+            const osNumber = typedNumber || NO_OS_LABEL;
+
+            const questionList = serviceType === 'COMERCIAL'
+                ? JSON.parse(JSON.stringify(QUESTIONS_COMERCIAL))
+                : JSON.parse(JSON.stringify(QUESTIONS_OCORRENCIA));
+
+            appState.wizard = {
+                active: true,
+                osNumber,
+                serviceType,
+                serviceCode,
+                questions: questionList,
+                currentIndex: 0,
+                answers: {}
+            };
+
+            // Pré-preenche a pergunta do nº da OS apenas se o número foi informado
+            if (typedNumber) {
+                questionList.forEach(q => {
+                    if (q.prefillOS) {
+                        appState.wizard.answers[q.id] = { skipped: false, value: typedNumber };
+                    }
+                });
+            }
+
+            osInput.value = '';
+            showScreen('wizard');
+            renderWizardStep();
+        }
+
+        function cancelWizard() {
+            openModal(
+                'Cancelar Registro da OS',
+                `<p>Deseja cancelar o preenchimento da <strong>OS #${escapeHtml(appState.wizard.osNumber)}</strong>? As respostas desta OS não serão salvas.</p>`,
+                `
+                    <button onclick="closeModal()" class="px-4 py-2.5 bg-white/10 text-slate-200 font-bold rounded-xl text-sm">Continuar Preenchendo</button>
+                    <button onclick="confirmCancelWizard()" class="px-4 py-2.5 bg-rose-600 text-white font-bold rounded-xl text-sm">Descartar OS</button>
+                `
+            );
+        }
+
+        function confirmCancelWizard() {
+            appState.wizard.active = false;
+            closeModal();
+            showScreen('dashboard');
+        }
+
+        function renderWizardStep() {
+            const w = appState.wizard;
+            const q = w.questions[w.currentIndex];
+            const total = w.questions.length;
+            const currentNum = w.currentIndex + 1;
+            const percent = Math.round((w.currentIndex / total) * 100);
+
+            const typeBadge = document.getElementById('wiz-type-badge');
+            typeBadge.innerText = w.serviceType;
+            typeBadge.className = w.serviceType === 'COMERCIAL'
+                ? 'text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-300'
+                : 'text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md bg-amber-500/15 text-amber-300';
+
+            document.getElementById('wiz-code-badge').innerText = `Código ${w.serviceCode}`;
+            document.getElementById('wiz-os-number').innerText = w.osNumber;
+
+            document.getElementById('wiz-step-label').innerText = `Pergunta ${currentNum} de ${total}`;
+            document.getElementById('wiz-percent-label').innerText = `${percent}%`;
+            document.getElementById('wiz-progress-bar').style.width = `${percent}%`;
+
+            document.getElementById('wiz-question-tag').innerText = `Pergunta ${currentNum}`;
+            document.getElementById('wiz-question-text').innerText = q.text;
+
+            const mandatoryAlert = document.getElementById('wiz-mandatory-alert');
+            const skipBtn = document.getElementById('btn-wiz-skip');
+            if (q.required) {
+                mandatoryAlert.classList.remove('hidden');
+                skipBtn.classList.add('hidden');
+            } else {
+                mandatoryAlert.classList.add('hidden');
+                skipBtn.classList.remove('hidden');
+            }
+
+            document.getElementById('btn-wiz-prev').style.visibility = w.currentIndex === 0 ? 'hidden' : 'visible';
+            document.getElementById('btn-wiz-next-text').innerText = (w.currentIndex === total - 1) ? 'Concluir OS' : 'Próximo';
+
+            const inputArea = document.getElementById('wiz-input-area');
+            const saved = w.answers[q.id] || {};
+
+            const btnSimOn = 'border-energisa-sky bg-energisa-blue text-white shadow-lg shadow-sky-500/20';
+            const btnNaoOn = 'border-slate-300 bg-slate-200 text-slate-900 shadow-lg';
+            const btnOff = 'border-white/15 bg-white/5 text-slate-200 hover:border-energisa-sky';
+
+            if (q.type === 'text') {
+                const val = (!saved.skipped && saved.value) ? saved.value : '';
+                inputArea.innerHTML = `
+                    <input type="text" id="wiz-text-input" value="${escapeHtml(val)}" placeholder="${escapeHtml(q.placeholder || 'Digite sua resposta...')}" class="field !py-4 !text-base">
+                `;
+                setTimeout(() => {
+                    const el = document.getElementById('wiz-text-input');
+                    if (el) el.focus();
+                }, 50);
+
+            } else if (q.type === 'yesno') {
+                const choice = (!saved.skipped && saved.choice) ? saved.choice : '';
+                inputArea.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <button type="button" onclick="selectYesNo('Sim')" id="btn-choice-sim"
+                            class="py-5 px-4 rounded-2xl border-2 font-extrabold text-lg transition-all flex items-center justify-center gap-2 ${choice === 'Sim' ? btnSimOn : btnOff}">
+                            <i data-lucide="check-circle-2" class="w-6 h-6"></i><span>SIM</span>
+                        </button>
+                        <button type="button" onclick="selectYesNo('Não')" id="btn-choice-nao"
+                            class="py-5 px-4 rounded-2xl border-2 font-extrabold text-lg transition-all flex items-center justify-center gap-2 ${choice === 'Não' ? btnNaoOn : btnOff}">
+                            <i data-lucide="x-circle" class="w-6 h-6"></i><span>NÃO</span>
+                        </button>
+                    </div>
+                `;
+
+            } else if (q.type === 'yesno_detail') {
+                const choice = (!saved.skipped && saved.choice) ? saved.choice : '';
+                const detail = (!saved.skipped && saved.detail) ? saved.detail : '';
+                inputArea.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <button type="button" onclick="selectYesNoDetail('Sim')" id="btn-choice-sim"
+                            class="py-4 px-4 rounded-2xl border-2 font-extrabold text-base transition-all flex items-center justify-center gap-2 ${choice === 'Sim' ? btnSimOn : btnOff}">
+                            <i data-lucide="check-circle-2" class="w-5 h-5"></i><span>SIM</span>
+                        </button>
+                        <button type="button" onclick="selectYesNoDetail('Não')" id="btn-choice-nao"
+                            class="py-4 px-4 rounded-2xl border-2 font-extrabold text-base transition-all flex items-center justify-center gap-2 ${choice === 'Não' ? btnNaoOn : btnOff}">
+                            <i data-lucide="x-circle" class="w-5 h-5"></i><span>NÃO</span>
+                        </button>
+                    </div>
+                    <div id="wiz-detail-box" class="${choice === 'Sim' ? 'block' : 'hidden'} pt-2 animate-fade-in">
+                        <label class="lbl">${escapeHtml(q.detailLabel || 'Informe os detalhes:')}</label>
+                        <input type="text" id="wiz-detail-input" value="${escapeHtml(detail)}" placeholder="${escapeHtml(q.placeholder || 'Digite aqui...')}" class="field !py-3.5 !text-base">
+                    </div>
+                `;
+            }
+
+            lucide.createIcons();
+        }
+
+        function selectYesNo(choice) {
+            const w = appState.wizard;
+            const q = w.questions[w.currentIndex];
+            w.answers[q.id] = { skipped: false, choice };
+            renderWizardStep();
+        }
+
+        function selectYesNoDetail(choice) {
+            const w = appState.wizard;
+            const q = w.questions[w.currentIndex];
+            const prevDetail = (w.answers[q.id] && w.answers[q.id].detail) ? w.answers[q.id].detail : '';
+            w.answers[q.id] = { skipped: false, choice, detail: choice === 'Sim' ? prevDetail : '' };
+            renderWizardStep();
+            if (choice === 'Sim') {
+                setTimeout(() => {
+                    const el = document.getElementById('wiz-detail-input');
+                    if (el) el.focus();
+                }, 50);
+            }
+        }
+
+        function skipQuestion() {
+            const w = appState.wizard;
+            const q = w.questions[w.currentIndex];
+            if (q.required) {
+                showToast('Esta pergunta é obrigatória e não pode ser pulada.', 'error');
+                return;
+            }
+            w.answers[q.id] = { skipped: true };
+            advanceWizard();
+        }
+
+        function nextQuestion() {
+            const w = appState.wizard;
+            const q = w.questions[w.currentIndex];
+
+            if (q.type === 'text') {
+                const val = document.getElementById('wiz-text-input').value.trim();
+                if (!val) {
+                    if (q.required) {
+                        showToast('Por favor, preencha esta resposta obrigatória.', 'warning');
+                        return;
+                    }
+                    showToast('Digite uma resposta ou toque em "Pular".', 'warning');
+                    return;
+                }
+                w.answers[q.id] = { skipped: false, value: val };
+
+            } else if (q.type === 'yesno') {
+                const saved = w.answers[q.id];
+                if (!saved || saved.skipped || !saved.choice) {
+                    showToast(q.required ? 'Selecione SIM ou NÃO para prosseguir (Obrigatório).' : 'Selecione SIM, NÃO ou toque em "Pular".', 'warning');
+                    return;
+                }
+
+            } else if (q.type === 'yesno_detail') {
+                const saved = w.answers[q.id];
+                if (!saved || saved.skipped || !saved.choice) {
+                    showToast('Selecione SIM, NÃO ou toque em "Pular".', 'warning');
+                    return;
+                }
+                if (saved.choice === 'Sim') {
+                    const detailVal = document.getElementById('wiz-detail-input').value.trim();
+                    if (!detailVal) {
+                        showToast('Como você marcou SIM, preencha o campo complementar abaixo.', 'warning');
+                        document.getElementById('wiz-detail-input').focus();
+                        return;
+                    }
+                    w.answers[q.id].detail = detailVal;
+                }
+            }
+
+            advanceWizard();
+        }
+
+        function prevQuestion() {
+            if (appState.wizard.currentIndex > 0) {
+                appState.wizard.currentIndex--;
+                renderWizardStep();
+            }
+        }
+
+        function advanceWizard() {
+            const w = appState.wizard;
+            if (w.currentIndex < w.questions.length - 1) {
+                w.currentIndex++;
+                renderWizardStep();
+            } else {
+                finishWizardOS();
+            }
+        }
+
+        function finishWizardOS() {
+            const w = appState.wizard;
+
+            const formattedItems = w.questions.map(q => {
+                const ans = w.answers[q.id];
+                if (!ans || ans.skipped) {
+                    return { id: q.id, question: q.text, skipped: true, answerDisplay: 'Não informado', isDitais: !!q.isDitais };
+                }
+
+                let display = '';
+                if (q.type === 'text') display = ans.value;
+                else if (q.type === 'yesno') display = ans.choice;
+                else if (q.type === 'yesno_detail') display = ans.choice === 'Sim' ? `Sim — ${ans.detail}` : 'Não';
+
+                return { id: q.id, question: q.text, skipped: false, answerDisplay: display, isDitais: !!q.isDitais };
+            });
+
+            // Se o nº da OS foi digitado depois, na pergunta de Ocorrência, usa-o como número da OS
+            let finalOsNumber = w.osNumber;
+            if (finalOsNumber === NO_OS_LABEL) {
+                const o2 = formattedItems.find(i => i.id === 'o2');
+                if (o2 && !o2.skipped && o2.answerDisplay) finalOsNumber = o2.answerDisplay;
+            }
+
+            appState.completedOS.push({
+                osNumber: finalOsNumber,
+                serviceType: w.serviceType,
+                serviceCode: w.serviceCode,
+                items: formattedItems,
+                timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            });
+
+            w.active = false;
+            saveStateToStorage();
+            showToast(`OS #${finalOsNumber} adicionada à folha de produção!`, 'success');
+            showScreen('dashboard');
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        // ---------- PDF e reset ----------
+        function confirmGeneratePDF() {
+            if (appState.completedOS.length === 0) {
+                openModal(
+                    'Nenhuma OS Registrada',
+                    `<p>Você ainda não registrou nenhuma Ordem de Serviço neste turno. Deseja gerar a folha em branco mesmo assim ou voltar para adicionar OSs?</p>`,
+                    `
+                        <button onclick="closeModal()" class="px-4 py-2.5 bg-energisa-blue text-white font-bold rounded-xl text-sm">Voltar e Adicionar OS</button>
+                        <button onclick="executePDFAndReset()" class="px-4 py-2.5 bg-white/10 text-slate-200 font-bold rounded-xl text-sm">Gerar Mesmo Assim</button>
+                    `
+                );
+                return;
+            }
+
+            const semNumero = appState.completedOS.filter(o => o.osNumber === NO_OS_LABEL).length;
+            const aviso = semNumero > 0
+                ? `<div class="bg-rose-500/10 border border-rose-400/30 p-3 rounded-xl text-xs text-rose-200 font-medium">
+                       ${semNumero} ${semNumero === 1 ? 'OS está' : 'OSs estão'} sem número (S/N). Use o lápis na lista para preencher antes de gerar, se quiser.
+                   </div>`
+                : '';
+
+            openModal(
+                'Finalizar Turno e Gerar PDF',
+                `
+                    <div class="space-y-3">
+                        <p>Você está prestes a gerar o PDF oficial com <strong>${appState.completedOS.length} ${appState.completedOS.length === 1 ? 'Ordem de Serviço' : 'Ordens de Serviço'}</strong>.</p>
+                        ${aviso}
+                        <div class="bg-amber-500/10 border border-amber-400/30 p-3 rounded-xl text-xs text-amber-200 font-medium">
+                            <strong>Importante:</strong> Após o download do PDF, os dados deste turno serão encerrados e o sistema solicitará um novo preenchimento de cabeçalho.
+                        </div>
+                    </div>
+                `,
+                `
+                    <button onclick="closeModal()" class="px-4 py-2.5 bg-white/10 text-slate-200 font-bold rounded-xl text-sm">Cancelar</button>
+                    <button onclick="executePDFAndReset()" class="px-5 py-2.5 bg-energisa-orange hover:brightness-110 text-white font-extrabold rounded-xl text-sm flex items-center gap-2">
+                        <i data-lucide="file-down" class="w-4 h-4"></i>
+                        <span>Confirmar e Baixar PDF</span>
+                    </button>
+                `
+            );
+        }
+
+        function executePDFAndReset() {
+            closeModal();
+
+            try {
+                if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
+                    showToast('A biblioteca de PDF não carregou. Verifique a internet e recarregue a página.', 'error');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                if (typeof doc.autoTable !== 'function') {
+                    showToast('O módulo de tabelas do PDF não carregou. Verifique a internet e recarregue a página.', 'error');
+                    return;
+                }
+                const h = appState.header;
+
+                const navyRGB = [15, 41, 74];
+                const blueRGB = [0, 114, 206];
+                const grayHeaderRGB = [230, 234, 240];
+
+                doc.setFillColor(...navyRGB);
+                doc.rect(10, 10, 190, 11, 'F');
+
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('ENERGISA', 14, 17);
+
+                doc.setFontSize(9.5);
+                doc.text('DEPARTAMENTO DE OPERAÇÃO — FOLHA DE PRODUÇÃO DIÁRIA', 196, 17, { align: 'right' });
+
+                doc.autoTable({
+                    startY: 21,
+                    margin: { left: 10, right: 10 },
+                    theme: 'grid',
+                    styles: {
+                        font: 'helvetica',
+                        fontSize: 8.5,
+                        cellPadding: 2.2,
+                        lineColor: [140, 150, 165],
+                        lineWidth: 0.25,
+                        textColor: [20, 20, 20]
+                    },
+                    body: [
+                        [
+                            { content: 'NOME 1:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB, cellWidth: 20 } },
+                            { content: h.nome1, styles: { cellWidth: 55 } },
+                            { content: 'MAT. 1:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB, cellWidth: 16 } },
+                            { content: h.mat1, styles: { cellWidth: 22 } },
+                            { content: 'DATA:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB, cellWidth: 16 } },
+                            { content: h.dataTurno, styles: { cellWidth: 26 } },
+                            { content: `BODYCAM 1: ${h.bodycam1}`, styles: { fontStyle: 'bold', fillColor: grayHeaderRGB, cellWidth: 35 } }
+                        ],
+                        [
+                            { content: 'NOME 2:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB } },
+                            { content: h.nome2 },
+                            { content: 'MAT. 2:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB } },
+                            { content: h.mat2 },
+                            { content: 'HORÁRIO:', styles: { fontStyle: 'bold', fillColor: grayHeaderRGB } },
+                            { content: h.horarioTurno, colSpan: 2 }
+                        ]
+                    ]
+                });
+
+                let currentY = doc.lastAutoTable.finalY + 6;
+
+                if (appState.completedOS.length === 0) {
+                    doc.setFont('helvetica', 'italic');
+                    doc.setFontSize(10);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text('Nenhuma Ordem de Serviço registrada neste turno.', 14, currentY + 6);
+                } else {
+                    appState.completedOS.forEach((os, idx) => {
+                        if (currentY > 255) {
+                            doc.addPage();
+                            currentY = 14;
+                        }
+
+                        doc.autoTable({
+                            startY: currentY,
+                            margin: { left: 10, right: 10 },
+                            theme: 'grid',
+                            head: [[
+                                {
+                                    content: `ATENDIMENTO #${idx + 1}  |  OS: ${os.osNumber}  |  TIPO: ${os.serviceType} (CÓDIGO ${os.serviceCode})`,
+                                    colSpan: 2,
+                                    styles: {
+                                        fillColor: os.serviceType === 'COMERCIAL' ? [16, 110, 75] : blueRGB,
+                                        textColor: [255, 255, 255],
+                                        fontStyle: 'bold',
+                                        fontSize: 8.5,
+                                        cellPadding: 2.5
+                                    }
+                                }
+                            ]],
+                            body: os.items.map((item, qIdx) => [
+                                {
+                                    content: `${qIdx + 1}. ${item.question}`,
+                                    styles: {
+                                        cellWidth: 95,
+                                        fontStyle: item.isDitais ? 'bold' : 'normal',
+                                        fillColor: item.isDitais ? [254, 242, 242] : [250, 251, 252]
+                                    }
+                                },
+                                {
+                                    content: item.skipped ? 'Não informado' : item.answerDisplay,
+                                    styles: {
+                                        fontStyle: item.skipped ? 'italic' : 'bold',
+                                        textColor: item.skipped ? [140, 140, 140] : (item.isDitais ? [185, 28, 28] : [15, 41, 74]),
+                                        fillColor: item.isDitais ? [254, 242, 242] : [255, 255, 255]
+                                    }
+                                }
+                            ]),
+                            styles: {
+                                font: 'helvetica',
+                                fontSize: 8,
+                                cellPadding: 2,
+                                lineColor: [200, 208, 218],
+                                lineWidth: 0.2
+                            }
+                        });
+
+                        currentY = doc.lastAutoTable.finalY + 5;
+                    });
+                }
+
+                const totalPages = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= totalPages; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(120, 120, 120);
+                    doc.text(
+                        `Energisa - Folha de Produção Diária | Equipe: ${h.nome1} | Data: ${h.dataTurno} | Página ${i} de ${totalPages}`,
+                        105,
+                        290,
+                        { align: 'center' }
+                    );
+                }
+
+                const fileName = buildPdfFileName(h, appState.completedOS.length);
+                const blob = doc.output('blob');
+                pendingPdf = { blob, fileName };
+
+                // Tenta baixar na hora; o modal abaixo oferece alternativas se o navegador bloquear
+                try { downloadBlob(blob, fileName); } catch (e) { console.error(e); }
+                showPdfReadyModal();
+            } catch (error) {
+                console.error('Erro ao gerar PDF:', error);
+                showToast('Erro ao gerar o PDF: ' + (error && error.message ? error.message : 'tente novamente.'), 'error');
+            }
+        }
+
+        // Nome do arquivo: nomes da equipe + quantidade de serviços
+        let pendingPdf = null;
+
+        function sanitizeNamePart(str) {
+            return String(str)
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .trim()
+                .replace(/[^a-zA-Z0-9]+/g, '_')
+                .replace(/^_+|_+$/g, '');
+        }
+
+        function buildPdfFileName(h, qtd) {
+            const nomes = [sanitizeNamePart(h.nome1)];
+            if (h.nome2 && h.nome2 !== '-') nomes.push(sanitizeNamePart(h.nome2));
+            const servicos = `${qtd}_${qtd === 1 ? 'servico' : 'servicos'}`;
+            return `${nomes.filter(Boolean).join('_')}_${servicos}.pdf`;
+        }
+
+        function downloadBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 60000);
+        }
+
+        function redownloadPdf() {
+            if (!pendingPdf) return;
+            downloadBlob(pendingPdf.blob, pendingPdf.fileName);
+        }
+
+        function openPdfInTab() {
+            if (!pendingPdf) return;
+            const url = URL.createObjectURL(pendingPdf.blob);
+            window.open(url, '_blank');
+            setTimeout(() => URL.revokeObjectURL(url), 120000);
+        }
+
+        async function sharePdf() {
+            if (!pendingPdf) return;
+            try {
+                const file = new File([pendingPdf.blob], pendingPdf.fileName, { type: 'application/pdf' });
+                await navigator.share({ files: [file], title: pendingPdf.fileName });
+            } catch (e) {
+                if (e && e.name !== 'AbortError') showToast('Não foi possível compartilhar. Use "Baixar PDF".', 'warning');
+            }
+        }
+
+        function showPdfReadyModal() {
+            let canShare = false;
+            try {
+                const testFile = new File([pendingPdf.blob], pendingPdf.fileName, { type: 'application/pdf' });
+                canShare = !!(navigator.canShare && navigator.canShare({ files: [testFile] }));
+            } catch (e) { canShare = false; }
+
+            openModal(
+                'PDF gerado',
+                `
+                    <div class="space-y-3">
+                        <p>Arquivo: <strong class="text-white break-all">${escapeHtml(pendingPdf.fileName)}</strong></p>
+                        <p class="text-slate-300">Confira se o PDF foi salvo. Se não baixou, use os botões abaixo.</p>
+                        <div class="bg-amber-500/10 border border-amber-400/30 p-3 rounded-xl text-xs text-amber-200 font-medium">
+                            <strong>Só toque em "Encerrar turno" depois de ter o PDF em mãos.</strong> Isso apaga as OSs e o cabeçalho deste turno.
+                        </div>
+                    </div>
+                `,
+                `
+                    <div class="flex flex-wrap justify-end gap-2 w-full">
+                        ${canShare ? `<button onclick="sharePdf()" class="px-4 py-2.5 bg-energisa-blue text-white font-bold rounded-xl text-sm">Compartilhar</button>` : ''}
+                        <button onclick="redownloadPdf()" class="px-4 py-2.5 bg-white/10 text-slate-100 font-bold rounded-xl text-sm">Baixar PDF</button>
+                        <button onclick="openPdfInTab()" class="px-4 py-2.5 bg-white/10 text-slate-100 font-bold rounded-xl text-sm">Abrir PDF</button>
+                        <button onclick="finishShiftAfterPdf()" class="px-4 py-2.5 bg-energisa-orange text-white font-extrabold rounded-xl text-sm">Encerrar turno</button>
+                    </div>
+                `
+            );
+        }
+
+        function finishShiftAfterPdf() {
+            pendingPdf = null;
+            closeModal();
+            resetTurnData();
+            showToast('Turno encerrado. Preencha o cabeçalho para o próximo turno.', 'success');
+        }
+
+        function resetTurnData() {
+            appState.header = null;
+            appState.completedOS = [];
+            appState.wizard.active = false;
+
+            localStorage.removeItem(STORAGE_KEY_HEADER);
+            localStorage.removeItem(STORAGE_KEY_OSS);
+
+            document.getElementById('header-form').reset();
+            showScreen('header');
+        }
+    </script>
+</body>
+</html>

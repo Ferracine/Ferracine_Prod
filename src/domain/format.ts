@@ -1,4 +1,4 @@
-import type { OrdemServico, ShiftHeader } from './types';
+import type { ShiftHeader } from './types';
 
 /** AAAA-MM-DD → DD/MM/AAAA, sem passar por Date (evita erro de fuso). */
 export function formatDateBR(iso: string): string {
@@ -30,19 +30,23 @@ export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
 
-/** Remove acentos e tudo que não for letra/número ("João" → "Joao"). */
+/** OS sem número aparece como "S/N". */
+export function osLabel(osNumber: string): string {
+  return osNumber || 'S/N';
+}
+
+/** Remove acentos e troca o que não for letra/número por "_" ("João da Silva" → "Joao_da_Silva"). */
 function slug(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]/g, '');
+  return text
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
 }
 
-export function pdfFileName(h: ShiftHeader): string {
-  const firstName = slug(h.nome1.trim().split(/\s+/)[0] ?? '') || 'Equipe';
-  const date = formatDateBR(h.data).replace(/\//g, '-');
-  return `Folha_Producao_Energisa_${firstName}_${date}.pdf`;
-}
-
-export function countByType(ordens: readonly OrdemServico[]): { comercial: number; ocorrencia: number } {
-  let comercial = 0;
-  for (const os of ordens) if (os.serviceType === 'COMERCIAL') comercial++;
-  return { comercial, ocorrencia: ordens.length - comercial };
+/** Nomes da equipe + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_3_servicos.pdf". */
+export function pdfFileName(h: ShiftHeader, qtd: number): string {
+  const names = [slug(h.nome1), slug(h.nome2)].filter(Boolean);
+  if (names.length === 0) names.push('Equipe');
+  return `${names.join('_')}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.pdf`;
 }
