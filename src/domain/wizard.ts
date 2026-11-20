@@ -37,32 +37,46 @@ export function startDraft(osNumber: string, serviceType: ServiceType, serviceCo
   return { osNumber, serviceType, serviceCode, index: 0, answers };
 }
 
-/** Troca o número de uma OS concluída (lápis da lista), mantendo coerente a pergunta do número. */
-export function withOSNumber(os: OrdemServico, osNumber: string): OrdemServico {
-  const number = osNumber.trim();
-  return { ...os, osNumber: number, answers: withOSAnswer(os.serviceType, os.answers, number) };
-}
-
 /**
- * Nada mudou desde que o assistente abriu (comparado às respostas pré-preenchidas numa OS nova, ou às da OS salva
- * `original` numa edição): pode sair sem confirmação. Texto apagado ou "Sim" sem complemento contam como não respondidos.
+ * Nada foi respondido além do que já veio preenchido ao abrir a OS: pode sair sem confirmação.
+ * Texto apagado ou "Sim" sem complemento contam como não respondidos.
  */
-export function isUnchanged(draft: WizardDraft, original?: OrdemServico): boolean {
-  const baseline = original?.answers ?? startDraft(draft.osNumber, draft.serviceType, draft.serviceCode).answers;
+export function isUnchanged(draft: WizardDraft): boolean {
+  const baseline = startDraft(draft.osNumber, draft.serviceType, draft.serviceCode).answers;
   return questionsFor(draft.serviceType).every(
     (q) => JSON.stringify(normalizeAnswer(q, draft.answers[q.id])) === JSON.stringify(normalizeAnswer(q, baseline[q.id])),
   );
 }
 
-export function draftFromOS(os: OrdemServico): WizardDraft {
-  return {
-    osNumber: os.osNumber,
+export interface OSEdit {
+  osNumber: string;
+  serviceCode: string;
+  answers: Record<string, Answer>;
+}
+
+export type EditResult = { ok: true; os: OrdemServico } | { ok: false; error: string; questionId?: string };
+
+/**
+ * Edição completa de uma OS concluída (lápis da lista): número, código e qualquer resposta, de uma vez.
+ * Aplica as mesmas regras do assistente (DITAIS obrigatória, complemento do SIM) e devolve a OS normalizada.
+ */
+export function applyEdit(os: OrdemServico, edit: OSEdit): EditResult {
+  const serviceCode = edit.serviceCode.trim().toUpperCase();
+  if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.' };
+  for (const q of questionsFor(os.serviceType)) {
+    const error = ruleError(q, edit.answers[q.id]);
+    if (error) return { ok: false, error: `${q.text} ${error}`, questionId: q.id };
+  }
+  const osNumber = edit.osNumber.trim();
+  const draft: WizardDraft = {
+    osNumber,
     serviceType: os.serviceType,
-    serviceCode: os.serviceCode,
+    serviceCode,
     index: 0,
-    answers: { ...os.answers },
-    editingId: os.id,
+    answers: withOSAnswer(os.serviceType, edit.answers, osNumber),
+    infoLegada: os.infoLegada,
   };
+  return { ok: true, os: finalize(draft, os.id, new Date(os.registradaEm)) };
 }
 
 export function currentQuestion(draft: WizardDraft): Question {
@@ -87,14 +101,29 @@ export function setText(draft: WizardDraft, value: string): WizardDraft {
   return withAnswer(draft, { kind: 'text', value });
 }
 
-export function setChoice(draft: WizardDraft, choice: Choice): WizardDraft {
-  const prev = draft.answers[currentQuestion(draft).id];
-  const prevDetail = prev?.kind === 'choice' ? prev.detail : undefined;
-  const q = currentQuestion(draft);
+/** Resposta ao tocar SIM/NÃO: no "Sim, qual?" o complemento já digitado é mantido; o NÃO o descarta. */
+export function choiceAnswer(q: Question, prev: Answer | undefined, choice: Choice): Answer {
   if (q.type === 'yesno_detail' && choice === 'Sim') {
-    return withAnswer(draft, { kind: 'choice', choice, detail: prevDetail ?? '' });
+    return { kind: 'choice', choice, detail: prev?.kind === 'choice' ? (prev.detail ?? '') : '' };
   }
-  return withAnswer(draft, { kind: 'choice', choice });
+  return { kind: 'choice', choice };
+}
+
+/**
+ * Regras de SIM/NÃO comuns ao assistente e à edição: a obrigatória precisa de SIM ou NÃO e o SIM de um
+ * "se sim, qual?" precisa do complemento. Devolve o motivo (sem a pergunta) ou null.
+ */
+export function ruleError(q: Question, ans: Answer | undefined): string | null {
+  if (q.required && ans?.kind !== 'choice') return '— resposta obrigatória: marque SIM ou NÃO.';
+  if (q.type === 'yesno_detail' && ans?.kind === 'choice' && ans.choice === 'Sim' && !(ans.detail ?? '').trim()) {
+    return '— você marcou SIM: preencha o complemento.';
+  }
+  return null;
+}
+
+export function setChoice(draft: WizardDraft, choice: Choice): WizardDraft {
+  const q = currentQuestion(draft);
+  return withAnswer(draft, choiceAnswer(q, draft.answers[q.id], choice));
 }
 
 export function setDetail(draft: WizardDraft, detail: string): WizardDraft {
@@ -130,16 +159,8 @@ export function next(draft: WizardDraft): StepResult {
       error: q.required ? 'Selecione SIM ou NÃO para prosseguir (obrigatório).' : 'Selecione SIM, NÃO ou toque em "Pular".',
     };
   }
-
-  if (q.type === 'yesno_detail' && ans.choice === 'Sim') {
-    const detail = (ans.detail ?? '').trim();
-    if (!detail) {
-      return { ok: false, error: 'Como você marcou SIM, preencha o campo complementar.', focus: 'detail' };
-    }
-    return advance(withAnswer(draft, { ...ans, detail }));
-  }
-
-  return advance(draft);
+  if (ruleError(q, ans)) return { ok: false, error: 'Como você marcou SIM, preencha o campo complementar.', focus: 'detail' };
+  return advance(withAnswer(draft, normalizeAnswer(q, ans)));
 }
 
 export function skip(draft: WizardDraft): StepResult {
@@ -164,6 +185,8 @@ export function finalize(draft: WizardDraft, id: string, now: Date): OrdemServic
     serviceCode: draft.serviceCode,
     answers,
     registradaEm: now.toISOString(),
+    // Respostas da versão antiga (migração) acompanham a OS em qualquer edição.
+    ...(draft.infoLegada ? { infoLegada: draft.infoLegada } : {}),
   };
 }
 
@@ -186,8 +209,8 @@ function describeAnswer(ans: Answer | undefined): string | null {
   return ans.choice === 'Sim' && ans.detail ? `Sim — ${ans.detail}` : ans.choice;
 }
 
-export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers'>): AnswerRow[] {
-  return questionsFor(os.serviceType).map((q) => {
+export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers' | 'infoLegada'>): AnswerRow[] {
+  const rows = questionsFor(os.serviceType).map((q) => {
     const display = describeAnswer(os.answers[q.id]);
     return {
       question: q.text,
@@ -196,4 +219,6 @@ export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers'>): A
       isDitais: !!q.isDitais,
     };
   });
+  if (os.infoLegada) rows.push({ question: 'Respostas da versão anterior do app', display: os.infoLegada, skipped: false, isDitais: false });
+  return rows;
 }

@@ -1,7 +1,7 @@
 {
   "name": "ferracine-prod",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Folha de Produção Diária: registro de OSs do turno e PDF oficial, 100% offline no celular",
   "type": "module",
   "scripts": {
@@ -14,7 +14,9 @@
     "test:e2e": "playwright test",
     "check": "pnpm lint && pnpm test && pnpm build && pnpm test:e2e",
     "icons": "pwa-assets-generator --preset minimal-2023 public/icon.png",
-    "logo": "node scripts/render-logo.mjs"
+    "logo": "node scripts/render-logo.mjs",
+    "android:icons": "node scripts/android-icons.mjs",
+    "apk": "vite build && node scripts/apk.mjs"
   },
   "engines": {
     "node": ">=22"

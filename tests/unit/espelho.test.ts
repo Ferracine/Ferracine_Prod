@@ -11,42 +11,65 @@ describe('linhas do Espelho de Campo', () => {
     }
   });
 
-  it('colunas próprias recebem tipo, medidores e leituras; o resto vai para INFO ADICIONAL (sem o "Não" de "se sim, qual?")', () => {
-    const os = finishedOS('7788', 'OCORRENCIA', '508', {
-      o1: { kind: 'text', value: 'Troca de medidor' },
-      o3: { kind: 'choice', choice: 'Sim' },
-      o6: { kind: 'choice', choice: 'Não' },
-      o7: { kind: 'text', value: '45210' },
-      o11: { kind: 'choice', choice: 'Sim', detail: 'Cachorro solto' },
-      o12: { kind: 'choice', choice: 'Sim', detail: 'M-100' },
-      o13: { kind: 'choice', choice: 'Sim', detail: 'M-050' },
-      o14: { kind: 'text', value: '0' },
-      o15: { kind: 'text', value: '15432' },
-      o18: { kind: 'choice', choice: 'Não' },
+  it('comercial: código sozinho, KM/horários/medidores/leituras/cliente nas colunas, o resto em INFO ADICIONAL', () => {
+    const os = finishedOS('7788', 'COMERCIAL', '709', {
+      tipo: { kind: 'text', value: 'Ligação nova' },
+      kmIni: { kind: 'text', value: '45210' },
+      horaIni: { kind: 'text', value: '08:15' },
+      clientePresente: { kind: 'choice', choice: 'Sim' },
+      ramal: { kind: 'choice', choice: 'Não' },
+      medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-100' },
+      medidorRet: { kind: 'choice', choice: 'Sim', detail: 'M-050' },
+      leituraInst: { kind: 'text', value: '0' },
+      leituraRet: { kind: 'text', value: '15432' },
+      kmFin: { kind: 'text', value: '45235' },
+      horaFin: { kind: 'text', value: '09:40' },
+      dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Cachorro solto' },
     });
     expect(espelhoRows([os])).toEqual([
       {
         item: 1,
         os: '7788',
-        tipo: '508 - Troca de medidor',
+        codigo: '709',
+        kmIni: '45210',
+        horaIni: '08:15',
+        horaFin: '09:40',
+        kmFin: '45235',
         medidorInstalado: 'M-100',
         leituraInstalado: '0',
         medidorRetirado: 'M-050',
         leituraRetirado: '15432',
-        info: 'Callback: Sim; DITAIS: Não; KM ini: 45210; Dificuldade: Cachorro solto',
+        clientePresente: 'Sim',
+        info: 'Tipo: Ligação nova; Lançou ramal: Não; Dificuldade: Cachorro solto',
       },
     ]);
   });
 
-  it('comercial: respostas de SIM/NÃO em INFO ADICIONAL; OS sem número vira S/N', () => {
-    const os = finishedOS('', 'COMERCIAL', '709', { c2: { kind: 'choice', choice: 'Sim' }, c3: { kind: 'choice', choice: 'Não' } });
-    expect(espelhoRows([os])[0]).toMatchObject({ os: 'S/N', tipo: '709', medidorInstalado: '', info: 'Cliente presente: Sim; Lançou ramal: Não' });
+  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e dificuldade vão para INFO ADICIONAL', () => {
+    const os = finishedOS('', 'OCORRENCIA', '508', {
+      callback: { kind: 'choice', choice: 'Sim' },
+      horaIni: { kind: 'text', value: '10:00' },
+      tipo: { kind: 'text', value: 'Falta de energia' },
+      defeito: { kind: 'text', value: 'Fusível' },
+      dispositivo: { kind: 'text', value: 'Chave fusível' },
+      ditais: { kind: 'choice', choice: 'Não' },
+      alteracaoUC: { kind: 'text', value: 'Troca de disjuntor' },
+      dificuldade: { kind: 'choice', choice: 'Não' },
+    });
+    const [row] = espelhoRows([os]);
+    expect(row).toMatchObject({ os: 'S/N', codigo: '508', horaIni: '10:00', kmIni: '', clientePresente: '' });
+    // O "Não" de uma pergunta "se sim, qual?" não acrescenta nada à folha.
+    expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor');
+  });
+
+  it('respostas antigas preservadas na migração vão para INFO ADICIONAL', () => {
+    const os = { ...finishedOS('5', 'OCORRENCIA', '508', { callback: { kind: 'choice', choice: 'Sim' } }), infoLegada: 'Medidor instalado: M-1' };
+    expect(espelhoRows([os])[0]?.info).toBe('Callback: Sim; Medidor instalado: M-1');
   });
 
   it('perguntas puladas e o número da OS não entram em INFO ADICIONAL', () => {
-    const os = finishedOS('123', 'OCORRENCIA', '503', { o12: { kind: 'choice', choice: 'Não' } });
-    const [row] = espelhoRows([os]);
-    expect(row?.medidorInstalado).toBe('');
+    const [row] = espelhoRows([finishedOS('123', 'OCORRENCIA', '503')]);
     expect(row?.info).toBe('');
+    expect(row?.os).toBe('123');
   });
 });

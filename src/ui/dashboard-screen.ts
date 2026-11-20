@@ -12,7 +12,8 @@ export interface DashboardProps {
   /** `osNumber` vazio = OS sem número (S/N). */
   onStartOS: (osNumber: string, type: ServiceType, code: string) => void;
   onView: (os: OrdemServico) => void;
-  onEditNumber: (os: OrdemServico) => void;
+  /** Lápis: edição completa da OS (número, código e qualquer resposta). */
+  onEdit: (os: OrdemServico) => void;
   onDelete: (os: OrdemServico) => void;
   onEditHeader: () => void;
   onFinish: () => void;
@@ -71,7 +72,7 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
     h(
       'div',
       { class: 'flex items-center gap-1.5 shrink-0' },
-      action('Editar nº', 'text-accent-fg hover:bg-fg/10', Pencil, () => p.onEditNumber(os)),
+      action('Editar', 'text-accent-fg hover:bg-fg/10', Pencil, () => p.onEdit(os)),
       action('Ver respostas', 'text-brand-fg hover:bg-fg/10', Eye, () => p.onView(os)),
       action('Excluir', 'text-danger-fg hover:bg-rose-500/10', Trash2, () => p.onDelete(os)),
     ),

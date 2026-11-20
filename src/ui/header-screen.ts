@@ -1,13 +1,18 @@
-import { ArrowRight, Download, FileDown, Share2, Truck, UserCheck, Users } from 'lucide';
-import { TECNICOS_LIDERES } from '../domain/catalog';
+import { ArrowRight, Download, FileDown, Share2, Trash2, Truck, UserCheck, UserCog, Users } from 'lucide';
 import { formatDateBR, plural, todayISO } from '../domain/format';
-import { HEADER_FIELDS, type ClosedSheet, type ShiftHeader } from '../domain/types';
-import { BTN, BTN_PRIMARY_LG, h, icon } from './dom';
-import { showToast } from './feedback';
+import { HEADER_FIELDS, type ClosedSheet, type ShiftHeader, type Tecnico } from '../domain/types';
+import { BTN, BTN_PRIMARY_LG, h, icon, onEnter } from './dom';
+import { closeModal, openModal, showToast } from './feedback';
 
 export interface HeaderScreenProps {
   /** Cabeçalho atual, quando a tela é aberta para corrigir o turno em andamento. */
   editing: ShiftHeader | null;
+  /** Último cabeçalho usado: preenche o novo turno automaticamente (a data vem do sistema; o líder começa em branco). */
+  defaults: ShiftHeader | null;
+  /** Lista atual de técnicos: a tela não é redesenhada ao cadastrar/excluir (o que foi digitado fica). */
+  getTecnicos: () => readonly Tecnico[];
+  onAddTecnico: (nome: string, telefone: string) => void;
+  onRemoveTecnico: (id: string) => void;
   lastSheet: ClosedSheet | null;
   canShare: boolean;
   onSubmit: (header: ShiftHeader) => void;
@@ -15,9 +20,6 @@ export interface HeaderScreenProps {
   onDownloadLast: () => void;
   onShareLast: () => void;
 }
-
-/** Campos repetidos de um turno para o outro pelo botão "Usar equipe do último turno". */
-const TEAM_FIELDS = ['nome1', 'mat1', 'nome2', 'mat2', 'equipe', 'viatura', 'lider'] as const;
 
 function field(id: keyof ShiftHeader, label: string, attrs: Record<string, string | boolean>, extraCls = '') {
   return h(
@@ -66,26 +68,93 @@ function lastSheetCard(sheet: ClosedSheet, p: HeaderScreenProps): HTMLElement {
   );
 }
 
+function tecnicoLabel(t: Tecnico): string {
+  return t.telefone ? `${t.nome} - ${t.telefone}` : t.nome;
+}
+
+/** Janela com os técnicos cadastrados (excluir) e o formulário para cadastrar outro. */
+function manageTecnicos(p: HeaderScreenProps, onChange: () => void): void {
+  const list = h('ul', { class: 'space-y-2', 'data-testid': 'tecnicos-list' });
+  const drawList = () => {
+    const tecnicos = p.getTecnicos();
+    list.replaceChildren(
+      ...(tecnicos.length === 0
+        ? [h('li', { class: 'text-sm text-muted' }, 'Nenhum técnico cadastrado.')]
+        : tecnicos.map((t) =>
+            h(
+              'li',
+              { class: 'flex items-center justify-between gap-3 p-3 rounded-xl bg-fg/5 border border-fg/10' },
+              h('div', { class: 'min-w-0' }, h('p', { class: 'text-sm font-bold text-fg break-words' }, t.nome), t.telefone && h('p', { class: 'text-xs text-muted' }, t.telefone)),
+              h(
+                'button',
+                {
+                  type: 'button',
+                  class: 'p-2.5 rounded-xl border border-fg/10 text-danger-fg hover:bg-rose-500/10 shrink-0',
+                  'aria-label': `Excluir técnico ${t.nome}`,
+                  onClick: () => {
+                    p.onRemoveTecnico(t.id);
+                    onChange();
+                    drawList();
+                  },
+                },
+                icon(Trash2),
+              ),
+            ),
+          )),
+    );
+  };
+
+  const add = () => {
+    if (!nome.value.trim()) {
+      showToast('Digite o nome do técnico.', 'warning');
+      nome.focus();
+      return;
+    }
+    p.onAddTecnico(nome.value.trim(), telefone.value.trim());
+    onChange();
+    nome.value = '';
+    telefone.value = '';
+    drawList();
+    nome.focus();
+  };
+  const nome = h('input', { id: 'tecnico-nome', class: 'field', autocomplete: 'off', autocapitalize: 'characters', placeholder: 'Ex: TEC. JOÃO SILVA' });
+  const telefone = h('input', { id: 'tecnico-telefone', class: 'field', autocomplete: 'off', inputmode: 'tel', placeholder: 'Ex: 69 99999-9999', onKeydown: onEnter(add) });
+  drawList();
+
+  openModal(
+    'Técnicos líderes',
+    h(
+      'div',
+      { class: 'space-y-4' },
+      list,
+      h(
+        'div',
+        { class: 'space-y-3 pt-3 border-t border-fg/10' },
+        h('p', { class: 'lbl' }, 'Cadastrar técnico'),
+        h('div', null, h('label', { for: 'tecnico-nome', class: 'lbl' }, 'Nome'), nome),
+        h('div', null, h('label', { for: 'tecnico-telefone', class: 'lbl' }, 'Telefone'), telefone),
+        h('button', { type: 'button', class: `${BTN.primary} w-full`, onClick: add }, 'Adicionar técnico'),
+      ),
+    ),
+    [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }],
+  );
+}
+
 export function headerScreen(p: HeaderScreenProps): HTMLElement {
   const init = p.editing;
-  const v = (k: keyof ShiftHeader) => init?.[k] ?? '';
+  const source = init ?? p.defaults;
+  // Correção do turno: mantém o líder escolhido. Turno novo: líder em branco, escolhido a cada turno.
+  const v = (k: keyof ShiftHeader) => (k === 'lider' && !init ? '' : (source?.[k] ?? ''));
   const form = h('form', { id: 'header-form', class: 'p-6 space-y-5', novalidate: true });
   const input = (k: keyof ShiftHeader) => form.elements.namedItem(k) as HTMLInputElement | HTMLSelectElement;
 
-  const previous = p.lastSheet?.header;
-  const fillTeam = () => {
-    if (!previous) return;
-    for (const k of TEAM_FIELDS) input(k).value = previous[k];
-    showToast('Equipe do último turno preenchida. Confira data, horário e bodycams.', 'info');
+  const liderSelect = h('select', { id: 'lider', name: 'lider', class: 'field' });
+  const fillLider = (selected: string) => {
+    const tecnicos = p.getTecnicos();
+    liderSelect.replaceChildren(h('option', { value: '' }, '—'), ...tecnicos.map((t) => h('option', { value: t.id }, tecnicoLabel(t))));
+    liderSelect.value = tecnicos.some((t) => t.id === selected) ? selected : '';
   };
-
-  const liderSelect = h(
-    'select',
-    { id: 'lider', name: 'lider', class: 'field' },
-    h('option', { value: '' }, 'Não informado'),
-    TECNICOS_LIDERES.map((l) => h('option', { value: l }, l)),
-  );
-  liderSelect.value = v('lider');
+  fillLider(v('lider'));
 
   form.append(
     group(
@@ -124,6 +193,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     h(
       'div',
       { class: 'grid grid-cols-2 sm:grid-cols-3 gap-4' },
+      // Turno novo: a data é sempre a de hoje (do sistema); na correção, a do turno.
       field('data', 'Data *', { type: 'date', required: true, value: init?.data ?? todayISO() }, 'col-span-2 sm:col-span-1'),
       field('horaInicio', 'Início *', { type: 'time', required: true, value: v('horaInicio') }),
       field('horaFim', 'Fim *', { type: 'time', required: true, value: v('horaFim') }),
@@ -134,7 +204,27 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       field('bodycam1', 'Bodycam 1', { placeholder: 'Nº da câmera', value: v('bodycam1') }),
       field('bodycam2', 'Bodycam 2', { placeholder: 'Nº da câmera', value: v('bodycam2') }),
     ),
-    h('div', null, h('label', { for: 'lider', class: 'lbl' }, 'Técnico líder responsável'), liderSelect),
+    h(
+      'div',
+      null,
+      h(
+        'div',
+        { class: 'flex items-center justify-between gap-2' },
+        h('label', { for: 'lider', class: 'lbl' }, 'Técnico líder responsável'),
+        h(
+          'button',
+          {
+            type: 'button',
+            id: 'btn-tecnicos',
+            class: 'text-xs font-bold text-brand-fg hover:underline flex items-center gap-1 mb-1.5',
+            onClick: () => manageTecnicos(p, () => fillLider(liderSelect.value)),
+          },
+          icon(UserCog, 'w-3.5 h-3.5'),
+          'Adicionar / excluir técnicos',
+        ),
+      ),
+      liderSelect,
+    ),
     h(
       'div',
       { class: 'pt-2 flex flex-col sm:flex-row gap-3' },
@@ -165,9 +255,16 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
         { class: 'px-6 py-5 border-b border-fg/10 bg-brand/10' },
         h('p', { class: 'text-[11px] uppercase tracking-widest text-brand-fg font-bold' }, 'Departamento de Operação'),
         h('h2', { class: 'text-xl font-extrabold mt-0.5 text-fg' }, init ? 'Corrigir cabeçalho do turno' : 'Identificação da equipe e turno'),
-        h('p', { class: 'text-xs text-muted mt-1' }, init ? 'As OSs já registradas são mantidas.' : 'Preencha os dados obrigatórios para liberar o registro de Ordens de Serviço.'),
+        h(
+          'p',
+          { class: 'text-xs text-muted mt-1' },
+          init
+            ? 'As OSs já registradas são mantidas.'
+            : p.defaults
+              ? 'Dados do último turno já preenchidos; a data é a de hoje. Confira e inicie.'
+              : 'Preencha os dados obrigatórios para liberar o registro de Ordens de Serviço.',
+        ),
       ),
-      !init && previous && h('div', { class: 'px-6 pt-5' }, h('button', { type: 'button', class: `${BTN.neutral} w-full`, onClick: fillTeam }, 'Usar equipe do último turno')),
       form,
     ),
   );

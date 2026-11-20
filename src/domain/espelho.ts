@@ -1,14 +1,14 @@
 import { questionsFor } from './catalog';
 import { osLabel } from './format';
-import type { Answer, EspelhoColumn, OrdemServico, Question } from './types';
+import { ESPELHO_COLUMNS, type Answer, type EspelhoColumn, type OrdemServico, type Question } from './types';
 
 /**
- * Linhas da tabela do Espelho de Campo (modelo em design/ex_pdf.jpeg).
- * As colunas próprias vêm das perguntas etiquetadas com `espelho` no catálogo; todas as outras respostas
- * preenchidas pelo eletricista vão para INFO ADICIONAL, como "Rótulo: resposta".
+ * Linhas da tabela do Espelho de Campo. A coluna TIPO DE SERVIÇO traz só o código; as colunas próprias (KM,
+ * horários, medidores, leituras, cliente presente) vêm das perguntas etiquetadas com `espelho` no catálogo; todas
+ * as outras respostas (tipo de serviço, defeito, dificuldades...) vão para INFO ADICIONAL como "Rótulo: resposta".
  */
 
-export type EspelhoRow = { item: number; os: string; info: string } & Record<EspelhoColumn, string>;
+export type EspelhoRow = { item: number; os: string; codigo: string; info: string } & Record<EspelhoColumn, string>;
 
 /**
  * Texto que a resposta leva à folha: o texto digitado, SIM/NÃO, ou o complemento de um "Sim, qual?".
@@ -22,25 +22,17 @@ function answerValue(q: Question, ans: Answer | undefined): string {
 }
 
 function espelhoRow(os: OrdemServico, item: number): EspelhoRow {
-  const cols: Record<EspelhoColumn, string[]> = { tipo: [], medidorInstalado: [], leituraInstalado: [], medidorRetirado: [], leituraRetirado: [] };
+  const cols = Object.fromEntries(ESPELHO_COLUMNS.map((c) => [c, ''])) as Record<EspelhoColumn, string>;
   const info: string[] = [];
   for (const q of questionsFor(os.serviceType)) {
     const v = answerValue(q, os.answers[q.id]);
     if (!v || q.prefillOS) continue; // o número da OS já tem coluna própria
-    if (q.espelho) cols[q.espelho].push(v);
+    if (q.espelho) cols[q.espelho] = v;
     else info.push(`${q.short ?? q.text}: ${v}`);
   }
-  const join = (c: EspelhoColumn) => cols[c].join('; ');
-  return {
-    item,
-    os: osLabel(os.osNumber),
-    tipo: [os.serviceCode, ...cols.tipo].join(' - '),
-    medidorInstalado: join('medidorInstalado'),
-    leituraInstalado: join('leituraInstalado'),
-    medidorRetirado: join('medidorRetirado'),
-    leituraRetirado: join('leituraRetirado'),
-    info: info.join('; '),
-  };
+  // Respostas de perguntas que saíram do catálogo (OSs registradas antes da atualização).
+  if (os.infoLegada) info.push(os.infoLegada);
+  return { item, os: osLabel(os.osNumber), codigo: os.serviceCode, ...cols, info: info.join('; ') };
 }
 
 export function espelhoRows(ordens: readonly OrdemServico[]): EspelhoRow[] {

@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { UNUSED_ASSET_GLOBS } from './scripts/unused-assets.mjs';
 
 export default defineConfig({
   // Caminhos relativos: o build funciona em qualquer subpasta (GitHub Pages, Cloudflare, servidor local).
@@ -31,16 +32,8 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        globIgnores: [
-          // A Inter traz vários alfabetos; o app só usa o latino.
-          '**/*cyrillic*',
-          '**/*greek*',
-          '**/*vietnamese*',
-          // Dependências opcionais do jsPDF (doc.html() e SVG), que o app não usa: ~380 KB a menos no cache.
-          '**/html2canvas-*.js',
-          '**/purify.es-*.js',
-          '**/index.es-*.js',
-        ],
+        // Fontes de outros alfabetos e dependências opcionais do jsPDF: o app nunca carrega (~465 KB).
+        globIgnores: UNUSED_ASSET_GLOBS,
       },
     }),
   ],

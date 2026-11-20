@@ -5,8 +5,10 @@ export type QuestionType = 'text' | 'yesno' | 'yesno_detail';
 /** Teclado sugerido no celular para a resposta de texto. */
 export type InputKind = 'text' | 'numeric' | 'decimal' | 'time';
 
-/** Coluna própria do Espelho de Campo; perguntas sem coluna vão para INFO ADICIONAL. */
-export type EspelhoColumn = 'tipo' | 'medidorInstalado' | 'leituraInstalado' | 'medidorRetirado' | 'leituraRetirado';
+/** Colunas próprias do Espelho de Campo; perguntas sem coluna (inclusive o tipo de serviço) vão para INFO ADICIONAL. */
+export const ESPELHO_COLUMNS = ['kmIni', 'horaIni', 'horaFin', 'kmFin', 'medidorInstalado', 'leituraInstalado', 'medidorRetirado', 'leituraRetirado', 'clientePresente'] as const;
+
+export type EspelhoColumn = (typeof ESPELHO_COLUMNS)[number];
 
 export interface Question {
   id: string;
@@ -36,7 +38,7 @@ export type Answer =
 
 /**
  * Campos do cabeçalho do turno, todos texto. Fonte única: o tipo, a leitura do armazenamento e o formulário
- * derivam desta lista. `data` é AAAA-MM-DD; `horaInicio`/`horaFim` são HH:MM; `lider` é um de TECNICOS_LIDERES ou vazio.
+ * derivam desta lista. `data` é AAAA-MM-DD; `horaInicio`/`horaFim` são HH:MM; `lider` é o id de um Tecnico ou vazio.
  */
 export const HEADER_FIELDS = ['nome1', 'mat1', 'nome2', 'mat2', 'equipe', 'viatura', 'data', 'horaInicio', 'horaFim', 'bodycam1', 'bodycam2', 'lider'] as const;
 
@@ -51,6 +53,8 @@ export interface OrdemServico {
   answers: Record<string, Answer>;
   /** ISO 8601 do momento em que a OS foi concluída. */
   registradaEm: string;
+  /** Respostas de perguntas que saíram do catálogo (OSs migradas da v2), já como texto para INFO ADICIONAL. */
+  infoLegada?: string;
 }
 
 /** OS em preenchimento no assistente. Persistida para sobreviver ao fechamento da aba. */
@@ -60,8 +64,14 @@ export interface WizardDraft {
   serviceCode: string;
   index: number;
   answers: Record<string, Answer>;
-  /** Presente quando o rascunho é a edição de uma OS já concluída. */
-  editingId?: string;
+  infoLegada?: string;
+}
+
+/** Técnico líder cadastrado no aparelho (rodapé do Espelho de Campo). */
+export interface Tecnico {
+  id: string;
+  nome: string;
+  telefone: string;
 }
 
 /** Folha encerrada mais recente, guardada para baixar ou compartilhar o PDF de novo. */
@@ -69,14 +79,19 @@ export interface ClosedSheet {
   header: ShiftHeader;
   ordens: OrdemServico[];
   fechadaEm: string;
+  /** Técnicos cadastrados quando a folha foi gerada (o PDF de novo sai igual mesmo se a lista mudar). */
+  tecnicos: Tecnico[];
 }
 
 export interface AppData {
-  version: 2;
+  version: 3;
   header: ShiftHeader | null;
   ordens: OrdemServico[];
   draft: WizardDraft | null;
   lastSheet: ClosedSheet | null;
+  /** Último cabeçalho usado: preenche o próximo turno automaticamente (menos a data, que vem do sistema). */
+  lastHeader: ShiftHeader | null;
+  tecnicos: Tecnico[];
 }
 
 /** Linha pronta para exibir no app ou no PDF. */

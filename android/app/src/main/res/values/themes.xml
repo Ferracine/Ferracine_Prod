@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fundo igual ao do tema claro do app (variável "app" de src/styles.css), para não piscar ao abrir. -->
+    <color name="app_background">#EEF4F7</color>
+    <color name="ic_launcher_background">#FFFFFF</color>
+
+    <style name="Theme.FerracineProd" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_background</item>
+        <item name="android:statusBarColor">@color/app_background</item>
+        <item name="android:navigationBarColor">@color/app_background</item>
+    </style>
+</resources>

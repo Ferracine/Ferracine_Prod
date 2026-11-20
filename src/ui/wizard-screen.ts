@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, CircleCheck, CircleX, ShieldAlert, SkipForward } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
 import { osLabel } from '../domain/format';
-import type { Choice, Question, WizardDraft } from '../domain/types';
+import type { Choice, Question, ServiceType, WizardDraft } from '../domain/types';
 import { currentQuestion, isLastQuestion, totalQuestions } from '../domain/wizard';
 import { TYPE_BADGE } from './dashboard-screen';
 import { h, icon, onEnter } from './dom';
@@ -24,7 +24,12 @@ const CHOICE_ON: Record<Choice, string> = {
 };
 const CHOICE_OFF = 'border-fg/15 bg-fg/5 text-fg hover:border-brand';
 
-function inputAttrs(q: Question): Record<string, string> {
+/** Selo COMERCIAL/OCORRÊNCIA (assistente e edição). */
+export function typeBadge(type: ServiceType): HTMLElement {
+  return h('span', { class: `text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md ${TYPE_BADGE[type]}` }, SERVICE_LABEL[type]);
+}
+
+export function inputAttrs(q: Question): Record<string, string> {
   switch (q.input) {
     case 'time':
       return { type: 'time' };
@@ -36,8 +41,10 @@ function inputAttrs(q: Question): Record<string, string> {
   }
 }
 
-function choiceButtons(selected: Choice | undefined, onChoice: (c: Choice) => void, big: boolean): HTMLElement {
-  const size = big ? 'py-5 text-lg' : 'py-4 text-base';
+const CHOICE_SIZE = { lg: 'py-5 text-lg', md: 'py-4 text-base', sm: 'py-3 text-base' } as const;
+
+/** Botões SIM/NÃO (assistente e edição). */
+export function choiceButtons(selected: Choice | undefined, onChoice: (c: Choice) => void, size: keyof typeof CHOICE_SIZE): HTMLElement {
   const btn = (choice: Choice, node: typeof CircleCheck) =>
     h(
       'button',
@@ -45,13 +52,28 @@ function choiceButtons(selected: Choice | undefined, onChoice: (c: Choice) => vo
         type: 'button',
         'aria-pressed': String(selected === choice),
         'data-choice': choice,
-        class: `${size} px-4 rounded-2xl border-2 font-extrabold transition-all flex items-center justify-center gap-2 ${selected === choice ? CHOICE_ON[choice] : CHOICE_OFF}`,
+        class: `${CHOICE_SIZE[size]} px-4 rounded-2xl border-2 font-extrabold transition-all flex items-center justify-center gap-2 ${selected === choice ? CHOICE_ON[choice] : CHOICE_OFF}`,
         onClick: () => onChoice(choice),
       },
       icon(node, 'w-6 h-6'),
       choice.toUpperCase(),
     );
   return h('div', { class: 'grid grid-cols-2 gap-4' }, btn('Sim', CircleCheck), btn('Não', CircleX));
+}
+
+/** Campo do complemento de um "Sim, qual?" (assistente e edição). */
+export function detailInput(q: Question, value: string, onValue: (v: string) => void, attrs: Record<string, string | ((ev: Event) => void)> = {}): HTMLInputElement {
+  return h('input', {
+    type: 'text',
+    autocomplete: 'off',
+    autocapitalize: 'sentences',
+    value,
+    placeholder: q.placeholder ?? 'Digite aqui...',
+    class: 'field py-3.5',
+    'aria-label': q.detailLabel ?? 'Complemento',
+    onInput: (ev) => onValue((ev.target as HTMLInputElement).value),
+    ...attrs,
+  });
 }
 
 export function wizardScreen(p: WizardProps): HTMLElement {
@@ -79,25 +101,14 @@ export function wizardScreen(p: WizardProps): HTMLElement {
     });
   } else {
     const choice = saved?.kind === 'choice' ? saved.choice : undefined;
-    inputArea = h('div', { class: 'space-y-4' }, choiceButtons(choice, p.onChoice, q.type === 'yesno'));
+    inputArea = h('div', { class: 'space-y-4' }, choiceButtons(choice, p.onChoice, q.type === 'yesno' ? 'lg' : 'md'));
     if (q.type === 'yesno_detail' && choice === 'Sim') {
       inputArea.append(
         h(
           'div',
           { class: 'pt-2' },
           h('label', { for: 'wiz-detail-input', class: 'lbl' }, q.detailLabel ?? 'Informe os detalhes:'),
-          h('input', {
-            id: 'wiz-detail-input',
-            type: 'text',
-            enterkeyhint: 'next',
-            autocomplete: 'off',
-            autocapitalize: 'sentences',
-            value: saved?.kind === 'choice' ? (saved.detail ?? '') : '',
-            placeholder: q.placeholder ?? 'Digite aqui...',
-            class: 'field py-3.5',
-            onInput: (ev) => p.onDetail((ev.target as HTMLInputElement).value),
-            onKeydown: nextOnEnter,
-          }),
+          detailInput(q, saved?.kind === 'choice' ? (saved.detail ?? '') : '', p.onDetail, { id: 'wiz-detail-input', enterkeyhint: 'next', onKeydown: nextOnEnter }),
         ),
       );
     }
@@ -115,13 +126,12 @@ export function wizardScreen(p: WizardProps): HTMLElement {
         h(
           'div',
           { class: 'flex items-center gap-2 flex-wrap' },
-          h('span', { class: `text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md ${TYPE_BADGE[draft.serviceType]}` }, SERVICE_LABEL[draft.serviceType]),
+          typeBadge(draft.serviceType),
           h('span', { class: 'text-xs font-bold bg-fg/10 text-fg px-2.5 py-0.5 rounded-md' }, `Código ${draft.serviceCode}`),
-          draft.editingId && h('span', { class: 'text-xs font-bold bg-brand/15 text-brand-fg px-2.5 py-0.5 rounded-md' }, 'Editando'),
         ),
         h('p', { class: 'text-sm font-extrabold text-fg mt-1 break-all' }, 'OS: ', h('span', { id: 'wiz-os-number', class: 'text-brand-fg' }, osLabel(draft.osNumber))),
       ),
-      h('button', { type: 'button', class: 'shrink-0 text-xs font-bold text-danger-fg hover:bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-500/40 transition-colors', onClick: p.onCancel }, draft.editingId ? 'Cancelar edição' : 'Cancelar OS'),
+      h('button', { type: 'button', class: 'shrink-0 text-xs font-bold text-danger-fg hover:bg-rose-500/10 px-3 py-2 rounded-xl border border-rose-500/40 transition-colors', onClick: p.onCancel }, 'Cancelar OS'),
     ),
     h(
       'div',
@@ -182,7 +192,7 @@ export function wizardScreen(p: WizardProps): HTMLElement {
           h(
             'button',
             { type: 'button', id: 'btn-wiz-next', class: 'flex-1 sm:flex-initial whitespace-nowrap px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm shadow-md shadow-brand/20 transition-all flex items-center justify-center gap-2', onClick: p.onNext },
-            isLastQuestion(draft) ? (draft.editingId ? 'Salvar alterações' : 'Concluir OS') : 'Próximo',
+            isLastQuestion(draft) ? 'Concluir OS' : 'Próximo',
             icon(ArrowRight),
           ),
         ),

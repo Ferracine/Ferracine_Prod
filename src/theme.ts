@@ -1,4 +1,5 @@
 import { Moon, Sun } from 'lucide';
+import { androidBridge } from './platform';
 import { icon } from './ui/dom';
 
 /**
@@ -25,7 +26,10 @@ function apply(theme: Theme, button: HTMLButtonElement): void {
   root.dataset.theme = theme;
   // Barra do sistema com a cor de fundo do tema (variável --app de styles.css).
   const bar = getComputedStyle(root).getPropertyValue('--app').trim();
-  if (bar) document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bar);
+  if (bar) {
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bar);
+    androidBridge?.setSystemBars(bar, theme === 'dark'); // no APK, as barras do Android seguem o tema do app
+  }
   const next = theme === 'dark' ? 'claro' : 'escuro';
   button.setAttribute('aria-label', `Usar tema ${next}`);
   button.title = `Tema ${next}`;

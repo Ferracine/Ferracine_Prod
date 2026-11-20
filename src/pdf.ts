@@ -1,10 +1,9 @@
 import { jsPDF } from 'jspdf';
 import { autoTable, type CellHookData, type RowInput, type UserOptions } from 'jspdf-autotable';
 import logoPng from './assets/energisa-pdf.png?inline';
-import { TECNICOS_LIDERES } from './domain/catalog';
 import { espelhoRows } from './domain/espelho';
 import { formatDateBR, formatHorario } from './domain/format';
-import type { OrdemServico, ShiftHeader } from './domain/types';
+import type { OrdemServico, ShiftHeader, Tecnico } from './domain/types';
 
 /**
  * Espelho de Campo idêntico à folha de papel (design/ex_pdf.jpeg): A4 paisagem, preto e branco, um bloco
@@ -88,57 +87,95 @@ function identificacao(doc: jsPDF, h: ShiftHeader): void {
   });
 }
 
-/** ITEM (vertical) | OS/OCORRÊNCIA | TIPO DE SERVIÇO | MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | INFO ADICIONAL */
+/** Quadradinho de marcar com X opcional (rodapé e coluna CLIENTE PRESENTE). */
+function checkbox(doc: jsPDF, x: number, y: number, size: number, marked: boolean): void {
+  doc.setLineWidth(0.3);
+  doc.rect(x, y, size, size);
+  if (!marked) return;
+  const p = size * 0.18;
+  doc.setLineWidth(0.45);
+  doc.line(x + p, y + p, x + size - p, y + size - p);
+  doc.line(x + size - p, y + p, x + p, y + size - p);
+}
+
+const HEAD = ['', 'OS/OCORRÊNCIA', 'TIPO DE SERVIÇO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'CLIENTE PRESENTE', 'INFO ADICIONAL'];
+const COL_CLIENTE = HEAD.indexOf('CLIENTE PRESENTE');
+
+/**
+ * ITEM (vertical) | OS/OCORRÊNCIA | TIPO DE SERVIÇO (código) | KM INICIAL | HORÁRIO INICIAL | HORÁRIO FINAL | KM FINAL |
+ * MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | CLIENTE PRESENTE (SIM/NÃO) | INFO ADICIONAL
+ */
 function tabelaServicos(doc: jsPDF, ordens: readonly OrdemServico[]): void {
-  const rows: RowInput[] = espelhoRows(ordens).map((r) => [r.item, r.os, r.tipo, r.medidorInstalado, r.leituraInstalado, r.medidorRetirado, r.leituraRetirado, r.info]);
-  for (let i = rows.length; i < LINHAS_FOLHA; i++) rows.push([i + 1, '', '', '', '', '', '', '']);
+  const linhas = espelhoRows(ordens);
+  const rows: RowInput[] = linhas.map((r) => [
+    r.item, r.os, r.codigo, r.kmIni, r.horaIni, r.horaFin, r.kmFin,
+    r.medidorInstalado, r.leituraInstalado, r.medidorRetirado, r.leituraRetirado, '', r.info,
+  ]);
+  for (let i = rows.length; i < LINHAS_FOLHA; i++) rows.push([i + 1, ...Array<string>(HEAD.length - 1).fill('')]);
+  const narrow = { fontSize: 7.5, cellPadding: 0.6 };
 
   block(doc, {
     showHead: 'everyPage',
     rowPageBreak: 'avoid',
     styles: { ...BASE, fontSize: 9, minCellHeight: 7.6 },
-    // Pouco espaçamento: "LEITURA" cabe na coluna estreita (11 mm) como na folha.
+    // Pouco espaçamento no cabeçalho: os títulos quebram em duas linhas nas colunas estreitas, como na folha.
     headStyles: { fillColor: false, fontStyle: 'bold', fontSize: 6.5, halign: 'center', minCellHeight: 6.7, cellPadding: 0.4 },
     columnStyles: {
       0: { cellWidth: 4.7, halign: 'center', fontStyle: 'bold', fontSize: 7, cellPadding: 0.3 },
-      1: { cellWidth: 48 },
-      2: { cellWidth: 33.3 },
-      3: { cellWidth: 52.5 },
-      // LEITURA é estreita como na folha: fonte menor para caber leitura de 6-7 dígitos numa linha.
-      4: { cellWidth: 11.4, fontSize: 7, cellPadding: 0.5 },
-      5: { cellWidth: 46.2 },
-      6: { cellWidth: 11.2, fontSize: 7, cellPadding: 0.5 },
+      1: { cellWidth: 28 },
+      2: { cellWidth: 15, halign: 'center' },
+      3: { cellWidth: 14, ...narrow },
+      4: { cellWidth: 12.5, ...narrow, halign: 'center' },
+      5: { cellWidth: 12.5, ...narrow, halign: 'center' },
+      6: { cellWidth: 14, ...narrow },
+      7: { cellWidth: 24, ...narrow },
+      8: { cellWidth: 13, ...narrow },
+      9: { cellWidth: 24, ...narrow },
+      10: { cellWidth: 13, ...narrow },
+      [COL_CLIENTE]: { cellWidth: 17 },
       // Tudo o que o eletricista respondeu sem coluna própria, em fonte pequena para a folha caber 15 OSs.
-      7: { cellWidth: 73.7, fontSize: 6, cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 } },
+      12: { cellWidth: 89.3, fontSize: 6, cellPadding: { top: 0.6, bottom: 0.6, left: 1, right: 1 } },
     },
-    head: [['', 'OS/OCORRÊNCIA', 'TIPO DE SERVIÇO', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'INFO ADICIONAL']],
+    head: [HEAD],
     body: rows,
-    didDrawCell: ({ cell, column, section }: CellHookData) => {
-      if (section !== 'head' || column.index !== 0) return;
-      pen(doc, 6);
-      doc.text('ITEM', cell.x + cell.width / 2 + 1, cell.y + cell.height - 0.8, { angle: 90 });
+    didDrawCell: ({ cell, column, row, section }: CellHookData) => {
+      if (section === 'head' && column.index === 0) {
+        pen(doc, 6);
+        doc.text('ITEM', cell.x + cell.width / 2 + 1, cell.y + cell.height - 0.8, { angle: 90 });
+        return;
+      }
+      if (section !== 'body' || column.index !== COL_CLIENTE) return;
+      // SIM [ ]  NÃO [ ] em todas as linhas, marcado conforme a resposta de "Cliente presente?".
+      const valor = linhas[row.index]?.clientePresente;
+      const box = 2.6;
+      const y = cell.y + (cell.height - box) / 2;
+      pen(doc, 5.5);
+      doc.text('SIM', cell.x + 0.8, y + box - 0.4);
+      checkbox(doc, cell.x + 5, y, box, valor === 'Sim');
+      doc.text('NÃO', cell.x + 8.4, y + box - 0.4);
+      checkbox(doc, cell.x + 13.4, y, box, valor === 'Não');
     },
   });
 }
 
-/** Separa "TEC. NOME - 69 99999-9999" em nome e telefone. */
-function splitLider(lider: string): [string, string] {
-  const i = lider.lastIndexOf(' - ');
-  return i < 0 ? [lider, ''] : [lider.slice(0, i), lider.slice(i + 3)];
-}
-
-/** TEC.LIDER RESPONSAVEL PELA EQUIPE + PRODUÇÃO TOTAL e os técnicos com o quadradinho de marcar. */
-function rodape(doc: jsPDF, h: ShiftHeader, total: number): void {
+/** TEC.LIDER RESPONSAVEL PELA EQUIPE + PRODUÇÃO TOTAL e os técnicos cadastrados (3 por linha) com o quadradinho. */
+function rodape(doc: jsPDF, h: ShiftHeader, total: number, tecnicos: readonly Tecnico[]): void {
+  const POR_LINHA = 3;
+  // Sem técnico cadastrado, a folha sai com os três quadradinhos em branco, como o modelo de papel.
+  const linhas = Math.max(1, Math.ceil(tecnicos.length / POR_LINHA));
+  const body: RowInput[] = [[{ content: 'TEC.LIDER RESPONSAVEL PELA EQUIPE', colSpan: 4, styles: { ...LABEL, fontSize: 7.5, halign: 'center', minCellHeight: 5 } }]];
+  for (let i = 0; i < linhas; i++) {
+    // Cada célula de técnico tem a própria altura (nome, telefone e quadradinho cabem em qualquer linha).
+    const slots = Array.from({ length: POR_LINHA }, () => ({ content: '', styles: { minCellHeight: 16 } }));
+    body.push(i === 0 ? [{ content: '', rowSpan: linhas }, ...slots] : slots);
+  }
   block(doc, {
-    // As duas linhas do rodapé ficam sempre juntas: se não couberem, vão inteiras para a folha seguinte.
+    // O rodapé fica sempre junto: se não couber, vai inteiro para a folha seguinte.
     pageBreak: 'avoid',
-    columnStyles: { 0: { cellWidth: 53.7 }, 1: { cellWidth: 65.4 }, 2: { cellWidth: 77 }, 3: { cellWidth: 84.9 } },
-    body: [
-      [{ content: 'TEC.LIDER RESPONSAVEL PELA EQUIPE', colSpan: 4, styles: { ...LABEL, fontSize: 7.5, halign: 'center', minCellHeight: 5 } }],
-      [{ content: '', styles: { minCellHeight: 16 } }, '', '', ''],
-    ],
+    columnStyles: { 0: { cellWidth: 53.7 }, 1: { cellWidth: 75.8 }, 2: { cellWidth: 75.8 }, 3: { cellWidth: 75.7 } },
+    body,
     didDrawCell: ({ cell, column, row, section }: CellHookData) => {
-      if (section !== 'body' || row.index !== 1) return;
+      if (section !== 'body' || row.index === 0) return;
       if (column.index === 0) {
         const label = 'PRODUÇÃO TOTAL:';
         const x = cell.x + 4;
@@ -151,33 +188,27 @@ function rodape(doc: jsPDF, h: ShiftHeader, total: number): void {
         doc.text(String(total), x + 4, cell.y + cell.height - 2);
         return;
       }
-      const lider = TECNICOS_LIDERES[column.index - 1];
-      if (!lider) return;
-      const [nome, telefone] = splitLider(lider);
-      const cx = cell.x + cell.width / 2;
-      pen(doc, 7.5);
-      doc.text(nome, cx, cell.y + 5, { align: 'center' });
-      pen(doc, 7);
-      doc.text(telefone, cx, cell.y + 9.5, { align: 'center' });
-      // Quadradinho de marcar no canto inferior esquerdo; com X no técnico escolhido.
-      const box = { x: cell.x + 4, y: cell.y + cell.height - 6, s: 3.6 };
-      doc.setLineWidth(0.35);
-      doc.rect(box.x, box.y, box.s, box.s);
-      if (lider === h.lider) {
-        doc.setLineWidth(0.5);
-        doc.line(box.x + 0.6, box.y + 0.6, box.x + box.s - 0.6, box.y + box.s - 0.6);
-        doc.line(box.x + box.s - 0.6, box.y + 0.6, box.x + 0.6, box.y + box.s - 0.6);
+      const tecnico = tecnicos[(row.index - 1) * POR_LINHA + column.index - 1];
+      if (tecnico) {
+        const cx = cell.x + cell.width / 2;
+        pen(doc, 7.5);
+        // Nome longo quebra em mais linhas e empurra o telefone para baixo.
+        const nome = doc.splitTextToSize(tecnico.nome, cell.width - 4) as string[];
+        doc.text(nome, cx, cell.y + 5, { align: 'center' });
+        pen(doc, 7);
+        doc.text(tecnico.telefone, cx, cell.y + 5 + nome.length * 3.3 + 1.2, { align: 'center' });
       }
+      checkbox(doc, cell.x + 4, cell.y + cell.height - 6, 3.6, !!tecnico && tecnico.id === h.lider);
     },
   });
 }
 
 /** PDF do Espelho de Campo (A4 paisagem), idêntico ao modelo de papel. */
-export function buildSheetPdf(header: ShiftHeader, ordens: readonly OrdemServico[]): jsPDF {
+export function buildSheetPdf(header: ShiftHeader, ordens: readonly OrdemServico[], tecnicos: readonly Tecnico[]): jsPDF {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   titulo(doc);
   identificacao(doc, header);
   tabelaServicos(doc, ordens);
-  rodape(doc, header, ordens.length);
+  rodape(doc, header, ordens.length, tecnicos);
   return doc;
 }
