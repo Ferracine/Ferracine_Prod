@@ -186,7 +186,7 @@ export function wizardScreen(p: WizardProps): HTMLElement {
             ),
           h(
             'button',
-            { type: 'button', id: 'btn-wiz-next', class: 'flex-1 sm:flex-initial px-6 py-3.5 rounded-xl bg-energisa-blue hover:bg-energisa-navy text-white font-bold text-sm shadow-md shadow-energisa-blue/20 transition-all flex items-center justify-center gap-2', onClick: p.onNext },
+            { type: 'button', id: 'btn-wiz-next', class: 'flex-1 sm:flex-initial whitespace-nowrap px-6 py-3.5 rounded-xl bg-energisa-blue hover:bg-energisa-navy text-white font-bold text-sm shadow-md shadow-energisa-blue/20 transition-all flex items-center justify-center gap-2', onClick: p.onNext },
             isLastQuestion(draft) ? (draft.editingId ? 'Salvar alterações' : 'Concluir OS') : 'Próximo',
             icon(ArrowRight),
           ),

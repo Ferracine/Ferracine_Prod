@@ -20,6 +20,12 @@ pnpm check             # lint + test + build + e2e: rode antes de commitar
 ```
 
 O e2e usa o build de produção: depois de mudar `src/`, rode `pnpm build` antes de `pnpm test:e2e`.
+
+Teste no Galaxy A23 (print antes de cada toque): `pnpm preview` e `adb -s RX8TA06NC3W reverse tcp:4173 tcp:4173`, depois
+abra `http://localhost:4173/` no Chrome do aparelho (`am start -a android.intent.action.VIEW -d ...`). Pelo
+`localhost` o service worker funciona; para simular sem internet, `adb reverse --remove tcp:4173` e reabra.
+`adb input text` não aceita acento. Com `adb forward tcp:9333 localabstract:chrome_devtools_remote`, o Playwright
+(`chromium.connectOverCDP`) inspeciona a página real do celular.
 `pnpm-workspace.yaml` nega o build script do `core-js` (pnpm 11 trava qualquer `pnpm run` com build pendente).
 
 ## Arquitetura
@@ -51,5 +57,8 @@ Regras de negócio que não são óbvias no código:
 
 - O catálogo tem perguntas repetidas (KM inicial/final em o7/o8 e o16/o17; dificuldade em o11 e o18) e a o2
   repete o número da OS. Ficaram como o original até o dono do app confirmar.
+- O Chrome grava o `localStorage` em disco com atraso. Testado no A23: app em segundo plano e depois morto não
+  perde nada; Chrome morto com o app na tela perdeu o último passo do assistente. Se isso virar problema em campo,
+  migrar o estado para IndexedDB.
 - A conversa do Gemini (`conversa_com_gemini.txt`) só abre no navegador; não foi possível lê-la por fetch.
 - Sem repositório remoto nem publicação. Criar repositório, `git push` e publicar só com OK explícito do Bruno.
