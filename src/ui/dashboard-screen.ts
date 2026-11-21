@@ -1,6 +1,6 @@
 import { ClipboardList, Eye, FileDown, Pencil, Plus, Trash2 } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
-import { formatDateBR, formatHorario, orDash, osLabel, plural, teamLabel } from '../domain/format';
+import { eletricistaLabel, formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
 import { answerRows } from '../domain/ordem';
 import { h, icon } from './dom';
@@ -78,8 +78,15 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         )
       : h('ul', { class: 'space-y-3' }, ordens.map((os, i) => osRow(os, i, p)));
 
-  const teamExtra = [header.equipe && `Equipe ${header.equipe}`, header.viatura && `Viatura ${header.viatura}`].filter(Boolean).join(' • ');
   const bodycams = [header.bodycam1, header.bodycam2].map((b) => b.trim()).filter(Boolean).join(' / ');
+  // Uma informação por linha, rótulo à esquerda e valor à direita (o eletricista 2 só se houver dupla).
+  const linhas: [string, string][] = [
+    ['Eletricista 1', eletricistaLabel(header.nome1, header.mat1)],
+    ...(header.nome2.trim() ? [['Eletricista 2', eletricistaLabel(header.nome2, header.mat2)] as [string, string]] : []),
+    ['Equipe', orDash(header.equipe)],
+    ['Viatura', orDash(header.viatura)],
+    ['Bodycam', orDash(bodycams)],
+  ];
 
   return h(
     'section',
@@ -99,16 +106,16 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         ),
       ),
       h(
-        'div',
-        { class: 'grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm' },
-        h(
-          'div',
-          null,
-          h('span', { class: 'text-subtle text-xs block' }, 'Equipe'),
-          h('p', { class: 'font-bold text-fg leading-snug' }, teamLabel(header)),
-          teamExtra && h('p', { class: 'text-xs text-muted mt-0.5' }, teamExtra),
+        'dl',
+        { class: 'text-sm divide-y divide-fg/5', 'data-testid': 'header-info' },
+        linhas.map(([rotulo, valor]) =>
+          h(
+            'div',
+            { class: 'flex items-baseline justify-between gap-4 py-2' },
+            h('dt', { class: 'text-subtle text-xs shrink-0' }, rotulo),
+            h('dd', { class: 'font-bold text-fg text-right break-words min-w-0' }, valor),
+          ),
         ),
-        h('div', { class: 'sm:text-right' }, h('span', { class: 'text-subtle text-xs block' }, 'Bodycam'), h('p', { class: 'font-bold text-brand-fg' }, orDash(bodycams))),
       ),
     ),
     // Nova OS: um "+" por tipo; cada um abre a tela da OS em branco com as perguntas daquele tipo.

@@ -83,9 +83,15 @@
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
+  /* Texto sempre em maiúsculas na tela, mesmo durante a composição do teclado (forceUppercase converte o valor). */
+  input.field[type='text'],
+  textarea.field {
+    text-transform: uppercase;
+  }
   .field::placeholder {
     color: var(--subtle);
     font-weight: 500;
+    text-transform: none;
   }
   .field:focus {
     border-color: var(--color-brand);

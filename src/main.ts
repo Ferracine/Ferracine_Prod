@@ -4,9 +4,10 @@ import { registerSW } from 'virtual:pwa-register';
 import { startApp } from './app';
 import { androidBridge } from './platform';
 import { initTheme } from './theme';
-import { byId } from './ui/dom';
+import { byId, forceUppercase } from './ui/dom';
 import { initUpdates } from './update';
 
+forceUppercase();
 initTheme(byId<HTMLButtonElement>('theme-toggle'));
 startApp(byId('app'), window.localStorage);
 initUpdates();

@@ -42,7 +42,7 @@ function readJson(store: KeyValueStore, key: string): unknown {
  */
 function normalizeDraft(raw: OSDraft | null | undefined): OSDraft | null {
   if (!raw) return null;
-  const draft = { ...raw, answers: meterAsText(raw.serviceType, raw.answers) };
+  const draft = { ...raw, answers: migrateMeters(raw.serviceType, raw.answers) };
   const q = questionsFor(draft.serviceType).find((x) => x.prefillOS);
   const ans = q ? draft.answers[q.id] : undefined;
   const answered = ans?.kind === 'text' ? ans.value.trim() : '';
@@ -127,23 +127,47 @@ function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): { a
  * como texto em `infoLegada` ("Medidor instalado: M-1; Leitura medidor instalado: 123"). Agora há pergunta para
  * elas: o texto volta para a resposta (coluna própria no PDF, campo preenchido no lápis) e sai da INFO ADICIONAL.
  */
-const LEGACY_TEXT_TO_QUESTION: Record<string, string> = { 'Medidor instalado': 'medidorInst', 'Leitura medidor instalado': 'leituraInst' };
+const LEGACY_TEXT_TO_QUESTION: Record<string, string> = { 'Medidor instalado': 'medidorInstNum', 'Leitura medidor instalado': 'leituraInst' };
 
 /**
- * Na 1.4.1 o medidor da ocorrência era "Foi instalado medidor? Se sim qual número?" (SIM/NÃO + número). Agora é só
- * o número: SIM com número vira o número; NÃO ou SIM sem número ficam em branco.
+ * Medidores das versões anteriores no formato atual (número em pergunta própria: `medidorInstNum`/`medidorRetNum`).
+ * - Comercial até a 1.4.3: "Foi instalado/retirado medidor? Se sim qual número?" (SIM/NÃO + número) vira a resposta
+ *   SIM/NÃO e o número separado.
+ * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
+ *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
  */
-function meterAsText(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
-  const ans = answers.medidorInst;
-  if (type !== 'OCORRENCIA' || ans?.kind !== 'choice') return answers;
-  const numero = ans.choice === 'Sim' ? (ans.detail ?? '').trim() : '';
-  return { ...answers, medidorInst: numero ? { kind: 'text', value: numero } : { kind: 'skipped' } };
+function migrateMeters(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
+  const out = { ...answers };
+  const numero = (ans: Answer | undefined): Answer | undefined => {
+    if (ans?.kind === 'text') return ans;
+    const n = ans?.kind === 'choice' && ans.choice === 'Sim' ? (ans.detail ?? '').trim() : '';
+    return n ? { kind: 'text', value: n } : undefined;
+  };
+  if (type === 'OCORRENCIA') {
+    if (out.medidorInst) {
+      out.medidorInstNum = numero(out.medidorInst) ?? { kind: 'skipped' };
+      delete out.medidorInst;
+    }
+    return out;
+  }
+  const preenchido = (id: string) => out[id]?.kind === 'text' && (out[id] as { value: string }).value.trim() !== '';
+  for (const [id, num, leitura] of [['medidorInst', 'medidorInstNum', 'leituraInst'], ['medidorRet', 'medidorRetNum', 'leituraRet']] as const) {
+    const ans = out[id];
+    if (ans?.kind === 'choice' && ans.detail !== undefined) {
+      out[id] = { kind: 'choice', choice: ans.choice };
+      const n = numero(ans);
+      if (n) out[num] = n;
+    }
+    // Até a 1.4.3 a leitura não dependia do SIM/NÃO: com número ou leitura e o SIM/NÃO sem resposta, houve medidor.
+    if (out[id]?.kind !== 'choice' && (preenchido(num) || preenchido(leitura))) out[id] = { kind: 'choice', choice: 'Sim' };
+  }
+  return out;
 }
 
 /** OS lida do aparelho: medidor das versões anteriores no formato atual. */
 function normalizeOS(os: OrdemServico): OrdemServico {
-  // Primeiro o formato da 1.4.1 (NÃO vira em branco), depois o texto legado: o resultado não muda entre carregamentos.
-  return adoptLegacyMeter({ ...os, answers: meterAsText(os.serviceType, os.answers) });
+  // Primeiro o formato das versões anteriores, depois o texto legado: o resultado não muda entre carregamentos.
+  return adoptLegacyMeter({ ...os, answers: migrateMeters(os.serviceType, os.answers) });
 }
 
 function adoptLegacyMeter(os: OrdemServico): OrdemServico {
@@ -162,7 +186,7 @@ function adoptLegacyMeter(os: OrdemServico): OrdemServico {
     if (!label || !id || (answers[id] && answers[id].kind !== 'skipped')) return true;
     const value = item.slice(label.length + 2).trim();
     // "Sim" sem número ou "Não": não há número para o campo, e soltos na folha não dizem nada.
-    if (!(id === 'medidorInst' && (value === 'Sim' || value === 'Não'))) answers[id] = { kind: 'text', value };
+    if (!(id === 'medidorInstNum' && (value === 'Sim' || value === 'Não'))) answers[id] = { kind: 'text', value };
     return false;
   });
   const { infoLegada: _antigo, ...semInfo } = os;
@@ -171,7 +195,7 @@ function adoptLegacyMeter(os: OrdemServico): OrdemServico {
 
 function migrateOS(os: OrdemServico): OrdemServico {
   const m = migrateAnswers(os.serviceType, os.answers);
-  return { ...os, ...m, answers: meterAsText(os.serviceType, m.answers) };
+  return { ...os, ...m, answers: migrateMeters(os.serviceType, m.answers) };
 }
 
 /**

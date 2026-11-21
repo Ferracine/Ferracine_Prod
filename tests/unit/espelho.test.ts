@@ -6,7 +6,7 @@ import { finishedOS } from './fixtures';
 describe('linhas do Espelho de Campo', () => {
   it('toda pergunta sem coluna própria tem rótulo curto para INFO ADICIONAL', () => {
     for (const type of ['COMERCIAL', 'OCORRENCIA'] as const) {
-      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.prefillOS && !q.short);
+      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.prefillOS && !q.semInfo && !q.short);
       expect(semRotulo.map((q) => q.id)).toEqual([]);
     }
   });
@@ -18,9 +18,11 @@ describe('linhas do Espelho de Campo', () => {
       horaIni: { kind: 'text', value: '08:15' },
       clientePresente: { kind: 'choice', choice: 'Sim' },
       ramal: { kind: 'choice', choice: 'Não' },
-      medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-100' },
-      medidorRet: { kind: 'choice', choice: 'Sim', detail: 'M-050' },
+      medidorInst: { kind: 'choice', choice: 'Sim' },
+      medidorInstNum: { kind: 'text', value: 'M-100' },
       leituraInst: { kind: 'text', value: '0' },
+      medidorRet: { kind: 'choice', choice: 'Sim' },
+      medidorRetNum: { kind: 'text', value: 'M-050' },
       leituraRet: { kind: 'text', value: '15432' },
       kmFin: { kind: 'text', value: '45235' },
       horaFin: { kind: 'text', value: '09:40' },

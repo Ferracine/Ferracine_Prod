@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { questionsFor } from '../../src/domain/catalog';
-import type { OSDraft } from '../../src/domain/types';
+import type { Answer, OSDraft } from '../../src/domain/types';
 import * as ordem from '../../src/domain/ordem';
 import { finishedOS } from './fixtures';
 
@@ -17,8 +17,8 @@ describe('catálogo', () => {
       'Houve necessidade de realizar os DITAIS?',
       'Deseja informar o KM final?',
       'Deseja informar alguma alteração feita na UC do cliente?',
-      'Número do medidor instalado',
-      'Qual leitura do medidor instalado?',
+      'Digite o número do medidor instalado',
+      'Qual a leitura do medidor instalado?',
       'Deseja informar a hora final?',
       'Houve alguma dificuldade, se sim qual?',
     ]);
@@ -31,10 +31,12 @@ describe('catálogo', () => {
       'Deseja informar a hora inicial?',
       'Cliente presente?',
       'Foi necessário lançar ramal?',
-      'Foi instalado medidor? Se sim qual número?',
-      'Foi retirado medidor? Se sim qual número?',
-      'Qual leitura do medidor instalado?',
-      'Qual leitura do medidor retirado?',
+      'Foi instalado medidor?',
+      'Digite o número do medidor instalado',
+      'Qual a leitura do medidor instalado?',
+      'Foi retirado medidor?',
+      'Digite o número do medidor retirado',
+      'Qual a leitura do medidor retirado?',
       'Deseja informar o KM final?',
       'Deseja informar o horário final?',
       'Houve alguma dificuldade na execução desse serviço? Se sim relate!',
@@ -65,7 +67,7 @@ describe('OS nova (tela da OS)', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.os).toMatchObject({ id: 'id-1', osNumber: '555', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: '2026-11-20T10:00:00.000Z' });
-    expect(Object.keys(r.os.answers)).toHaveLength(12);
+    expect(Object.keys(r.os.answers)).toHaveLength(14);
     expect(r.os.answers.tipo).toEqual({ kind: 'text', value: 'Ligação nova' });
     expect(r.os.answers.kmIni).toEqual({ kind: 'skipped' });
     const sn = ordem.createOS({ ...d, serviceCode: '709' }, 'id-2', agora);
@@ -95,10 +97,38 @@ describe('OS nova (tela da OS)', () => {
   });
 
   it('"Sim, qual?": NÃO descarta o complemento; SIM mantém o que já foi digitado', () => {
-    const q = questionsFor('COMERCIAL').find((x) => x.id === 'medidorInst')!;
-    const sim = { kind: 'choice', choice: 'Sim', detail: 'MED-1' } as const;
+    const q = questionsFor('COMERCIAL').find((x) => x.id === 'dificuldade')!;
+    const sim = { kind: 'choice', choice: 'Sim', detail: 'Chuva' } as const;
     expect(ordem.choiceAnswer(q, sim, 'Não')).toEqual({ kind: 'choice', choice: 'Não' });
     expect(ordem.choiceAnswer(q, sim, 'Sim')).toEqual(sim);
+  });
+
+  it('medidores da comercial: o número e a leitura só valem conforme SIM/NÃO', () => {
+    const base = { ...ordem.startDraft('COMERCIAL'), serviceCode: '709' };
+    const num: Record<string, Answer> = { medidorInstNum: { kind: 'text', value: 'N1' }, leituraInst: { kind: 'text', value: '10' }, medidorRetNum: { kind: 'text', value: 'R1' }, leituraRet: { kind: 'text', value: '20' } };
+    const salvar = (inst?: 'Sim' | 'Não', ret?: 'Sim' | 'Não') => {
+      const answers: Record<string, Answer> = { ...num };
+      if (inst) answers.medidorInst = { kind: 'choice', choice: inst };
+      if (ret) answers.medidorRet = { kind: 'choice', choice: ret };
+      const r = ordem.createOS({ ...base, answers }, 'x', agora);
+      if (!r.ok) throw new Error(r.error);
+      return r.os.answers;
+    };
+    // Instalou e retirou: os quatro campos valem.
+    expect(salvar('Sim', 'Sim')).toMatchObject({ medidorInstNum: num.medidorInstNum, leituraInst: num.leituraInst, medidorRetNum: num.medidorRetNum, leituraRet: num.leituraRet });
+    // Só retirou: o que foi digitado no instalado (escondido) não vale.
+    expect(salvar('Não', 'Sim')).toMatchObject({ medidorInstNum: { kind: 'skipped' }, leituraInst: { kind: 'skipped' }, medidorRetNum: num.medidorRetNum });
+    // Nem instalou nem retirou: número e leitura do medidor da UC (campos do instalado); o retirado não vale.
+    expect(salvar('Não', 'Não')).toMatchObject({ medidorInstNum: num.medidorInstNum, leituraInst: num.leituraInst, medidorRetNum: { kind: 'skipped' } });
+    // Sem resposta: nenhum campo aparece.
+    expect(salvar()).toMatchObject({ medidorInstNum: { kind: 'skipped' }, medidorRetNum: { kind: 'skipped' } });
+  });
+
+  it('"X de Y respondidas" conta só as perguntas que aparecem', () => {
+    const os = finishedOS('1', 'COMERCIAL', '709', { medidorInst: { kind: 'choice', choice: 'Não' } });
+    expect(ordem.answerRows(os)).toHaveLength(14 - 4);
+    const ambosNao = finishedOS('1', 'COMERCIAL', '709', { medidorInst: { kind: 'choice', choice: 'Não' }, medidorRet: { kind: 'choice', choice: 'Não' } });
+    expect(ordem.answerRows(ambosNao)).toHaveLength(14 - 2);
   });
 
   it('finalize transforma respostas incompletas em "pulada"', () => {
@@ -122,6 +152,9 @@ describe('OS nova (tela da OS)', () => {
     expect(ordem.isUnchanged({ ...d, osNumber: '12' })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { callback: { kind: 'choice', choice: 'Sim' } } })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { tipo: { kind: 'text', value: 'Falta' } } })).toBe(false);
+    // Número digitado e depois escondido (SIM desmarcado): não conta.
+    const comercial = ordem.startDraft('COMERCIAL');
+    expect(ordem.isUnchanged({ ...comercial, answers: { medidorInstNum: { kind: 'text', value: 'N1' } } })).toBe(true);
   });
 
   it('answerRows descreve cada pergunta para o app', () => {

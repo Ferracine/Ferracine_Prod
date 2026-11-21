@@ -12,7 +12,7 @@ async function cadastrarTecnico(page: Page, nome: string, telefone: string) {
 
 async function iniciarTurno(page: Page) {
   await page.goto('/');
-  await page.getByLabel('Nome 1 *').fill('João da Silva');
+  await page.getByLabel('Nome 1 *').fill('JOÃO DA SILVA');
   await page.getByLabel('Mat. 1 *').fill('123456');
   await page.getByLabel('Equipe', { exact: true }).fill('PVH-01');
   await page.getByLabel('Início *').fill('07:00');
@@ -42,15 +42,15 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await cadastrarTecnico(page, 'TEC. ANA LIMA', '69 99999-0000');
   await page.getByLabel('Técnico líder responsável').selectOption({ label: 'TEC. ANA LIMA - 69 99999-0000' });
   await iniciarTurno(page);
-  await expect(page.getByText('João da Silva (Mat: 123456)')).toBeVisible();
+  await expect(page.getByTestId('header-info')).toContainText('JOÃO DA SILVA (Mat: 123456)');
   await expect(page.getByText('© Ferracine Prod')).toBeVisible();
 
   // Comercial sem número (S/N): a tela da OS traz as 12 perguntas de uma vez.
   await novaOS(page, 'comercial', '709');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('709');
-  await expect(page.locator('#screen-os [data-question]')).toHaveCount(12);
-  await page.locator('#q-tipo').fill('Ligação nova');
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(10);
+  await page.locator('#q-tipo').fill('LIGAÇÃO NOVA');
   await marcar(page, 'clientePresente', 'Sim');
   await salvar(page);
   await expect(page.getByTestId('os-item')).toHaveCount(1);
@@ -59,7 +59,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   // Lápis: mesma tela; preenche o número.
   await page.getByRole('button', { name: 'Editar OS S/N' }).click();
   await expect(page.locator('#screen-os[data-mode="edit"]')).toBeVisible();
-  await expect(page.locator('#q-tipo')).toHaveValue('Ligação nova');
+  await expect(page.locator('#q-tipo')).toHaveValue('LIGAÇÃO NOVA');
   await page.locator('#os-number').fill('123');
   await salvar(page);
   await expect(page.getByTestId('os-item')).toContainText('OS 123');
@@ -81,13 +81,13 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await page.locator('#btn-finish').click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: /Gerar PDF/ }).click();
-  expect((await download).suggestedFilename()).toBe('Joao_da_Silva_2_servicos.pdf');
+  expect((await download).suggestedFilename()).toBe('JOAO_DA_SILVA_2_servicos.pdf');
   await expect(page.getByRole('dialog')).toContainText('PDF gerado');
   await page.getByRole('button', { name: 'Encerrar turno' }).click();
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
   await expect(page.locator('#screen-header')).toBeVisible();
-  await expect(page.getByLabel('Nome 1 *')).toHaveValue('João da Silva');
+  await expect(page.getByLabel('Nome 1 *')).toHaveValue('JOÃO DA SILVA');
   await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('PVH-01');
   await expect(page.getByLabel('Início *')).toHaveValue('07:00');
   const hoje = await page.evaluate(() => {
@@ -99,7 +99,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('last-sheet')).toContainText('2 OSs');
   const last = page.waitForEvent('download');
   await page.getByTestId('last-sheet').getByRole('button', { name: 'Baixar PDF' }).click();
-  expect((await last).suggestedFilename()).toBe('Joao_da_Silva_2_servicos.pdf');
+  expect((await last).suggestedFilename()).toBe('JOAO_DA_SILVA_2_servicos.pdf');
 });
 
 test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perguntas de cada tipo', async ({ page }) => {
@@ -110,7 +110,7 @@ test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perg
   await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('COMERCIAL');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('');
-  await expect(page.locator('#screen-os [data-question]')).toHaveCount(12);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(10);
   await expect(page.locator('#q-tipo')).toHaveValue('');
   // Sem código não salva: avisa e leva ao campo.
   await salvar(page);
@@ -160,12 +160,12 @@ test('voltar do Android com uma janela aberta fecha a janela (o APK chama window
 test('lápis edita qualquer item da OS e o voltar do Android pede para descartar alterações', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '33', '321');
-  await page.locator('#q-tipo').fill('Corte');
+  await page.locator('#q-tipo').fill('CORTE');
   await salvar(page);
 
   await page.getByRole('button', { name: 'Editar OS 321' }).click();
-  await expect(page.locator('#q-tipo')).toHaveValue('Corte');
-  await page.locator('#q-tipo').fill('Religação');
+  await expect(page.locator('#q-tipo')).toHaveValue('CORTE');
+  await page.locator('#q-tipo').fill('RELIGAÇÃO');
   await page.locator('#q-kmIni').fill('45210');
   await page.locator('#os-code').fill('798');
   await marcar(page, 'clientePresente', 'Sim');
@@ -173,23 +173,23 @@ test('lápis edita qualquer item da OS e o voltar do Android pede para descartar
   // SIM sem complemento: não salva.
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('preencha o complemento');
-  await page.locator('[data-question="dificuldade"] input').fill('Chuva forte');
+  await page.locator('[data-question="dificuldade"] input').fill('CHUVA FORTE');
   await salvar(page);
 
   await expect(page.getByTestId('os-item')).toContainText('Cód. 798');
   await page.getByRole('button', { name: 'Ver respostas OS 321' }).click();
-  for (const t of ['Religação', '45210', 'Sim — Chuva forte']) await expect(page.getByRole('dialog')).toContainText(t);
+  for (const t of ['RELIGAÇÃO', '45210', 'Sim — CHUVA FORTE']) await expect(page.getByRole('dialog')).toContainText(t);
   await page.keyboard.press('Escape');
 
   // Voltar do sistema na edição com alterações: confirma antes de descartar.
   await page.getByRole('button', { name: 'Editar OS 321' }).click();
-  await page.locator('#q-tipo').fill('Outra coisa');
+  await page.locator('#q-tipo').fill('OUTRA COISA');
   await page.goBack();
   await expect(page.getByRole('dialog')).toContainText('Sair sem salvar?');
   await page.getByRole('button', { name: 'Descartar alterações' }).click();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
   await page.getByRole('button', { name: 'Ver respostas OS 321' }).click();
-  await expect(page.getByRole('dialog')).toContainText('Religação');
+  await expect(page.getByRole('dialog')).toContainText('RELIGAÇÃO');
 });
 
 test('técnicos: cadastrar, excluir e a lista do cabeçalho acompanha', async ({ page }) => {
@@ -206,9 +206,9 @@ test('técnicos: cadastrar, excluir e a lista do cabeçalho acompanha', async ({
   await expect(lider.locator('option')).toHaveText(['—', 'TEC. DOIS']);
 
   // O que foi digitado no formulário não se perde ao mexer nos técnicos.
-  await page.getByLabel('Nome 1 *').fill('Maria');
+  await page.getByLabel('Nome 1 *').fill('MARIA');
   await cadastrarTecnico(page, 'TEC. TRES', '69 3333-3333');
-  await expect(page.getByLabel('Nome 1 *')).toHaveValue('Maria');
+  await expect(page.getByLabel('Nome 1 *')).toHaveValue('MARIA');
   await page.reload();
   await expect(lider.locator('option')).toHaveText(['—', 'TEC. DOIS', 'TEC. TRES - 69 3333-3333']);
 });
@@ -297,6 +297,68 @@ test('avisos rápidos: sem borda e centralizados sobre o app também no computad
   expect(z).toBeGreaterThan(0);
 });
 
+test('medidores da comercial: número e leitura aparecem conforme SIM/NÃO, recuados', async ({ page }) => {
+  await iniciarTurno(page);
+  await novaOS(page, 'comercial', '709', '55');
+  const inst = ['medidorInstNum', 'leituraInst'].map((id) => page.locator(`[data-question="${id}"]`));
+  const ret = ['medidorRetNum', 'leituraRet'].map((id) => page.locator(`[data-question="${id}"]`));
+  for (const el of [...inst, ...ret]) await expect(el).toBeHidden();
+
+  // Instalou: número (com o teclado já nele) e leitura do instalado.
+  await marcar(page, 'medidorInst', 'Sim');
+  for (const el of inst) await expect(el).toBeVisible();
+  await expect(page.locator('#q-medidorInstNum')).toBeFocused();
+  await expect(inst[0]!).toHaveClass(/ml-6/);
+  await page.locator('#q-medidorInstNum').fill('n62123');
+  await page.locator('#q-leituraInst').fill('1500');
+
+  // Retirou também: número e leitura do retirado.
+  await marcar(page, 'medidorRet', 'Sim');
+  for (const el of ret) await expect(el).toBeVisible();
+  await page.locator('#q-medidorRetNum').fill('w61999');
+  await page.locator('#q-leituraRet').fill('9000');
+
+  // Nem instalou nem retirou: volta só o número e a leitura (do medidor da UC).
+  await marcar(page, 'medidorInst', 'Não');
+  await marcar(page, 'medidorRet', 'Não');
+  for (const el of inst) await expect(el).toBeVisible();
+  for (const el of ret) await expect(el).toBeHidden();
+  await expect(page.locator('#q-medidorInstNum')).not.toBeFocused(); // apareceu acima: o teclado não pula para lá
+  await salvar(page);
+
+  // O retirado escondido não vale; o número digitado foi para maiúsculas.
+  await page.getByRole('button', { name: 'Ver respostas OS 55' }).click();
+  const respostas = page.getByRole('dialog');
+  await expect(respostas).toContainText('N62123');
+  await expect(respostas).not.toContainText('W61999');
+});
+
+test('teclado em maiúsculas: campos abrem com caps e o texto digitado vira maiúsculas', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByLabel('Nome 1 *')).toHaveAttribute('autocapitalize', 'characters');
+  await page.getByLabel('Nome 1 *').pressSequentially('josé');
+  await expect(page.getByLabel('Nome 1 *')).toHaveValue('JOSÉ');
+});
+
+test('cabeçalho do turno: uma informação por linha (eletricistas separados)', async ({ page }) => {
+  await page.goto('/');
+  await page.getByLabel('Nome 1 *').fill('ANA');
+  await page.getByLabel('Mat. 1 *').fill('1');
+  await page.getByLabel('Nome 2').fill('BIA');
+  await page.getByLabel('Mat. 2').fill('2');
+  await page.getByLabel('Início *').fill('07:00');
+  await page.getByLabel('Fim *').fill('17:00');
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  const linhas = page.getByTestId('header-info').locator('dt');
+  await expect(linhas).toHaveText(['Eletricista 1', 'Eletricista 2', 'Equipe', 'Viatura', 'Bodycam']);
+  await expect(page.getByTestId('header-info').locator('dd').nth(1)).toHaveText('BIA (Mat: 2)');
+  // Gravado em maiúsculas mesmo que o valor tenha entrado sem passar pela digitação (ex.: turno anterior).
+  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByLabel('Equipe', { exact: true }).evaluate((el) => ((el as HTMLInputElement).value = 'pvh-02'));
+  await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
+  await expect(page.getByTestId('header-info')).toContainText('PVH-02');
+});
+
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
   await page.goto('/');
   const html = page.locator('html');
@@ -312,13 +374,13 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '28', '789');
-  await page.locator('#q-tipo').fill('Vistoria');
+  await page.locator('#q-tipo').fill('VISTORIA');
   await marcar(page, 'clientePresente', 'Não');
   await page.reload();
   await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
   await expect(page.locator('#os-number')).toHaveValue('789');
   await expect(page.locator('#os-code')).toHaveValue('28');
-  await expect(page.locator('#q-tipo')).toHaveValue('Vistoria');
+  await expect(page.locator('#q-tipo')).toHaveValue('VISTORIA');
   await expect(page.locator('[data-question="clientePresente"] [data-choice="Não"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await page.getByRole('button', { name: 'Descartar OS' }).click();
@@ -330,9 +392,9 @@ test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
   await novaOS(page, 'comercial', '28', '1');
   await salvar(page);
   await page.getByRole('button', { name: 'Corrigir' }).click();
-  await page.getByLabel('Nome 1 *').fill('João Souza');
+  await page.getByLabel('Nome 1 *').fill('JOÃO SOUZA');
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
-  await expect(page.getByText('João Souza (Mat: 123456)')).toBeVisible();
+  await expect(page.getByTestId('header-info')).toContainText('JOÃO SOUZA (Mat: 123456)');
   await expect(page.getByTestId('os-item')).toHaveCount(1);
 });
 

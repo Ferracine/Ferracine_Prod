@@ -1,4 +1,4 @@
-import type { Question, ServiceType } from './types';
+import type { Answer, Choice, Question, ServiceType } from './types';
 
 /**
  * Catálogo de códigos e perguntas da Folha de Produção, na ordem definida pelo dono do app.
@@ -18,6 +18,23 @@ export const SERVICE_LABEL: Record<ServiceType, string> = {
   OCORRENCIA: 'OCORRÊNCIA',
 };
 
+function escolha(answers: Record<string, Answer>, id: string): Choice | undefined {
+  const a = answers[id];
+  return a?.kind === 'choice' ? a.choice : undefined;
+}
+
+/** Comercial: número e leitura do medidor instalado aparecem se instalou, ou se não instalou nem retirou (medidor da UC). */
+function medidorDaUC(a: Record<string, Answer>): boolean {
+  const inst = escolha(a, 'medidorInst');
+  return inst === 'Sim' || (inst === 'Não' && escolha(a, 'medidorRet') === 'Não');
+}
+
+/** Comercial: número e leitura do medidor retirado só se retirou. */
+const retirou = (a: Record<string, Answer>) => escolha(a, 'medidorRet') === 'Sim';
+
+const MEDIDOR_INST_NUM: Question = { id: 'medidorInstNum', text: 'Digite o número do medidor instalado', type: 'text', placeholder: 'Nº do medidor...', espelho: 'medidorInstalado' };
+const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do medidor instalado?', type: 'text', placeholder: 'Leitura atual...', input: 'decimal', espelho: 'leituraInstalado' };
+
 const OCORRENCIA: readonly Question[] = [
   { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
   { id: 'os', text: 'Qual número da Ordem de serviço?', type: 'text', placeholder: 'Número da OS', input: 'numeric', prefillOS: true },
@@ -29,9 +46,9 @@ const OCORRENCIA: readonly Question[] = [
   { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' },
   { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
   { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', placeholder: 'Descreva a alteração na UC...', short: 'Alteração UC' },
-  // Na ocorrência não há troca de medidor (isso é OS comercial): só o número do medidor que está na UC.
-  { id: 'medidorInst', text: 'Número do medidor instalado', type: 'text', placeholder: 'Digite o nº do medidor...', espelho: 'medidorInstalado' },
-  { id: 'leituraInst', text: 'Qual leitura do medidor instalado?', type: 'text', placeholder: 'Digite a leitura atual...', input: 'decimal', espelho: 'leituraInstalado' },
+  // Na ocorrência não há troca de medidor (isso é OS comercial): só o número e a leitura do medidor que está na UC.
+  MEDIDOR_INST_NUM,
+  LEITURA_INST,
   { id: 'horaFin', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade, se sim qual?', type: 'yesno_detail', detailLabel: 'Qual foi a dificuldade?', placeholder: 'Descreva a dificuldade encontrada...', short: 'Dificuldade' },
 ];
@@ -42,10 +59,13 @@ const COMERCIAL: readonly Question[] = [
   { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' },
   { id: 'clientePresente', text: 'Cliente presente?', type: 'yesno', espelho: 'clientePresente' },
   { id: 'ramal', text: 'Foi necessário lançar ramal?', type: 'yesno', short: 'Lançou ramal' },
-  { id: 'medidorInst', text: 'Foi instalado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor instalado:', placeholder: 'Digite o nº do medidor instalado...', espelho: 'medidorInstalado' },
-  { id: 'medidorRet', text: 'Foi retirado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor retirado:', placeholder: 'Digite o nº do medidor retirado...', espelho: 'medidorRetirado' },
-  { id: 'leituraInst', text: 'Qual leitura do medidor instalado?', type: 'text', placeholder: 'Digite a leitura atual...', input: 'decimal', espelho: 'leituraInstalado' },
-  { id: 'leituraRet', text: 'Qual leitura do medidor retirado?', type: 'text', placeholder: 'Digite a leitura final...', input: 'decimal', espelho: 'leituraRetirado' },
+  // Medidores: SIM abre o número e a leitura logo abaixo; com os dois NÃO, registra o medidor que ficou na UC.
+  { id: 'medidorInst', text: 'Foi instalado medidor?', type: 'yesno', semInfo: true },
+  { ...MEDIDOR_INST_NUM, showIf: medidorDaUC },
+  { ...LEITURA_INST, showIf: medidorDaUC },
+  { id: 'medidorRet', text: 'Foi retirado medidor?', type: 'yesno', semInfo: true },
+  { id: 'medidorRetNum', text: 'Digite o número do medidor retirado', type: 'text', placeholder: 'Nº do medidor retirado...', espelho: 'medidorRetirado', showIf: retirou },
+  { id: 'leituraRet', text: 'Qual a leitura do medidor retirado?', type: 'text', placeholder: 'Leitura final...', input: 'decimal', espelho: 'leituraRetirado', showIf: retirou },
   { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
   { id: 'horaFin', text: 'Deseja informar o horário final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade na execução desse serviço? Se sim relate!', type: 'yesno_detail', detailLabel: 'Relate a dificuldade na execução:', placeholder: 'Relate detalhadamente...', short: 'Dificuldade' },
@@ -55,6 +75,16 @@ const QUESTIONS: Record<ServiceType, readonly Question[]> = { COMERCIAL, OCORREN
 
 export function questionsFor(type: ServiceType): readonly Question[] {
   return QUESTIONS[type];
+}
+
+/** A pergunta aparece com estas respostas (sem `showIf`, sempre). */
+export function isVisible(q: Question, answers: Record<string, Answer>): boolean {
+  return !q.showIf || q.showIf(answers);
+}
+
+/** Perguntas que valem com estas respostas (as escondidas por `showIf` ficam de fora). */
+export function visibleQuestions(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
+  return questionsFor(type).filter((q) => isVisible(q, answers));
 }
 
 /**

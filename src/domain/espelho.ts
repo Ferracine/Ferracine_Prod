@@ -1,4 +1,4 @@
-import { questionsFor } from './catalog';
+import { visibleQuestions } from './catalog';
 import { osLabel } from './format';
 import { ESPELHO_COLUMNS, type Answer, type EspelhoColumn, type OrdemServico, type Question } from './types';
 
@@ -24,10 +24,11 @@ function answerValue(q: Question, ans: Answer | undefined): string {
 function espelhoRow(os: OrdemServico, item: number): EspelhoRow {
   const cols = Object.fromEntries(ESPELHO_COLUMNS.map((c) => [c, ''])) as Record<EspelhoColumn, string>;
   const info: string[] = [];
-  for (const q of questionsFor(os.serviceType)) {
+  for (const q of visibleQuestions(os.serviceType, os.answers)) {
     const v = answerValue(q, os.answers[q.id]);
     if (!v || q.prefillOS) continue; // o número da OS já tem coluna própria
     if (q.espelho) cols[q.espelho] = v;
+    else if (q.semInfo) continue; // pergunta de controle (ex.: "Foi instalado medidor?"): as colunas já dizem
     else info.push(`${q.short ?? q.text}: ${v}`);
   }
   // Respostas de perguntas que saíram do catálogo (OSs registradas antes da atualização).

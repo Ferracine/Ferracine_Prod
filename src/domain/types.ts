@@ -27,6 +27,13 @@ export interface Question {
   espelho?: EspelhoColumn;
   /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho` e que não são o número da OS). */
   short?: string;
+  /**
+   * Só aparece (e só vale) quando a condição é verdadeira, conforme as outras respostas; escondida, a resposta não
+   * conta, não é validada e não vai ao PDF. Na tela, fica recuada embaixo da pergunta de que depende.
+   */
+  showIf?: (answers: Record<string, Answer>) => boolean;
+  /** Pergunta de controle (ex.: "Foi instalado medidor?"): a resposta não vai para INFO ADICIONAL. */
+  semInfo?: boolean;
 }
 
 export type Choice = 'Sim' | 'Não';

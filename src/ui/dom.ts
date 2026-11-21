@@ -27,8 +27,37 @@ export function h<K extends keyof HTMLElementTagNameMap>(
       el.setAttribute(key, value === true ? '' : String(value));
     }
   }
+  // Campos de texto sempre em maiúsculas: o teclado do celular abre com o caps lock (o texto é convertido por
+  // forceUppercase, mesmo que o teclado ignore o pedido).
+  if (isTextField(el)) el.setAttribute('autocapitalize', 'characters');
   append(el, children);
   return el;
+}
+
+/** Campo onde se digita texto (data, hora, caixa de seleção etc. ficam de fora). */
+function isTextField(el: unknown): el is HTMLInputElement | HTMLTextAreaElement {
+  return (el instanceof HTMLInputElement && el.type === 'text') || el instanceof HTMLTextAreaElement;
+}
+
+/**
+ * Tudo o que é digitado nos campos de texto vira maiúsculas (nomes, equipe, respostas...), mantendo o cursor no lugar.
+ * Escuta na captura: corre antes do onInput do campo, que já recebe o texto convertido.
+ */
+export function forceUppercase(root: Document = document): void {
+  const upper = (el: EventTarget | null) => {
+    if (!isTextField(el) || el.value === el.value.toUpperCase()) return;
+    const { selectionStart, selectionEnd } = el;
+    const antes = el.value.length;
+    el.value = el.value.toUpperCase();
+    const d = el.value.length - antes; // "ß" vira "SS": o cursor anda junto
+    el.setSelectionRange((selectionStart ?? 0) + d, (selectionEnd ?? 0) + d);
+  };
+  // Trocar o valor no meio da composição (sugestões do teclado do Android) duplica letras: espera a palavra fechar.
+  root.addEventListener('input', (ev) => !(ev as InputEvent).isComposing && upper(ev.target), true);
+  root.addEventListener('compositionend', (ev) => {
+    upper(ev.target);
+    ev.target?.dispatchEvent(new Event('input', { bubbles: true })); // o campo grava o texto já convertido
+  }, true);
 }
 
 function append(el: Element, children: Children[]): void {

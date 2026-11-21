@@ -1,5 +1,5 @@
 import { CircleCheck, CircleX, Save } from 'lucide';
-import { SERVICE_LABEL, questionsFor } from '../domain/catalog';
+import { SERVICE_LABEL, isVisible, questionsFor } from '../domain/catalog';
 import { CODE_FIELD, choiceAnswer, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
@@ -42,7 +42,7 @@ function inputAttrs(q: Question): Record<string, string> {
     case 'decimal':
       return { type: 'text', inputmode: q.input };
     default:
-      return { type: 'text', autocapitalize: 'sentences' };
+      return { type: 'text' };
   }
 }
 
@@ -83,9 +83,32 @@ export function osScreen(p: OSScreenProps): HTMLElement {
       h('input', { id, class: 'field', autocomplete: 'off', value, ...attrs, onInput: (ev) => { onValue((ev.target as HTMLInputElement).value); changed(); } }),
     );
 
+  /** Blocos que dependem de outra resposta (`showIf`), para mostrar/esconder na hora. */
+  const dependents: { q: Question; el: HTMLElement }[] = [];
+  /**
+   * Depois de um SIM/NÃO em `tocado`: mostra só as dependentes que valem e abre o teclado no primeiro campo que
+   * apareceu abaixo dele (um que aparece acima, como o medidor da UC, não puxa a tela para cima).
+   */
+  const refresh = (tocado: HTMLElement) => {
+    let toFocus: HTMLElement | undefined;
+    for (const { q, el } of dependents) {
+      const show = isVisible(q, answers);
+      const abaixo = !!(tocado.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
+      if (show && abaixo && el.classList.contains('hidden')) toFocus ??= el;
+      el.classList.toggle('hidden', !show);
+    }
+    toFocus?.querySelector<HTMLInputElement>('input')?.focus();
+  };
+
   /** Um bloco por pergunta; SIM/NÃO redesenham só o próprio bloco (mantém o foco e o que foi digitado nos outros). */
   const questionBlock = (q: Question): HTMLElement => {
-    const block = h('div', { class: 'card p-4 space-y-3', 'data-question': q.id, 'data-field': q.id });
+    // Dependente de outra resposta: recuada, como um submenu da pergunta de cima.
+    const block = h('div', {
+      class: `card p-4 space-y-3${q.showIf ? ' ml-6' : ''}${isVisible(q, answers) ? '' : ' hidden'}`,
+      'data-question': q.id,
+      'data-field': q.id,
+    });
+    if (q.showIf) dependents.push({ q, el: block });
     const draw = () => {
       const ans = answers[q.id];
       const title = h(
@@ -118,6 +141,7 @@ export function osScreen(p: OSScreenProps): HTMLElement {
         changed();
         draw();
         block.querySelector<HTMLInputElement>('input')?.focus();
+        refresh(block);
       };
       block.replaceChildren(title, choiceButtons(selected, choose));
       if (q.type === 'yesno_detail' && ans?.kind === 'choice' && ans.choice === 'Sim') {
@@ -125,7 +149,6 @@ export function osScreen(p: OSScreenProps): HTMLElement {
           h('input', {
             type: 'text',
             autocomplete: 'off',
-            autocapitalize: 'sentences',
             value: ans.detail ?? '',
             placeholder: q.placeholder ?? 'Digite aqui...',
             class: 'field py-3.5',

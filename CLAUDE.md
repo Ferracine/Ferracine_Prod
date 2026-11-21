@@ -45,6 +45,10 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
     coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. `prefillOS` marca a pergunta do número
     da OS. `LEGACY_*` serve só à migração da v2.
+  - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor da comercial conforme
+    "Foi instalado/retirado medidor?"; com os dois NÃO, número e leitura do medidor da UC). Escondida não vale:
+    `finalize` grava `skipped`, `checked` não valida, `answerRows`/espelho ignoram (`isVisible`). `semInfo` = pergunta
+    de controle que não vai para INFO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
   - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
     (lápis) passam pelas mesmas regras (código, DITAIS, complemento do SIM). `finalize` normaliza respostas vazias
     para `skipped` e grava o número do topo na pergunta `prefillOS` (que a tela não mostra). `isUnchanged` decide se Cancelar confirma.
@@ -73,7 +77,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `cache/update/`, confere pacote e versionCode maiores, pede "Instalar apps desconhecidos" (Android 8+, retoma no
   `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
   `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.
-- `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Não use `innerHTML`
+- `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Todo `input`/`textarea`
+  sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
 - Tema claro/escuro (`src/theme.ts` + script no `<head>` do index.html, mesma chave `ferracine_prod:theme`).
@@ -105,7 +110,8 @@ Regras de negócio que não são óbvias no código:
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
 - Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha em `lastSheet`.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
-- O "Não" de pergunta "se sim, qual?" não entra em INFO ADICIONAL; DITAIS e demais SIM/NÃO entram sempre.
+- O "Não" de pergunta "se sim, qual?" não entra em INFO ADICIONAL; DITAIS e demais SIM/NÃO entram sempre, menos as
+  perguntas de controle (`semInfo`: "Foi instalado/retirado medidor?"), porque as colunas de medidor já dizem.
 - Testes de PDF procuram texto direto em `doc.output()` (sem compressão, acentos em latin-1); `flat()` emenda
   linhas quebradas da mesma célula.
 

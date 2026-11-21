@@ -1,4 +1,4 @@
-import { SERVICE_CODES, SERVICE_LABEL, questionsFor } from './catalog';
+import { SERVICE_CODES, SERVICE_LABEL, isVisible, questionsFor, visibleQuestions } from './catalog';
 import type { Answer, AnswerRow, Choice, OrdemServico, OSDraft, Question, ServiceType } from './types';
 
 /**
@@ -19,7 +19,7 @@ export function isUnchanged(draft: OSDraft): boolean {
   return (
     !draft.osNumber.trim() &&
     !draft.serviceCode.trim() &&
-    questionsFor(draft.serviceType).every((q) => normalizeAnswer(q, draft.answers[q.id]).kind === 'skipped')
+    visibleQuestions(draft.serviceType, draft.answers).every((q) => normalizeAnswer(q, draft.answers[q.id]).kind === 'skipped')
   );
 }
 
@@ -54,7 +54,8 @@ function checked(type: ServiceType, edit: OSEdit, infoLegada?: string): { ok: tr
   if (SERVICE_CODES[outro].includes(serviceCode)) {
     return { ok: false, error: `Código ${serviceCode} é de ${SERVICE_LABEL[outro]}: use o + ${SERVICE_LABEL[outro]}.`, field: CODE_FIELD };
   }
-  for (const q of questionsFor(type)) {
+  // Escondida pela resposta de outra pergunta: não vale, não é validada.
+  for (const q of visibleQuestions(type, edit.answers)) {
     const error = ruleError(q, edit.answers[q.id]);
     if (error) return { ok: false, error: `${q.text} ${error}`, field: q.id };
   }
@@ -103,7 +104,9 @@ function ruleError(q: Question, ans: Answer | undefined): string | null {
 export function finalize(draft: OSDraft, id: string, now: Date): OrdemServico {
   const answers: Record<string, Answer> = {};
   for (const q of questionsFor(draft.serviceType)) {
-    answers[q.id] = q.prefillOS ? (draft.osNumber ? { kind: 'text', value: draft.osNumber } : { kind: 'skipped' }) : normalizeAnswer(q, draft.answers[q.id]);
+    if (q.prefillOS) answers[q.id] = draft.osNumber ? { kind: 'text', value: draft.osNumber } : { kind: 'skipped' };
+    // Escondida (ex.: leitura do medidor retirado com "Foi retirado medidor?" = NÃO): o que foi digitado antes não vale.
+    else answers[q.id] = isVisible(q, draft.answers) ? normalizeAnswer(q, draft.answers[q.id]) : { kind: 'skipped' };
   }
   return {
     id,
@@ -137,7 +140,8 @@ function describeAnswer(ans: Answer | undefined): string | null {
 }
 
 export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers' | 'infoLegada'>): AnswerRow[] {
-  const rows = questionsFor(os.serviceType).map((q) => {
+  // Só as perguntas que aparecem com estas respostas ("X de Y respondidas" conta as visíveis).
+  const rows = visibleQuestions(os.serviceType, os.answers).map((q) => {
     const display = describeAnswer(os.answers[q.id]);
     return {
       question: q.text,

@@ -117,7 +117,7 @@ function manageTecnicos(p: HeaderScreenProps, onChange: () => void): void {
     drawList();
     nome.focus();
   };
-  const nome = h('input', { id: 'tecnico-nome', class: 'field', autocomplete: 'off', autocapitalize: 'characters', placeholder: 'Ex: TEC. JOÃO SILVA' });
+  const nome = h('input', { id: 'tecnico-nome', class: 'field', autocomplete: 'off', placeholder: 'Ex: TEC. JOÃO SILVA' });
   const telefone = h('input', { id: 'tecnico-telefone', class: 'field', autocomplete: 'off', inputmode: 'tel', placeholder: 'Ex: 69 99999-9999', onKeydown: onEnter(add) });
   drawList();
 
@@ -164,7 +164,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h(
         'div',
         { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
-        field('nome1', 'Nome 1 *', { required: true, placeholder: 'Nome completo do eletricista 1', autocapitalize: 'words', value: v('nome1') }, 'sm:col-span-2'),
+        field('nome1', 'Nome 1 *', { required: true, placeholder: 'Nome completo do eletricista 1', value: v('nome1') }, 'sm:col-span-2'),
         field('mat1', 'Mat. 1 *', { required: true, placeholder: 'Ex: 123456', inputmode: 'numeric', value: v('mat1') }),
       ),
     ),
@@ -175,7 +175,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h(
         'div',
         { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
-        field('nome2', 'Nome 2', { placeholder: 'Nome completo do eletricista 2', autocapitalize: 'words', value: v('nome2') }, 'sm:col-span-2'),
+        field('nome2', 'Nome 2', { placeholder: 'Nome completo do eletricista 2', value: v('nome2') }, 'sm:col-span-2'),
         field('mat2', 'Mat. 2', { placeholder: 'Ex: 654321', inputmode: 'numeric', value: v('mat2') }),
       ),
     ),
@@ -186,8 +186,8 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h(
         'div',
         { class: 'grid grid-cols-2 gap-4' },
-        field('equipe', 'Equipe', { placeholder: 'Ex: PVH-01', autocapitalize: 'characters', value: v('equipe') }),
-        field('viatura', 'Viatura', { placeholder: 'Prefixo ou placa', autocapitalize: 'characters', value: v('viatura') }),
+        field('equipe', 'Equipe', { placeholder: 'Ex: PVH-01', value: v('equipe') }),
+        field('viatura', 'Viatura', { placeholder: 'Prefixo ou placa', value: v('viatura') }),
       ),
     ),
     h(

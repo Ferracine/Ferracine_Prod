@@ -20,10 +20,9 @@ export function orDash(value: string): string {
   return value.trim() || '-';
 }
 
-export function teamLabel(h: ShiftHeader): string {
-  let label = `${h.nome1} (Mat: ${h.mat1})`;
-  if (h.nome2.trim()) label += ` • ${h.nome2} (Mat: ${orDash(h.mat2)})`;
-  return label;
+/** "NOME (Mat: 123)" do cabeçalho do turno (matrícula vazia = "-"). */
+export function eletricistaLabel(nome: string, mat: string): string {
+  return `${nome} (Mat: ${orDash(mat)})`;
 }
 
 export function plural(n: number, one: string, many: string): string {

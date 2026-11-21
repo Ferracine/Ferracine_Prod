@@ -230,7 +230,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   // --- Cabeçalho e técnicos ------------------------------------------------
 
-  function submitHeader(header: ShiftHeader): void {
+  /** Nomes, matrículas, equipe, viatura e bodycams em maiúsculas (data, horários e o id do líder ficam como estão). */
+  const CABECALHO_TEXTO = ['nome1', 'mat1', 'nome2', 'mat2', 'equipe', 'viatura', 'bodycam1', 'bodycam2'] as const;
+
+  function submitHeader(raw: ShiftHeader): void {
+    const header = { ...raw };
+    for (const k of CABECALHO_TEXTO) header[k] = header[k].toUpperCase();
     const wasEditing = editingHeader;
     editingHeader = false;
     update((d) => {
