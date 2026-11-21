@@ -13,12 +13,13 @@ export interface HeaderScreenProps {
   getTecnicos: () => readonly Tecnico[];
   onAddTecnico: (nome: string, telefone: string) => void;
   onRemoveTecnico: (id: string) => void;
-  lastSheet: ClosedSheet | null;
+  /** Últimas folhas encerradas (a mais recente primeiro). */
+  sheets: readonly ClosedSheet[];
   canShare: boolean;
   onSubmit: (header: ShiftHeader) => void;
   onCancelEdit: () => void;
-  onDownloadLast: () => void;
-  onShareLast: () => void;
+  onDownloadSheet: (sheet: ClosedSheet) => void;
+  onShareSheet: (sheet: ClosedSheet) => void;
 }
 
 function field(id: keyof ShiftHeader, label: string, attrs: Record<string, string | boolean>, extraCls = '') {
@@ -44,26 +45,36 @@ function group(title: string, node: Parameters<typeof icon>[0], hint: string | n
   );
 }
 
-function lastSheetCard(sheet: ClosedSheet, p: HeaderScreenProps): HTMLElement {
+/** "20/11/2026 17:32 • JOAO • 3 OSs": a hora do encerramento separa dois turnos do mesmo dia. */
+function sheetLabel(sheet: ClosedSheet): string {
+  const fechada = new Date(sheet.fechadaEm);
+  const hora = Number.isNaN(fechada.getTime()) ? '' : ` ${fechada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  return `${formatDateBR(sheet.header.data)}${hora} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`;
+}
+
+/** Últimas folhas encerradas (até 4): baixar ou compartilhar o PDF de cada uma de novo. */
+function sheetsCard(p: HeaderScreenProps): HTMLElement {
   return h(
     'div',
-    { class: 'card p-4 flex flex-wrap items-center justify-between gap-3', 'data-testid': 'last-sheet' },
+    { class: 'card p-4 space-y-3', 'data-testid': 'last-sheets' },
     h(
       'div',
-      { class: 'flex items-center gap-3 min-w-0' },
+      { class: 'flex items-center gap-3' },
       h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg shrink-0' }, icon(FileDown, 'w-5 h-5')),
+      h('p', { class: 'text-sm font-bold text-fg' }, p.sheets.length === 1 ? 'Última folha encerrada' : `Últimas ${p.sheets.length} folhas encerradas`),
+    ),
+    p.sheets.map((sheet) =>
       h(
         'div',
-        { class: 'min-w-0' },
-        h('p', { class: 'text-sm font-bold text-fg' }, 'Última folha encerrada'),
-        h('p', { class: 'text-xs text-muted' }, `${formatDateBR(sheet.header.data)} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`),
+        { class: 'flex flex-wrap items-center justify-between gap-3 border-t border-fg/10 pt-3', 'data-testid': 'last-sheet' },
+        h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
+        h(
+          'div',
+          { class: 'flex gap-2' },
+          p.canShare && h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar'),
+          h('button', { type: 'button', class: `${BTN.primary} flex items-center gap-1.5`, onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
+        ),
       ),
-    ),
-    h(
-      'div',
-      { class: 'flex gap-2' },
-      p.canShare && h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: p.onShareLast }, icon(Share2), 'Compartilhar'),
-      h('button', { type: 'button', class: `${BTN.primary} flex items-center gap-1.5`, onClick: p.onDownloadLast }, icon(Download), 'Baixar PDF'),
     ),
   );
 }
@@ -246,7 +257,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   return h(
     'section',
     { id: 'screen-header', class: 'space-y-6' },
-    !init && p.lastSheet && lastSheetCard(p.lastSheet, p),
+    !init && p.sheets.length > 0 && sheetsCard(p),
     h(
       'div',
       { class: 'card overflow-hidden' },

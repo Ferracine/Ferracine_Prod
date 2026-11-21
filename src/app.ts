@@ -4,7 +4,7 @@ import { osLabel, pdfFileName, plural } from './domain/format';
 import * as ordem from './domain/ordem';
 import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64 } from './platform';
-import { loadData, saveData, type KeyValueStore } from './storage';
+import { loadData, pushSheet, saveData, type KeyValueStore } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { CALLOUT, byId, h, icon } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
@@ -43,14 +43,15 @@ function loadPdfModule(): Promise<PdfModule> {
   return pdfModuleLoading;
 }
 
-/** Último PDF montado, pela folha de origem: evita remontar a cada toque. */
-let pdfMemo: { sheet: ClosedSheet; pdf: Pdf } | null = null;
+/** PDF já montado de cada folha (a do turno e as do histórico): alternar entre elas não remonta o jsPDF. */
+const pdfMemo = new WeakMap<ClosedSheet, Pdf>();
 
 function buildPdf(mod: PdfModule, sheet: ClosedSheet): Pdf {
-  if (pdfMemo?.sheet === sheet) return pdfMemo.pdf;
+  const memo = pdfMemo.get(sheet);
+  if (memo) return memo;
   const doc = mod.buildSheetPdf(sheet.header, sheet.ordens, sheet.tecnicos);
   const pdf = { blob: doc.output('blob'), fileName: pdfFileName(sheet.header, sheet.ordens.length) };
-  pdfMemo = { sheet, pdf };
+  pdfMemo.set(sheet, pdf);
   return pdf;
 }
 
@@ -156,12 +157,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         getTecnicos: () => data.tecnicos,
         onAddTecnico: addTecnico,
         onRemoveTecnico: removeTecnico,
-        lastSheet: data.lastSheet,
+        sheets: data.sheets,
         canShare: shareSupported,
         onSubmit: submitHeader,
         onCancelEdit: () => { editingHeader = false; render(); },
-        onDownloadLast: () => void deliverLastSheet('download'),
-        onShareLast: () => void deliverLastSheet('share'),
+        onDownloadSheet: (sheet) => void deliverSheet(sheet, 'download'),
+        onShareSheet: (sheet) => void deliverSheet(sheet, 'share'),
       });
     } else if (screen === 'edit') {
       const current = editing!;
@@ -205,7 +206,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     shownScreen = screen;
     syncBackButton(screen);
     // Compartilhar precisa chamar navigator.share logo após o toque: deixa o jsPDF carregado em segundo plano.
-    if (screen === 'header' && !editingHeader && data.lastSheet && shareSupported) {
+    if (screen === 'header' && !editingHeader && data.sheets.length && shareSupported) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
     }
@@ -456,7 +457,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
           'div',
           { class: CALLOUT.warning },
           h('strong', null, 'Só toque em "Encerrar turno" depois de ter o PDF em mãos.'),
-          ' Isso limpa as OSs e o cabeçalho deste turno (o último PDF continua disponível na tela inicial).',
+          ' Isso limpa as OSs e o cabeçalho deste turno (as últimas folhas ficam na tela inicial).',
         ),
       ),
       actions,
@@ -466,7 +467,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** `sheet` é o mesmo objeto do PDF gerado: o memo serve o "Baixar/Compartilhar" da tela inicial sem remontar. */
   function closeShift(sheet: ClosedSheet): void {
     update((d) => {
-      d.lastSheet = sheet;
+      d.sheets = pushSheet(d.sheets, sheet);
       d.header = null;
       d.ordens = [];
       d.draft = null;
@@ -474,9 +475,11 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     showToast('Turno encerrado. Os dados da equipe já ficam preenchidos para o próximo turno.', 'success');
   }
 
-  async function deliverLastSheet(mode: 'download' | 'share'): Promise<void> {
-    const sheet = data.lastSheet;
-    if (!sheet) return;
+  let delivering = false;
+
+  async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'share'): Promise<void> {
+    if (delivering) return; // toque duplo: entrega uma vez só
+    delivering = true;
     try {
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
       const pdf = pdfModule ? buildPdf(pdfModule, sheet) : await sheetPdf(sheet);
@@ -485,6 +488,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       showToast('Não foi possível gerar o PDF.', 'error');
+    } finally {
+      delivering = false;
     }
   }
 

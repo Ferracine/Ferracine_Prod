@@ -38,8 +38,8 @@ houver, só serve para o app se atualizar.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
    respostas; a lixeira exclui. Número de OS repetido pede confirmação.
 5. **Finalizar turno**: gera o PDF e salva na hora (no APK, na pasta Downloads). A janela "PDF gerado" oferece
-   Compartilhar, Baixar e Abrir; o turno só é encerrado ao tocar em **Encerrar turno**. O último PDF fica na tela
-   inicial para baixar de novo.
+   Compartilhar, Baixar e Abrir; o turno só é encerrado ao tocar em **Encerrar turno**. As **4 últimas folhas
+   encerradas** ficam na tela inicial para baixar ou compartilhar o PDF de novo (a 5ª mais antiga sai).
 
 A OS em preenchimento é salva a cada toque: fechar o app no meio não perde as respostas.
 
@@ -52,7 +52,7 @@ CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFO ADICIONAL**. INFO ADICIONAL traz
 e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, dificuldades...).
 No rodapé, produção total e os técnicos cadastrados com o líder marcado. Logo e identificação ficam só na primeira folha. Com
 mais de 15 OSs, cada 15 a mais abrem uma folha que continua a tabela (títulos das colunas repetidos, ITEM seguindo); a
-produção total e os técnicos saem na última. Embaixo de toda folha: data, equipe e "FOLHA 1/2", "FOLHA 2/2"... Nome do arquivo: `Nome1_Nome2_N_servicos.pdf`.
+produção total e os técnicos saem na última. Embaixo de toda folha: data, equipe e "FOLHA 1/2", "FOLHA 2/2"... Nome do arquivo: `Nome1_Nome2_DD-MM-AAAA_N_servicos.pdf` (com a data do turno).
 
 ### Aparência
 

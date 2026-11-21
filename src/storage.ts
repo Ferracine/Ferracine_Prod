@@ -1,5 +1,5 @@
 import { LEGACY_EXTRA_LABELS, LEGACY_QUESTION_IDS, questionsFor } from './domain/catalog';
-import { HEADER_FIELDS, type Answer, type AppData, type ClosedSheet, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
+import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
 /** Chave da versão 2 (catálogo antigo, técnicos fixos): lida uma vez e migrada. */
@@ -8,7 +8,7 @@ export const LEGACY_STORAGE_KEY = 'ferracine_prod:v2';
 export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
 
 export function emptyData(): AppData {
-  return { version: 3, header: null, ordens: [], draft: null, lastSheet: null, lastHeader: null, tecnicos: [] };
+  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [] };
 }
 
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
@@ -49,24 +49,34 @@ function normalizeDraft(raw: OSDraft | null | undefined): OSDraft | null {
   return answered ? { ...draft, osNumber: answered } : draft;
 }
 
+/** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
+export function pushSheet(sheets: readonly ClosedSheet[], sheet: ClosedSheet): ClosedSheet[] {
+  return [sheet, ...sheets].slice(0, SHEETS_KEPT);
+}
+
+/** Folha guardada no formato atual; sem cabeçalho válido, é descartada (não dá para gerar o PDF). */
+function normalizeSheet(s: ClosedSheet | null | undefined): ClosedSheet[] {
+  const header = normalizeHeader(s?.header);
+  if (!s || !header) return [];
+  const ordens = Array.isArray(s.ordens) ? s.ordens.filter((o) => o && typeof o === 'object' && o.answers) : [];
+  return [{ ...s, header, ordens: ordens.map(normalizeOS), tecnicos: normalizeTecnicos(s.tecnicos) }];
+}
+
 export function loadData(store: KeyValueStore): AppData {
-  const current = readJson(store, STORAGE_KEY) as Partial<AppData> | null | undefined;
+  // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
+  const current = readJson(store, STORAGE_KEY) as (Partial<AppData> & { lastSheet?: ClosedSheet | null }) | null | undefined;
   if (current === undefined) {
     const legacy = readJson(store, LEGACY_STORAGE_KEY) as LegacyData | null | undefined;
     return legacy?.version === 2 && Array.isArray(legacy.ordens) ? migrateV2(legacy) : emptyData();
   }
   if (current?.version === 3 && Array.isArray(current.ordens)) {
-    const last = current.lastSheet;
-    const lastSheetHeader = normalizeHeader(last?.header);
+    const sheets = Array.isArray(current.sheets) ? current.sheets : current.lastSheet ? [current.lastSheet] : [];
     return {
       version: 3,
       header: normalizeHeader(current.header),
       ordens: current.ordens.map(normalizeOS),
       draft: normalizeDraft(current.draft),
-      lastSheet:
-        last && lastSheetHeader
-          ? { ...last, header: lastSheetHeader, ordens: (last.ordens ?? []).map(normalizeOS), tecnicos: normalizeTecnicos(last.tecnicos) }
-          : null,
+      sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
       lastHeader: normalizeHeader(current.lastHeader),
       tecnicos: normalizeTecnicos(current.tecnicos),
     };
@@ -235,7 +245,7 @@ function migrateV2(old: LegacyData): AppData {
       old.draft && !old.draft.editingId
         ? normalizeDraft({ osNumber: old.draft.osNumber, serviceType: old.draft.serviceType, serviceCode: old.draft.serviceCode, ...migrateAnswers(old.draft.serviceType, old.draft.answers) })
         : null,
-    lastSheet,
+    sheets: lastSheet ? [lastSheet] : [],
     lastHeader: current ?? lastHeader,
     tecnicos,
   };

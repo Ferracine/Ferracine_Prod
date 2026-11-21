@@ -81,7 +81,8 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await page.locator('#btn-finish').click();
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: /Gerar PDF/ }).click();
-  expect((await download).suggestedFilename()).toBe('JOAO_DA_SILVA_2_servicos.pdf');
+  const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
+  expect((await download).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);
   await expect(page.getByRole('dialog')).toContainText('PDF gerado');
   await page.getByRole('button', { name: 'Encerrar turno' }).click();
 
@@ -99,7 +100,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('last-sheet')).toContainText('2 OSs');
   const last = page.waitForEvent('download');
   await page.getByTestId('last-sheet').getByRole('button', { name: 'Baixar PDF' }).click();
-  expect((await last).suggestedFilename()).toBe('JOAO_DA_SILVA_2_servicos.pdf');
+  expect((await last).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);
 });
 
 test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perguntas de cada tipo', async ({ page }) => {
@@ -357,6 +358,35 @@ test('cabeçalho do turno: uma informação por linha (eletricistas separados)',
   await page.getByLabel('Equipe', { exact: true }).evaluate((el) => ((el as HTMLInputElement).value = 'pvh-02'));
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
   await expect(page.getByTestId('header-info')).toContainText('PVH-02');
+});
+
+test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeiro', async ({ page }) => {
+  // Já há 4 folhas no aparelho (TURNO 4 é a mais recente); encerrar mais um turno tira a mais antiga.
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return; // só na primeira carga
+    const header = (nome: string) => ({ nome1: nome, mat1: '1', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' });
+    const sheets = [4, 3, 2, 1].map((n) => ({ header: header(`TURNO ${n}`), ordens: [], fechadaEm: 'x', tecnicos: [] }));
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: null, ordens: [], draft: null, sheets, lastHeader: null, tecnicos: [] }));
+  });
+  await page.goto('/');
+  await page.getByLabel('Nome 1 *').fill('TURNO 5');
+  await page.getByLabel('Mat. 1 *').fill('1');
+  await page.getByLabel('Início *').fill('07:00');
+  await page.getByLabel('Fim *').fill('17:00');
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await page.locator('#btn-finish').click();
+  await page.getByRole('button', { name: 'Gerar mesmo assim' }).click();
+  await page.getByRole('button', { name: 'Encerrar turno' }).click();
+
+  const folhas = page.getByTestId('last-sheet');
+  await expect(page.getByTestId('last-sheets')).toContainText('Últimas 4 folhas encerradas');
+  await expect(folhas).toHaveText([/TURNO 5/, /TURNO 4/, /TURNO 3/, /TURNO 2/]); // o turno 1 saiu
+  // Cada folha baixa o próprio PDF.
+  const download = page.waitForEvent('download');
+  await folhas.nth(2).getByRole('button', { name: 'Baixar PDF' }).click();
+  expect((await download).suggestedFilename()).toBe('TURNO_3_20-11-2026_0_servicos.pdf');
+  // A hora do encerramento separa folhas do mesmo dia.
+  await expect(folhas.first()).toContainText(/\d{2}:\d{2}/);
 });
 
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {

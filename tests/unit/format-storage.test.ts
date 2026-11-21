@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { espelhoRows } from '../../src/domain/espelho';
 import { eletricistaLabel, formatDateBR, formatHorario, osLabel, pdfFileName, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
-import { LEGACY_STORAGE_KEY, STORAGE_KEY, emptyData, loadData, saveData, type KeyValueStore } from '../../src/storage';
+import { emptyData, type KeyValueStore, LEGACY_STORAGE_KEY, loadData, pushSheet, saveData, STORAGE_KEY } from '../../src/storage';
 import { baseHeader as header } from './fixtures';
 
 function memoryStore(initial: Record<string, string> = {}): KeyValueStore & { items: Map<string, string> } {
@@ -33,9 +33,10 @@ describe('formatação', () => {
   });
 
   it('nomeia o PDF com os nomes da equipe e a quantidade de serviços', () => {
-    expect(pdfFileName(header, 1)).toBe('Joao_da_Silva_1_servico.pdf');
-    expect(pdfFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3)).toBe('Joao_da_Silva_Angelo_Souza_3_servicos.pdf');
-    expect(pdfFileName({ ...header, nome1: '###' }, 0)).toBe('Equipe_0_servicos.pdf');
+    expect(pdfFileName(header, 1)).toBe('Joao_da_Silva_20-11-2026_1_servico.pdf');
+    expect(pdfFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3)).toBe('Joao_da_Silva_Angelo_Souza_20-11-2026_3_servicos.pdf');
+    expect(pdfFileName({ ...header, nome1: '###' }, 0)).toBe('Equipe_20-11-2026_0_servicos.pdf');
+    expect(pdfFileName({ ...header, data: '' }, 2)).toBe('Joao_da_Silva_2_servicos.pdf');
   });
 });
 
@@ -64,7 +65,7 @@ describe('armazenamento', () => {
       header: { ...header, equipe: 'PVH-01', viatura: 'ABC1D23', bodycam2: 'BC-9', lider: 't1' },
       ordens: [{ id: '1', osNumber: '10', serviceType: 'COMERCIAL', serviceCode: '28', answers: { tipo: { kind: 'skipped' } }, registradaEm: '2026-11-20T10:00:00.000Z' }],
       draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: {} },
-      lastSheet: { header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos },
+      sheets: [{ header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos }],
       lastHeader: header,
       tecnicos,
     };
@@ -91,7 +92,7 @@ describe('armazenamento', () => {
     expect(loaded.tecnicos).toEqual([{ id: 'tec-migrado-1', nome: 'TEC. BELTRANO SOUZA', telefone: '69 90000-0002' }]);
     expect(loaded.header).toEqual({ ...header, lider: 'tec-migrado-1' });
     expect(loaded.lastHeader).toEqual(loaded.header);
-    expect(loaded.lastSheet?.tecnicos).toEqual(loaded.tecnicos);
+    expect(loaded.sheets[0]?.tecnicos).toEqual(loaded.tecnicos);
     // Medidor instalado e leitura voltaram a ter pergunta na ocorrência; o medidor retirado (sem pergunta) fica
     // preservado para INFO ADICIONAL.
     expect(loaded.ordens[0]?.answers).toEqual({
@@ -118,9 +119,9 @@ describe('armazenamento', () => {
       answers: { ditais: { kind: 'choice', choice: 'Sim' } },
       infoLegada: 'Medidor instalado: M-1; Medidor retirado: M-0; Leitura medidor instalado: 123; KM inicial (2º): 5; 6',
     };
-    const salvo = { ...emptyData(), ordens: [os], lastSheet: { header, ordens: [os], fechadaEm: 'y', tecnicos: [] } };
+    const salvo = { ...emptyData(), sheets: undefined, ordens: [os], lastSheet: { header, ordens: [os], fechadaEm: 'y', tecnicos: [] } };
     const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
-    for (const o of [loaded.ordens[0], loaded.lastSheet?.ordens[0]]) {
+    for (const o of [loaded.ordens[0], loaded.sheets[0]?.ordens[0]]) {
       expect(o?.answers).toMatchObject({ medidorInstNum: { kind: 'text', value: 'M-1' }, leituraInst: { kind: 'text', value: '123' } });
       expect(o?.infoLegada).toBe('Medidor retirado: M-0; KM inicial (2º): 5; 6');
     }
@@ -185,6 +186,22 @@ describe('armazenamento', () => {
     const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [soSim] }) })).ordens[0];
     expect(r?.infoLegada).toBeUndefined();
     expect(r?.answers.medidorInstNum).toBeUndefined();
+  });
+
+  it('histórico de folhas: a última folha da versão anterior vira o 1º item; guarda no máximo 4', () => {
+    const folha = (data: string) => ({ header: { ...header, data }, ordens: [], fechadaEm: data, tecnicos: [] });
+    // Até a 1.4.4: só `lastSheet`.
+    const antigo = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), sheets: undefined, lastSheet: folha('2026-11-20') }) }));
+    expect(antigo.sheets.map((s) => s.header.data)).toEqual(['2026-11-20']);
+    // Mais de 4 (ou folha sem cabeçalho válido): só as 4 mais recentes que dá para gerar o PDF.
+    const varias = ['2026-11-21', '2026-11-20', '2026-11-19', '2026-11-18', '2026-11-17'].map(folha);
+    const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), sheets: [{ header: null }, ...varias] }) }));
+    expect(r.sheets.map((s) => s.header.data)).toEqual(['2026-11-21', '2026-11-20', '2026-11-19', '2026-11-18']);
+    // Folha com OSs corrompidas: abre mesmo assim, sem as OSs inválidas.
+    const quebrada = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), sheets: [{ ...folha('2026-11-21'), ordens: {} }, { ...folha('2026-11-20'), ordens: [null] }] }) }));
+    expect(quebrada.sheets.map((s) => s.ordens.length)).toEqual([0, 0]);
+    // Ao encerrar: a nova entra no topo e a 5ª (mais antiga) sai.
+    expect(pushSheet(r.sheets, folha('2026-11-22')).map((s) => s.header.data)).toEqual(['2026-11-22', '2026-11-21', '2026-11-20', '2026-11-19']);
   });
 
   it('a versão 3 salva tem prioridade; se estiver corrompida, a versão 2 antiga não volta', () => {

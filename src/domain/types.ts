@@ -80,7 +80,7 @@ export interface Tecnico {
   telefone: string;
 }
 
-/** Folha encerrada mais recente, guardada para baixar ou compartilhar o PDF de novo. */
+/** Folha encerrada, guardada para baixar ou compartilhar o PDF de novo (histórico das últimas). */
 export interface ClosedSheet {
   header: ShiftHeader;
   ordens: OrdemServico[];
@@ -89,12 +89,16 @@ export interface ClosedSheet {
   tecnicos: Tecnico[];
 }
 
+/** Quantas folhas encerradas ficam guardadas no aparelho (um turno por dia ≈ os últimos 4 dias). */
+export const SHEETS_KEPT = 4;
+
 export interface AppData {
   version: 3;
   header: ShiftHeader | null;
   ordens: OrdemServico[];
   draft: OSDraft | null;
-  lastSheet: ClosedSheet | null;
+  /** Últimas folhas encerradas, a mais recente primeiro (no máximo SHEETS_KEPT; a mais antiga sai). */
+  sheets: ClosedSheet[];
   /** Último cabeçalho usado: preenche o próximo turno automaticamente (menos a data, que vem do sistema). */
   lastHeader: ShiftHeader | null;
   tecnicos: Tecnico[];

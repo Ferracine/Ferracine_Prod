@@ -60,7 +60,7 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
         } else {
             @Suppress("DEPRECATION")
             val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).apply { mkdirs() }
-            File(dir, name).writeBytes(bytes)
+            uniqueFile(dir, name).writeBytes(bytes)
         }
     }
 
@@ -131,6 +131,14 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
         const val PDF = "application/pdf"
 
         fun decode(base64: String): ByteArray = Base64.decode(base64, Base64.DEFAULT)
+
+        /** "nome.pdf" livre na pasta; se já existe, "nome (1).pdf", "nome (2).pdf"... (nunca sobrescreve outro dia). */
+        fun uniqueFile(dir: File, name: String): File {
+            val base = name.removeSuffix(".pdf")
+            return generateSequence(0) { it + 1 }
+                .map { n -> File(dir, if (n == 0) name else "$base ($n).pdf") }
+                .first { !it.exists() }
+        }
 
         /** Só letras, números, "_", "-" e ".", terminando em .pdf (o nome vem do app, mas nunca vira caminho). */
         fun safeName(fileName: String): String {

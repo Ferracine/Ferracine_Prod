@@ -43,9 +43,13 @@ function slug(text: string): string {
     .replace(/^_+|_+$/g, '');
 }
 
-/** Nomes da equipe + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_3_servicos.pdf". */
+/**
+ * Nomes da equipe + data do turno + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_20-11-2026_3_servicos.pdf".
+ * A data separa as folhas de dias diferentes da mesma equipe (histórico, Downloads, WhatsApp).
+ */
 export function pdfFileName(h: ShiftHeader, qtd: number): string {
   const names = [slug(h.nome1), slug(h.nome2)].filter(Boolean);
   if (names.length === 0) names.push('Equipe');
-  return `${names.join('_')}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.pdf`;
+  const data = formatDateBR(h.data).replaceAll('/', '-');
+  return `${names.join('_')}${data ? `_${data}` : ''}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.pdf`;
 }

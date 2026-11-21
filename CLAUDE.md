@@ -54,11 +54,13 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     para `skipped` e grava o número do topo na pergunta `prefillOS` (que a tela não mostra). `isUnchanged` decide se Cancelar confirma.
   - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
-  `lastSheet`, `lastHeader` (preenche o próximo turno) e `tecnicos` (cadastrados no app). A v2 só é migrada se a
+  `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
+  `lastHeader` (preenche o próximo turno) e `tecnicos` (cadastrados no app). A v2 só é migrada se a
   v3 nunca foi gravada: ids antigos → novos; respostas sem pergunta equivalente viram texto em `legado` (vai para
   INFO ADICIONAL); o líder antigo vira técnico cadastrado. Ao carregar a v3, `adoptLegacyMeter` tira da
   `infoLegada` das ocorrências o medidor instalado e a leitura (perguntas novas da 1.4.1) e põe nas respostas. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
-  (types.ts). Mudança incompatível: suba a versão e escreva a migração.
+  (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`
+  no lugar de `lastSheet`) fica na v3 com detecção na carga: subir a versão faria um APK antigo descartar tudo.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
   grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
@@ -108,7 +110,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 Regras de negócio que não são óbvias no código:
 - A pergunta dos DITAIS (`ditais`) é a única obrigatória (OS nova e edição).
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
-- Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha em `lastSheet`.
+- Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha no topo de `sheets`
+  (`SHEETS_KEPT` = 4; a mais antiga sai).
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - O "Não" de pergunta "se sim, qual?" não entra em INFO ADICIONAL; DITAIS e demais SIM/NÃO entram sempre, menos as
   perguntas de controle (`semInfo`: "Foi instalado/retirado medidor?"), porque as colunas de medidor já dizem.
