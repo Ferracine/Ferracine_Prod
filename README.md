@@ -40,8 +40,9 @@ Energisa, identificação da equipe e tabela de 15 linhas com **ITEM, OS/OCORRÊ
 KM INICIAL, HORÁRIO INICIAL, HORÁRIO FINAL, KM FINAL, MEDIDOR INSTALADO, LEITURA, MEDIDOR RETIRADO, LEITURA,
 CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFO ADICIONAL**. INFO ADICIONAL traz tudo o que o eletricista respondeu
 e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, dificuldades...).
-No rodapé, produção total e os técnicos cadastrados com o líder marcado. Com mais de 15 OSs, a tabela continua na
-folha seguinte. Nome do arquivo: `Nome1_Nome2_N_servicos.pdf`.
+No rodapé, produção total e os técnicos cadastrados com o líder marcado. Com mais de 15 OSs, cada 15 viram uma folha
+completa (logo, identificação e 15 linhas, numeração do ITEM seguindo), marcada "FOLHA 1/2", "FOLHA 2/2"...; o rodapé
+sai só na última. Nome do arquivo: `Nome1_Nome2_N_servicos.pdf`.
 
 ### Aparência
 

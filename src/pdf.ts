@@ -1,20 +1,21 @@
 import { jsPDF } from 'jspdf';
 import { autoTable, type CellHookData, type RowInput, type UserOptions } from 'jspdf-autotable';
 import logoPng from './assets/energisa-pdf.png?inline';
-import { espelhoRows } from './domain/espelho';
+import { type EspelhoRow, espelhoRows } from './domain/espelho';
 import { formatDateBR, formatHorario } from './domain/format';
 import type { OrdemServico, ShiftHeader, Tecnico } from './domain/types';
 
 /**
  * Espelho de Campo idêntico à folha de papel (design/ex_pdf.jpeg): A4 paisagem, preto e branco, um bloco
  * contínuo de tabelas. As larguras das colunas foram medidas na foto e somam a largura útil (281 mm) em cada tabela.
+ * Cada folha é completa (logo, identificação e 15 linhas): impressa e separada, ainda se sabe de quem é.
  */
 
 type RGB = [number, number, number];
 const BLACK: RGB = [0, 0, 0];
 const MARGIN = { top: 10, left: 8, right: 8, bottom: 8 };
 const LARGURA_UTIL = 297 - MARGIN.left - MARGIN.right;
-/** Linhas impressas na folha, como no papel; com mais OSs a tabela continua na folha seguinte. */
+/** Linhas de cada folha, como no papel; a 16ª OS abre uma folha nova (com logo e identificação). */
 const LINHAS_FOLHA = 15;
 const FONT = 'helvetica';
 
@@ -105,13 +106,13 @@ const COL_CLIENTE = HEAD.indexOf('CLIENTE PRESENTE');
  * ITEM (vertical) | OS/OCORRÊNCIA | TIPO DE SERVIÇO (código) | KM INICIAL | HORÁRIO INICIAL | HORÁRIO FINAL | KM FINAL |
  * MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | CLIENTE PRESENTE (SIM/NÃO) | INFO ADICIONAL
  */
-function tabelaServicos(doc: jsPDF, ordens: readonly OrdemServico[]): void {
-  const linhas = espelhoRows(ordens);
+function tabelaServicos(doc: jsPDF, linhas: readonly EspelhoRow[], primeiroItem: number): void {
   const rows: RowInput[] = linhas.map((r) => [
     r.item, r.os, r.codigo, r.kmIni, r.horaIni, r.horaFin, r.kmFin,
     r.medidorInstalado, r.leituraInstalado, r.medidorRetirado, r.leituraRetirado, '', r.info,
   ]);
-  for (let i = rows.length; i < LINHAS_FOLHA; i++) rows.push([i + 1, ...Array<string>(HEAD.length - 1).fill('')]);
+  // A folha sai sempre com 15 linhas; as que sobram ficam em branco, com a numeração seguindo a das OSs.
+  for (let i = rows.length; i < LINHAS_FOLHA; i++) rows.push([primeiroItem + i, ...Array<string>(HEAD.length - 1).fill('')]);
   const narrow = { fontSize: 7.5, cellPadding: 0.6 };
 
   block(doc, {
@@ -203,12 +204,33 @@ function rodape(doc: jsPDF, h: ShiftHeader, total: number, tecnicos: readonly Te
   });
 }
 
-/** PDF do Espelho de Campo (A4 paisagem), idêntico ao modelo de papel. */
+/** "FOLHA 1/2" no canto de baixo de cada página, só quando o espelho tem mais de uma. */
+function numerarFolhas(doc: jsPDF): void {
+  const total = doc.getNumberOfPages();
+  if (total < 2) return;
+  const { width, height } = doc.internal.pageSize;
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    pen(doc, 7);
+    doc.text(`FOLHA ${p}/${total}`, width - MARGIN.right, height - MARGIN.bottom / 2, { align: 'right' });
+  }
+}
+
+/**
+ * PDF do Espelho de Campo (A4 paisagem), idêntico ao modelo de papel. Até 15 OSs, uma folha; acima disso, uma
+ * folha completa a cada 15 (ITEM continua de uma para a outra) e o rodapé com a produção total só na última.
+ */
 export function buildSheetPdf(header: ShiftHeader, ordens: readonly OrdemServico[], tecnicos: readonly Tecnico[]): jsPDF {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  titulo(doc);
-  identificacao(doc, header);
-  tabelaServicos(doc, ordens);
+  const linhas = espelhoRows(ordens);
+  const folhas = Math.max(1, Math.ceil(linhas.length / LINHAS_FOLHA));
+  for (let f = 0; f < folhas; f++) {
+    if (f > 0) doc.addPage();
+    titulo(doc);
+    identificacao(doc, header);
+    tabelaServicos(doc, linhas.slice(f * LINHAS_FOLHA, (f + 1) * LINHAS_FOLHA), f * LINHAS_FOLHA + 1);
+  }
   rodape(doc, header, ordens.length, tecnicos);
+  numerarFolhas(doc);
   return doc;
 }

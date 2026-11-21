@@ -71,7 +71,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/pdf.ts`: jsPDF 4 + `autoTable(doc, opts)` (jspdf-autotable 5). Segue `design/ex_pdf.jpeg` (A4 paisagem, preto
   e branco, 15 linhas, 13 colunas somando 281 mm); logo, ITEM vertical, quadradinhos SIM/NÃO de cliente presente,
   produção total e técnicos (3 por linha) são desenhados em `didDrawCell`. Nenhuma célula corta texto; o rodapé
-  usa `pageBreak: 'avoid'`. Testes travam: 15 OSs completas numa folha. Importado sob demanda em `app.ts`.
+  usa `pageBreak: 'avoid'`. Acima de 15 OSs, cada 15 viram uma folha completa (logo + identificação + 15 linhas,
+  ITEM contínuo) com "FOLHA n/N" no canto; rodapé só na última. Testes travam: 15 OSs completas numa folha. Importado sob demanda em `app.ts`.
 - `android/`: Kotlin mínimo (AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, minSdk 24, target 35). `MainActivity` serve
   `assets/www` (cópia do `dist/` feita pelo `scripts/apk.mjs`, sem service worker) via `WebViewAssetLoader` em
   `https://appassets.androidplatform.net/www/`; sem permissão de internet. Borda a borda em todas as versões

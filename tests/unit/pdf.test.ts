@@ -127,7 +127,30 @@ describe('PDF do Espelho de Campo', () => {
     for (const t of muitos) expect(text).toContain(`(${t.nome})`);
   });
 
-  it('mais de 15 OSs: a tabela continua com o cabeçalho das colunas e o rodapé nunca se divide', () => {
+  it('mais de 15 OSs: cada folha é completa (logo, identificação, 15 linhas) e numerada; rodapé só na última', () => {
+    const doc = buildSheetPdf(header, Array.from({ length: 22 }, (_, i) => (i % 2 ? comercial(i) : ocorrenciaCompleta(i))), tecnicos);
+    expect(doc.getNumberOfPages()).toBe(2);
+    const [f1 = '', f2 = ''] = doc.output().split('/Type /Page\n').slice(1);
+    for (const pagina of [f1, f2]) {
+      for (const s of ['ESPELHO DE CAMPO', '(Carlos Pereira)', '(20/11/2026)', '/I0 Do']) expect(pagina).toContain(s);
+    }
+    expect(f1).toContain('(FOLHA 1/2)');
+    expect(f1).toContain('(15) Tj');
+    expect(f1).not.toContain('(16) Tj');
+    expect(f1).not.toContain('PRODUÇÃO TOTAL:');
+    // Segunda folha: OSs 16 a 22 e linhas em branco numeradas até 30, como no papel.
+    expect(f2).toContain('(FOLHA 2/2)');
+    expect(f2).toContain('(16) Tj');
+    expect(f2).toContain('(30) Tj');
+    expect(f2).toContain('PRODUÇÃO TOTAL:');
+    expect(f2).toContain('(22) Tj');
+  });
+
+  it('até 15 OSs a folha não leva numeração', () => {
+    expect(pdfText(buildSheetPdf(header, [comercial(1)], tecnicos))).not.toContain('FOLHA');
+  });
+
+  it('mais de 15 OSs: o rodapé nunca se divide', () => {
     for (const n of [16, 18, 20, 23]) {
       const doc = buildSheetPdf(header, Array.from({ length: n }, (_, i) => comercial(i)), tecnicos);
       const text = pdfText(doc);
