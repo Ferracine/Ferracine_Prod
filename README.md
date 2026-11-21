@@ -18,16 +18,18 @@ houver, só serve para o app se atualizar.
    viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
-2. **Painel**: digita o número da OS (opcional: vazio vira "S/N") e toca no código, ou digita outro código.
+2. **Painel**: o botão **+** abre a escolha do serviço: toque no código (ou digite outro código).
    - **Comercial** (28 / 709 / 739 / 33 / 798), 12 perguntas: tipo de serviço, KM inicial, hora inicial, cliente
      presente, lançou ramal, medidor instalado e retirado (com número), leituras, KM final, horário final,
      dificuldade na execução.
    - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 12 perguntas: callback, número da OS, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, hora final, dificuldade.
-3. **Assistente**: uma pergunta por vez, com Pular, Voltar e barra de progresso. Voltar (o da tela ou o do
-   Android) vai à pergunta anterior e, na primeira, ao painel. Perguntas "se sim, qual?" exigem o complemento.
-4. **OSs do turno**: o **lápis** abre a edição completa (número, código e qualquer resposta); o olho mostra as
+3. **Tela da OS**: número (opcional: vazio vira "S/N"), código e todas as perguntas numa página só, a mesma do
+   lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
+   preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
+   Android) pede confirmação se algo foi preenchido.
+4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
    respostas; a lixeira exclui. Número de OS repetido pede confirmação.
 5. **Finalizar turno**: gera o PDF e salva na hora (no APK, na pasta Downloads). A janela "PDF gerado" oferece
    Compartilhar, Baixar e Abrir; o turno só é encerrado ao tocar em **Encerrar turno**. O último PDF fica na tela
@@ -90,11 +92,11 @@ nova não instala por cima da antiga. O `android/local.properties` aponta o SDK 
 
 ```
 design/       referências do dono do app: layout, logo, ícone, modelo e foto do PDF
-src/domain/   regras puras: catálogo de códigos e perguntas, assistente, linhas do espelho, formatação
+src/domain/   regras puras: catálogo de códigos e perguntas, regras da OS, linhas do espelho, formatação
 src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3; migra a v2)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
 src/platform.ts ponte com o APK (salvar/abrir/compartilhar o PDF)
-src/ui/       telas (cabeçalho, painel, assistente, edição), toast e modal
+src/ui/       telas (cabeçalho, painel, tela da OS), toast e modal
 src/app.ts    controlador: estado, persistência e navegação entre telas
 android/      app Android (WebView + ponte do PDF)
 tests/unit/   Vitest   ·   tests/e2e/  Playwright

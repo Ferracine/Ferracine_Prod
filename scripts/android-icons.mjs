@@ -7,6 +7,7 @@ const src = fileURLToPath(new URL('../public/icon.png', import.meta.url));
 const res = fileURLToPath(new URL('../android/app/src/main/res/', import.meta.url));
 
 // Ícone clássico (48dp) e camada da frente do ícone adaptativo (108dp, com a figura nos 66% centrais).
+// A prancheta (sem o lápis) está centralizada no public/icon.png: o lápis sobra para a direita.
 const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
 const transparent = { r: 0, g: 0, b: 0, alpha: 0 };
 
@@ -26,7 +27,8 @@ for (const [name, k] of Object.entries(DENSITIES)) {
   const legacy = await iconOn(Math.round(48 * k), 0.92);
   writeFileSync(`${dir}ic_launcher.png`, legacy);
   writeFileSync(`${dir}ic_launcher_round.png`, legacy);
-  writeFileSync(`${dir}ic_launcher_foreground.png`, await iconOn(Math.round(108 * k), 0.6));
+  // 0.58: a figura inteira cabe no círculo seguro de 66dp (a tela de abertura do Android 12+ recorta em círculo).
+  writeFileSync(`${dir}ic_launcher_foreground.png`, await iconOn(Math.round(108 * k), 0.58));
 }
 
 const adaptive = `<?xml version="1.0" encoding="utf-8"?>

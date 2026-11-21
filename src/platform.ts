@@ -30,6 +30,8 @@ export interface UpdateStatus {
 declare global {
   interface Window {
     FerracineAndroid?: AndroidBridge;
+    /** Chamada pelo voltar do Android (MainActivity) antes de navegar: true = o app tratou (fechou uma janela). */
+    ferracineBack?: () => boolean;
   }
 }
 

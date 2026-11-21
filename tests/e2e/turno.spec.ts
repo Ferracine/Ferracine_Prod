@@ -21,17 +21,16 @@ async function iniciarTurno(page: Page) {
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 }
 
-async function abrirOS(page: Page, numero: string, codigo: string) {
-  await page.locator('#input-os-number').fill(numero);
-  await page.locator(`[data-code="${codigo}"]`).click();
-  await expect(page.locator('#screen-wizard')).toBeVisible();
+/** "+" do painel → código na janela → tela da OS nova. */
+async function novaOS(page: Page, codigo: string, numero = '') {
+  await page.locator('#btn-new-os').click();
+  await page.getByTestId('service-chooser').locator(`[data-code="${codigo}"]`).click();
+  await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  if (numero) await page.locator('#os-number').fill(numero);
 }
 
-const proximo = (page: Page) => page.locator('#btn-wiz-next').click();
-const pular = (page: Page) => page.locator('#btn-wiz-skip').click();
-async function pularVarias(page: Page, n: number) {
-  for (let i = 0; i < n; i++) await pular(page);
-}
+const salvar = (page: Page) => page.locator('#btn-os-save').click();
+const marcar = (page: Page, pergunta: string, escolha: 'Sim' | 'Não') => page.locator(`[data-question="${pergunta}"] [data-choice="${escolha}"]`).click();
 
 test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento e próximo turno já preenchido', async ({ page }) => {
   await page.goto('/');
@@ -44,49 +43,39 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await page.getByLabel('Técnico líder responsável').selectOption({ label: 'TEC. ANA LIMA - 69 99999-0000' });
   await iniciarTurno(page);
   await expect(page.getByText('João da Silva (Mat: 123456)')).toBeVisible();
+  await expect(page.getByText('© Ferracine Prod')).toBeVisible();
 
-  // Comercial sem número (S/N): 12 perguntas na ordem nova.
-  await abrirOS(page, '', '709');
-  await expect(page.locator('#wiz-os-number')).toHaveText('S/N');
-  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 1 de 12');
-  await expect(page.locator('#wiz-question-text')).toHaveText('Qual tipo de serviço?');
-  await proximo(page);
-  await expect(page.getByRole('status').last()).toContainText('Digite uma resposta');
-  await page.locator('#wiz-text-input').fill('Ligação nova');
-  await page.locator('#wiz-text-input').press('Enter');
-  await pularVarias(page, 2); // KM inicial, hora inicial
-  await expect(page.locator('#wiz-question-text')).toHaveText('Cliente presente?');
-  await page.locator('[data-choice="Sim"]').click();
-  await proximo(page);
-  await pularVarias(page, 7);
-  await expect(page.locator('#btn-wiz-next')).toHaveText(/Concluir OS/);
-  await pular(page);
+  // Comercial sem número (S/N): a tela da OS traz as 12 perguntas de uma vez.
+  await novaOS(page, '709');
+  await expect(page.locator('#os-number')).toHaveValue('');
+  await expect(page.locator('#os-code')).toHaveValue('709');
+  await expect(page.locator('#screen-os [data-question]')).toHaveCount(12);
+  await page.locator('#q-tipo').fill('Ligação nova');
+  await marcar(page, 'clientePresente', 'Sim');
+  await salvar(page);
   await expect(page.getByTestId('os-item')).toHaveCount(1);
   await expect(page.getByTestId('os-item')).toContainText('sem nº');
 
-  // Lápis: edição completa; preenche o número.
+  // Lápis: mesma tela; preenche o número.
   await page.getByRole('button', { name: 'Editar OS S/N' }).click();
-  await expect(page.locator('#screen-edit')).toBeVisible();
-  await page.locator('#edit-os-number').fill('123');
-  await page.locator('#btn-edit-save').click();
+  await expect(page.locator('#screen-os[data-mode="edit"]')).toBeVisible();
+  await expect(page.locator('#q-tipo')).toHaveValue('Ligação nova');
+  await page.locator('#os-number').fill('123');
+  await salvar(page);
   await expect(page.getByTestId('os-item')).toContainText('OS 123');
   await expect(page.getByTestId('os-item')).not.toContainText('sem nº');
 
-  // Ocorrência: 12 perguntas; o número vem pré-preenchido e a DITAIS é obrigatória.
-  await abrirOS(page, '456', '508');
-  await expect(page.locator('#wiz-question-text')).toHaveText('Tentou callback?');
-  await pular(page);
-  await expect(page.locator('#wiz-text-input')).toHaveValue('456');
-  await proximo(page);
-  await pularVarias(page, 5); // hora inicial, KM inicial, tipo, defeito, dispositivo
-  await expect(page.locator('#wiz-question-text')).toHaveText('Houve necessidade de realizar os DITAIS?');
-  await expect(page.locator('#btn-wiz-skip')).toHaveCount(0);
-  await proximo(page);
-  await expect(page.getByRole('status').last()).toContainText('obrigatório');
-  await page.locator('[data-choice="Não"]').click();
-  await proximo(page);
-  await pularVarias(page, 4); // KM final, alteração na UC, hora final, dificuldade
+  // Ocorrência: a pergunta do número é o campo do topo (11 blocos) e a DITAIS é obrigatória.
+  await novaOS(page, '508', '456');
+  await expect(page.locator('#screen-os [data-question]')).toHaveCount(11);
+  await salvar(page);
+  await expect(page.getByRole('status').last()).toContainText('resposta obrigatória');
+  await marcar(page, 'ditais', 'Não');
+  await salvar(page);
   await expect(page.getByTestId('os-item')).toHaveCount(2);
+  await page.getByRole('button', { name: 'Ver respostas OS 456' }).click();
+  await expect(page.getByRole('dialog')).toContainText('456');
+  await page.keyboard.press('Escape');
 
   // Gerar PDF: baixa na hora; o turno continua aberto até "Encerrar turno".
   await page.locator('#btn-finish').click();
@@ -113,25 +102,49 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   expect((await last).suggestedFilename()).toBe('Joao_da_Silva_2_servicos.pdf');
 });
 
+test('o "+" abre a escolha do serviço e Cancelar volta ao painel sem criar OS', async ({ page }) => {
+  await iniciarTurno(page);
+  await expect(page.getByText('Registrar nova Ordem de Serviço')).toHaveCount(0);
+  await page.locator('#btn-new-os').click();
+  await expect(page.getByTestId('service-chooser')).toContainText('COMERCIAL');
+  await expect(page.getByTestId('service-chooser')).toContainText('OCORRÊNCIA');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.getByTestId('os-item')).toHaveCount(0);
+
+  // Voltar do Android (APK chama window.ferracineBack antes de navegar): fecha a janela em vez de sair do app.
+  await page.locator('#btn-new-os').click();
+  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(true);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(false);
+});
+
+test('OS nova: trocar só o código e cancelar pede confirmação', async ({ page }) => {
+  await iniciarTurno(page);
+  await novaOS(page, '508');
+  await page.locator('#os-code').fill('510');
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
+});
+
 test('lápis edita qualquer item da OS e o voltar do Android pede para descartar alterações', async ({ page }) => {
   await iniciarTurno(page);
-  await abrirOS(page, '321', '33');
-  await page.locator('#wiz-text-input').fill('Corte');
-  await proximo(page);
-  await pularVarias(page, 11);
+  await novaOS(page, '33', '321');
+  await page.locator('#q-tipo').fill('Corte');
+  await salvar(page);
 
   await page.getByRole('button', { name: 'Editar OS 321' }).click();
-  await expect(page.locator('#edit-tipo')).toHaveValue('Corte');
-  await page.locator('#edit-tipo').fill('Religação');
-  await page.locator('#edit-kmIni').fill('45210');
-  await page.locator('#edit-os-code').fill('798');
-  await page.locator('[data-question="clientePresente"] [data-choice="Sim"]').click();
-  await page.locator('[data-question="dificuldade"] [data-choice="Sim"]').click();
+  await expect(page.locator('#q-tipo')).toHaveValue('Corte');
+  await page.locator('#q-tipo').fill('Religação');
+  await page.locator('#q-kmIni').fill('45210');
+  await page.locator('#os-code').fill('798');
+  await marcar(page, 'clientePresente', 'Sim');
+  await marcar(page, 'dificuldade', 'Sim');
   // SIM sem complemento: não salva.
-  await page.locator('#btn-edit-save').click();
+  await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('preencha o complemento');
   await page.locator('[data-question="dificuldade"] input').fill('Chuva forte');
-  await page.locator('#btn-edit-save').click();
+  await salvar(page);
 
   await expect(page.getByTestId('os-item')).toContainText('Cód. 798');
   await page.getByRole('button', { name: 'Ver respostas OS 321' }).click();
@@ -140,7 +153,7 @@ test('lápis edita qualquer item da OS e o voltar do Android pede para descartar
 
   // Voltar do sistema na edição com alterações: confirma antes de descartar.
   await page.getByRole('button', { name: 'Editar OS 321' }).click();
-  await page.locator('#edit-tipo').fill('Outra coisa');
+  await page.locator('#q-tipo').fill('Outra coisa');
   await page.goBack();
   await expect(page.getByRole('dialog')).toContainText('Sair sem salvar?');
   await page.getByRole('button', { name: 'Descartar alterações' }).click();
@@ -179,50 +192,53 @@ test('fechar a janela do PDF sem encerrar mantém o turno aberto', async ({ page
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 });
 
-test('outro código fora da lista abre o assistente com esse código', async ({ page }) => {
+test('outro código fora da lista abre a OS com esse código', async ({ page }) => {
   await iniciarTurno(page);
+  await page.locator('#btn-new-os').click();
   await page.locator('#custom-code-ocorrencia').fill('510');
   await page.locator('[data-start-custom="OCORRENCIA"]').click();
-  await expect(page.locator('#screen-wizard')).toContainText('Código 510');
-  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 1 de 12');
+  await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('OCORRÊNCIA');
+  await expect(page.locator('#os-code')).toHaveValue('510');
 });
 
-test('número repetido na edição pede confirmação', async ({ page }) => {
+test('número repetido pede confirmação (OS nova e edição)', async ({ page }) => {
   await iniciarTurno(page);
-  for (const numero of ['500', '']) {
-    await abrirOS(page, numero, '28');
-    await pularVarias(page, 12);
-  }
-  await page.getByRole('button', { name: 'Editar OS S/N' }).click();
-  await page.locator('#edit-os-number').fill('500');
-  await page.locator('#btn-edit-save').click();
+  await novaOS(page, '28', '500');
+  await salvar(page);
+  await novaOS(page, '28', '500');
+  await salvar(page);
   await expect(page.getByRole('dialog')).toContainText('A OS 500 já está nesta folha');
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
-  await expect(page.locator('#screen-edit')).toBeVisible();
-  await page.locator('#screen-edit').getByRole('button', { name: 'Cancelar' }).click();
+  await page.locator('#os-number').fill('');
+  await salvar(page);
+  await expect(page.getByTestId('os-item')).toHaveCount(2);
+
+  await page.getByRole('button', { name: 'Editar OS S/N' }).click();
+  await page.locator('#os-number').fill('500');
+  await salvar(page);
+  await expect(page.getByRole('dialog')).toContainText('A OS 500 já está nesta folha');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.locator('#screen-os[data-mode="edit"]')).toBeVisible();
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await page.getByRole('button', { name: 'Descartar alterações' }).click();
   await expect(page.getByTestId('os-item').nth(1)).toContainText('sem nº');
 });
 
-test('voltar da tela e do Android: pergunta anterior e, na primeira, volta ao painel', async ({ page }) => {
+test('voltar do Android na OS nova: com algo preenchido confirma; sem nada volta direto', async ({ page }) => {
   await iniciarTurno(page);
-  await abrirOS(page, '901', '508');
-  await page.locator('[data-choice="Sim"]').click();
-  await proximo(page);
-  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 2 de 12');
+  await novaOS(page, '508');
+  await marcar(page, 'callback', 'Sim');
+  await page.goBack();
+  await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
+  await page.getByRole('button', { name: 'Continuar preenchendo' }).click();
+  await expect(page.locator('[data-question="callback"] [data-choice="Sim"]')).toHaveAttribute('aria-pressed', 'true');
 
   await page.goBack();
-  await expect(page.locator('#wiz-step-label')).toHaveText('Pergunta 1 de 12');
-  await expect(page.locator('#btn-wiz-prev')).toHaveText('Voltar ao painel');
-
-  // Já há resposta: pede confirmação antes de descartar.
-  await page.locator('#btn-wiz-prev').click();
-  await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
   await page.getByRole('button', { name: 'Descartar OS' }).click();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 
-  // OS aberta e nada respondido: volta direto, também pelo voltar do sistema.
-  await abrirOS(page, '902', '28');
+  // OS aberta e nada preenchido: volta direto, também pelo voltar do sistema.
+  await novaOS(page, '28');
   await page.goBack();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
@@ -230,11 +246,11 @@ test('voltar da tela e do Android: pergunta anterior e, na primeira, volta ao pa
 
 test('recarregar no meio da OS não deixa um "voltar" morto no histórico', async ({ page }) => {
   await iniciarTurno(page);
-  await abrirOS(page, '903', '28');
+  await novaOS(page, '28');
   await page.reload();
   await page.reload();
-  await expect(page.locator('#screen-wizard')).toBeVisible();
-  await page.locator('#btn-wiz-prev').click(); // nada respondido: volta direto ao painel
+  await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click(); // nada preenchido: volta direto
   await expect(page.locator('#screen-dashboard')).toBeVisible();
   await expect.poll(() => page.evaluate(() => history.state?.ferracineBackTrap ?? false)).toBe(false);
 });
@@ -253,20 +269,23 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
 
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
-  await abrirOS(page, '789', '28');
-  await page.locator('#wiz-text-input').fill('Vistoria');
+  await novaOS(page, '28', '789');
+  await page.locator('#q-tipo').fill('Vistoria');
+  await marcar(page, 'clientePresente', 'Não');
   await page.reload();
-  await expect(page.locator('#screen-wizard')).toBeVisible();
-  await expect(page.locator('#wiz-text-input')).toHaveValue('Vistoria');
-  await page.getByRole('button', { name: 'Cancelar OS' }).click();
+  await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  await expect(page.locator('#os-number')).toHaveValue('789');
+  await expect(page.locator('#q-tipo')).toHaveValue('Vistoria');
+  await expect(page.locator('[data-question="clientePresente"] [data-choice="Não"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await page.getByRole('button', { name: 'Descartar OS' }).click();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
 });
 
 test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
   await iniciarTurno(page);
-  await abrirOS(page, '1', '28');
-  await pularVarias(page, 12);
+  await novaOS(page, '28', '1');
+  await salvar(page);
   await page.getByRole('button', { name: 'Corrigir' }).click();
   await page.getByLabel('Nome 1 *').fill('João Souza');
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();

@@ -57,12 +57,11 @@ export interface OrdemServico {
   infoLegada?: string;
 }
 
-/** OS em preenchimento no assistente. Persistida para sobreviver ao fechamento da aba. */
-export interface WizardDraft {
+/** OS nova em preenchimento (tela da OS). Persistida a cada alteração para sobreviver ao fechamento do app. */
+export interface OSDraft {
   osNumber: string;
   serviceType: ServiceType;
   serviceCode: string;
-  index: number;
   answers: Record<string, Answer>;
   infoLegada?: string;
 }
@@ -87,7 +86,7 @@ export interface AppData {
   version: 3;
   header: ShiftHeader | null;
   ordens: OrdemServico[];
-  draft: WizardDraft | null;
+  draft: OSDraft | null;
   lastSheet: ClosedSheet | null;
   /** Último cabeçalho usado: preenche o próximo turno automaticamente (menos a data, que vem do sistema). */
   lastHeader: ShiftHeader | null;

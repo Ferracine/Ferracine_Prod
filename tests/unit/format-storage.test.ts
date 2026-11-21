@@ -62,7 +62,7 @@ describe('armazenamento', () => {
       version: 3,
       header: { ...header, equipe: 'PVH-01', viatura: 'ABC1D23', bodycam2: 'BC-9', lider: 't1' },
       ordens: [{ id: '1', osNumber: '10', serviceType: 'COMERCIAL', serviceCode: '28', answers: { tipo: { kind: 'skipped' } }, registradaEm: '2026-11-20T10:00:00.000Z' }],
-      draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', index: 3, answers: {} },
+      draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: {} },
       lastSheet: { header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos },
       lastHeader: header,
       tecnicos,
@@ -95,7 +95,14 @@ describe('armazenamento', () => {
     expect(loaded.ordens[0]?.answers).toEqual({ tipo: { kind: 'text', value: 'Falta' }, ditais: { kind: 'choice', choice: 'Sim' } });
     expect(loaded.ordens[0]?.infoLegada).toBe('Medidor instalado: M-1; Leitura medidor instalado: 12345');
     expect(loaded.ordens[1]?.answers).toEqual({ clientePresente: { kind: 'choice', choice: 'Não' } });
-    expect(loaded.draft).toMatchObject({ index: 0, answers: { os: { kind: 'text', value: '9' } } });
+    expect(loaded.draft).toMatchObject({ answers: { os: { kind: 'text', value: '9' } } });
+  });
+
+  it('rascunho do antigo assistente: o número respondido na pergunta do número vai para o campo do topo', () => {
+    const antigo = { ...emptyData(), draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', index: 4, answers: { os: { kind: 'text', value: ' 123 ' } } } };
+    expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(antigo) })).draft?.osNumber).toBe('123');
+    const semResposta = { ...emptyData(), draft: { osNumber: '9', serviceType: 'COMERCIAL', serviceCode: '28', answers: {} } };
+    expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(semResposta) })).draft?.osNumber).toBe('9');
   });
 
   it('a versão 3 salva tem prioridade; se estiver corrompida, a versão 2 antiga não volta', () => {

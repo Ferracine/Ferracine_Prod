@@ -1,16 +1,16 @@
-import { Briefcase, CirclePlus, ClipboardList, Eye, FileDown, Pencil, Trash2, TriangleAlert } from 'lucide';
+import { Briefcase, ClipboardList, Eye, FileDown, Pencil, Plus, Trash2, TriangleAlert } from 'lucide';
 import { SERVICE_CODES, SERVICE_LABEL, questionsFor } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural, teamLabel } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
-import { answerRows } from '../domain/wizard';
+import { answerRows } from '../domain/ordem';
 import { h, icon, onEnter } from './dom';
 import { showToast } from './feedback';
 
 export interface DashboardProps {
   header: ShiftHeader;
   ordens: readonly OrdemServico[];
-  /** `osNumber` vazio = OS sem número (S/N). */
-  onStartOS: (osNumber: string, type: ServiceType, code: string) => void;
+  /** Botão "+": abre a escolha do tipo e do código (serviceChooser). */
+  onNewOS: () => void;
   onView: (os: OrdemServico) => void;
   /** Lápis: edição completa da OS (número, código e qualquer resposta). */
   onEdit: (os: OrdemServico) => void;
@@ -19,7 +19,7 @@ export interface DashboardProps {
   onFinish: () => void;
 }
 
-/** Cores do selo de tipo (lista, assistente e contador): Comercial = ciano do logo, Ocorrência = laranja do logo. */
+/** Cores do selo de tipo (lista, tela da OS e escolha do serviço): Comercial = ciano do logo, Ocorrência = laranja do logo. */
 export const TYPE_BADGE: Record<ServiceType, string> = {
   COMERCIAL: 'bg-brand/15 text-brand-fg',
   OCORRENCIA: 'bg-accent/15 text-accent-fg',
@@ -79,18 +79,8 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
   );
 }
 
-export function dashboardScreen(p: DashboardProps): HTMLElement {
-  const { header, ordens } = p;
-  const osInput = h('input', {
-    id: 'input-os-number',
-    type: 'text',
-    inputmode: 'numeric',
-    enterkeyhint: 'done',
-    autocomplete: 'off',
-    placeholder: 'Digite o número ou deixe vazio (S/N)',
-    class: 'field',
-  });
-
+/** Janela do "+": Comercial e Ocorrência com os códigos da lista e "Outro código". */
+export function serviceChooser(onPick: (type: ServiceType, code: string) => void): HTMLElement {
   const typeBlock = (type: ServiceType) => {
     const c = TYPE_COLORS[type];
     const customId = `custom-code-${type.toLowerCase()}`;
@@ -101,7 +91,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         customInput.focus();
         return;
       }
-      p.onStartOS(osInput.value.trim(), type, code);
+      onPick(type, code);
     };
     const customInput = h('input', {
       id: customId,
@@ -123,14 +113,14 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         h('span', { class: `font-extrabold text-sm flex items-center gap-1.5 ${c.title}` }, icon(type === 'COMERCIAL' ? Briefcase : TriangleAlert), SERVICE_LABEL[type]),
         h('span', { class: `${BADGE} ${TYPE_BADGE[type]}` }, plural(questionsFor(type).length, 'pergunta', 'perguntas')),
       ),
-      h('p', { class: 'text-xs text-muted' }, 'Toque no código para iniciar:'),
+      h('p', { class: 'text-xs text-muted' }, 'Toque no código:'),
       h(
         'div',
         { class: 'flex flex-wrap gap-2' },
         SERVICE_CODES[type].map((code) =>
           h(
             'button',
-            { type: 'button', class: `min-w-14 px-3.5 py-3 rounded-xl border font-extrabold text-base transition-all active:scale-95 ${c.code}`, 'data-code': code, onClick: () => p.onStartOS(osInput.value.trim(), type, code) },
+            { type: 'button', class: `min-w-14 px-3.5 py-3 rounded-xl border font-extrabold text-base transition-all active:scale-95 ${c.code}`, 'data-code': code, onClick: () => onPick(type, code) },
             code,
           ),
         ),
@@ -149,13 +139,18 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     );
   };
 
+  return h('div', { class: 'space-y-4', 'data-testid': 'service-chooser' }, typeBlock('COMERCIAL'), typeBlock('OCORRENCIA'));
+}
+
+export function dashboardScreen(p: DashboardProps): HTMLElement {
+  const { header, ordens } = p;
   const list =
     ordens.length === 0
       ? h(
           'div',
           { class: 'text-center py-8 px-4 bg-fg/[0.03] rounded-xl border border-dashed border-fg/15' },
           h('p', { class: 'text-sm font-semibold text-muted' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
-          h('p', { class: 'text-xs text-subtle mt-1' }, 'Digite o número da OS (ou deixe vazio) e toque no código para começar.'),
+          h('p', { class: 'text-xs text-subtle mt-1' }, 'Toque no + para registrar a primeira OS do turno.'),
         )
       : h('ul', { class: 'space-y-3' }, ordens.map((os, i) => osRow(os, i, p)));
 
@@ -192,26 +187,21 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         h('div', { class: 'sm:text-right' }, h('span', { class: 'text-subtle text-xs block' }, 'Bodycam'), h('p', { class: 'font-bold text-brand-fg' }, orDash(bodycams))),
       ),
     ),
+    // Nova OS: só o "+"; tipo e código são escolhidos na janela que ele abre.
     h(
       'div',
-      { class: 'card p-6 space-y-5' },
+      { class: 'flex justify-center' },
       h(
-        'div',
-        { class: 'flex items-center gap-3 border-b border-fg/10 pb-4' },
-        h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg' }, icon(CirclePlus, 'w-5 h-5')),
-        h(
-          'div',
-          null,
-          h('h2', { class: 'text-base font-extrabold text-fg' }, 'Registrar nova Ordem de Serviço'),
-          h('p', { class: 'text-xs text-muted' }, 'Número opcional: se não lembrar, deixe vazio e preencha depois.'),
-        ),
-      ),
-      h('div', null, h('label', { for: 'input-os-number', class: 'lbl' }, 'Número da OS (opcional)'), osInput),
-      h(
-        'div',
-        { class: 'space-y-3' },
-        h('p', { class: 'lbl' }, 'Selecione o tipo e o código do serviço *'),
-        h('div', { class: 'grid grid-cols-1 md:grid-cols-2 gap-4' }, typeBlock('COMERCIAL'), typeBlock('OCORRENCIA')),
+        'button',
+        {
+          type: 'button',
+          id: 'btn-new-os',
+          'aria-label': 'Nova OS',
+          title: 'Nova OS',
+          class: 'w-16 h-16 rounded-full bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand/30 flex items-center justify-center transition-all active:scale-95',
+          onClick: p.onNewOS,
+        },
+        icon(Plus, 'w-8 h-8'),
       ),
     ),
     h(

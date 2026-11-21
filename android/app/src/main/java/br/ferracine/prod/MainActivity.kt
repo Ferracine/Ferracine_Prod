@@ -85,10 +85,14 @@ class MainActivity : ComponentActivity() {
 
         if (savedInstanceState == null) webView.loadUrl(START_URL) else webView.restoreState(savedInstanceState)
 
-        // Voltar do Android = voltar do histórico do app (o app trata assistente, edição e janelas abertas).
+        // Voltar do Android: primeiro a página (window.ferracineBack fecha uma janela aberta); senão, voltar do histórico
+        // do app (a tela da OS segura uma entrada para agir como o Cancelar); sem histórico, sai do app.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (webView.canGoBack()) webView.goBack() else finish()
+                webView.evaluateJavascript("typeof window.ferracineBack === 'function' && window.ferracineBack()") { handled ->
+                    if (handled == "true") return@evaluateJavascript
+                    if (webView.canGoBack()) webView.goBack() else finish()
+                }
             }
         })
     }

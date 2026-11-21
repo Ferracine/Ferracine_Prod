@@ -1,5 +1,5 @@
 import type { Answer, OrdemServico, ServiceType, ShiftHeader } from '../../src/domain/types';
-import { finalize, startDraft } from '../../src/domain/wizard';
+import { finalize, startDraft } from '../../src/domain/ordem';
 
 /** Cabeçalho mínimo válido; os testes sobrescrevem só o que importa. */
 export const baseHeader: ShiftHeader = {
@@ -17,8 +17,7 @@ export const baseHeader: ShiftHeader = {
   lider: '',
 };
 
-/** OS concluída como se o assistente tivesse sido preenchido com `answers`. */
+/** OS concluída como se a tela da OS tivesse sido preenchida com o número e `answers`. */
 export function finishedOS(osNumber: string, type: ServiceType, code: string, answers: Record<string, Answer> = {}, id = 'x'): OrdemServico {
-  const d = startDraft(osNumber, type, code);
-  return finalize({ ...d, answers: { ...d.answers, ...answers } }, id, new Date());
+  return finalize({ ...startDraft(type, code), osNumber, answers }, id, new Date());
 }

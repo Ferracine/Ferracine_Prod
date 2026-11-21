@@ -14,7 +14,7 @@ pnpm install
 pnpm dev               # Vite em 0.0.0.0:5173
 pnpm lint              # tsc --noEmit (strict + noUncheckedIndexedAccess)
 pnpm test              # Vitest, só tests/unit (ambiente node, sem DOM)
-pnpm test wizard       # um arquivo: filtre pelo nome; passar o caminho completo no Git Bash quebra o Vitest
+pnpm test ordem        # um arquivo: filtre pelo nome; passar o caminho completo no Git Bash quebra o Vitest
 pnpm build             # dist/ + service worker (vite-plugin-pwa, generateSW)
 pnpm test:e2e          # Playwright contra o build (pnpm preview :4173), Chrome instalado, viewport Pixel 7
 pnpm check             # lint + test + build + e2e: rode antes de commitar
@@ -45,18 +45,20 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
     coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. `prefillOS` marca a pergunta do número
     da OS. `LEGACY_*` serve só à migração da v2.
-  - `wizard.ts`: o assistente como funções imutáveis (`startDraft`, `setText/setChoice/setDetail`, `next`, `skip`,
-    `back`, `finalize`) e `applyEdit` (edição completa pelo lápis, com as mesmas regras). `finalize` normaliza
-    respostas vazias para `skipped` e adota o número respondido na pergunta `prefillOS`.
+  - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
+    (lápis) passam pelas mesmas regras (código, DITAIS, complemento do SIM). `finalize` normaliza respostas vazias
+    para `skipped` e grava o número do topo na pergunta `prefillOS` (que a tela não mostra). `isUnchanged` decide se Cancelar confirma.
   - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
-- `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho do assistente,
+- `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `lastSheet`, `lastHeader` (preenche o próximo turno) e `tecnicos` (cadastrados no app). A v2 só é migrada se a
   v3 nunca foi gravada: ids antigos → novos; respostas sem pergunta equivalente viram texto em `legado` (vai para
   INFO ADICIONAL); o líder antigo vira técnico cadastrado. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
-  `draft` → assistente; senão painel). Toda mutação passa por `update()`, que persiste e re-renderiza. No assistente e
-  na edição, uma entrada extra no `history` faz o voltar do Android agir como Voltar/Cancelar da tela.
+  `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
+  grava o rascunho a cada alteração (`onChange`, sem redesenhar). O "+" do painel abre `serviceChooser` numa janela.
+  Toda mutação passa por `update()`, que persiste e re-renderiza. Na tela da OS, uma entrada extra no `history` faz
+  o voltar do Android agir como o Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
   `navigator.share`: o PDF vai em base64 para `FerracineBridge.kt`. No navegador a ponte não existe.
 - Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; ao abrir e ao
@@ -67,14 +69,16 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
   `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Não use `innerHTML`
-  com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado. `edit-screen.ts` reaproveita os botões e
-  campos do `wizard-screen.ts`. O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
+  com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
+  `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
 - Tema claro/escuro (`src/theme.ts` + script no `<head>` do index.html, mesma chave `ferracine_prod:theme`).
   Cores em `src/styles.css`, do logo: `brand` = ciano `#0fabcc`, `accent` = laranja `#f36f23` (`-600/-700` para
   botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
   `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Comercial = ciano, Ocorrência = laranja.
 - Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`) é o
-  favicon, o ícone do PWA e o do APK.
+  favicon, o ícone do PWA e o do APK. No `icon.png` a prancheta (sem o lápis) fica no centro; o lápis sobra para a
+  direita. O ícone adaptativo usa a figura a 58% para caber no círculo seguro (tela de abertura do Android 12+).
+- Rodapé: "© Ferracine Prod" (dono do app/repositório), versão e "Procurar atualização".
 - `src/pdf.ts`: jsPDF 4 + `autoTable(doc, opts)` (jspdf-autotable 5). Segue `design/ex_pdf.jpeg` (A4 paisagem, preto
   e branco, 15 linhas, 13 colunas somando 281 mm); logo, ITEM vertical, quadradinhos SIM/NÃO de cliente presente,
   produção total e técnicos (3 por linha) são desenhados em `didDrawCell`. Nenhuma célula corta texto; o rodapé
@@ -91,7 +95,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `design/`: referências que o dono mandou. Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
-- A pergunta dos DITAIS (`ditais`) é a única obrigatória (assistente e edição).
+- A pergunta dos DITAIS (`ditais`) é a única obrigatória (OS nova e edição).
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
 - Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha em `lastSheet`.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
@@ -110,5 +114,6 @@ com a chave de sempre. Push, Release e publicação só com OK explícito do Bru
 ## Pendências conhecidas
 
 - O Chrome grava o `localStorage` em disco com atraso: Chrome morto com o app na tela pode perder o último passo do
-  assistente. Se isso virar problema em campo, migrar o estado para IndexedDB.
-- O voltar do Android só é tratado no assistente e na edição; com uma janela aberta no painel ele sai do app.
+  preenchimento. Se isso virar problema em campo, migrar o estado para IndexedDB.
+- No navegador/PWA, o voltar do sistema com uma janela aberta no painel segue o histórico (pode sair do app). No APK
+  não: a MainActivity chama `window.ferracineBack()` antes, e a janela é fechada.

@@ -1,5 +1,5 @@
-import { LEGACY_EXTRA_LABELS, LEGACY_QUESTION_IDS } from './domain/catalog';
-import { HEADER_FIELDS, type Answer, type AppData, type ClosedSheet, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type WizardDraft } from './domain/types';
+import { LEGACY_EXTRA_LABELS, LEGACY_QUESTION_IDS, questionsFor } from './domain/catalog';
+import { HEADER_FIELDS, type Answer, type AppData, type ClosedSheet, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
 /** Chave da versão 2 (catálogo antigo, técnicos fixos): lida uma vez e migrada. */
@@ -36,6 +36,18 @@ function readJson(store: KeyValueStore, key: string): unknown {
  * Lê o estado salvo; dado corrompido vira estado vazio. A versão 2 só é migrada se a 3 nunca foi gravada:
  * depois da primeira gravação, um dado ruim não pode ressuscitar um turno antigo.
  */
+/**
+ * Rascunho salvo pelo antigo assistente (até a 1.3.0): o número respondido em "Qual número da Ordem de serviço?"
+ * ficava só na resposta. A tela da OS esconde essa pergunta e usa o campo do topo, então o número vai para ele.
+ */
+function normalizeDraft(draft: OSDraft | null | undefined): OSDraft | null {
+  if (!draft) return null;
+  const q = questionsFor(draft.serviceType).find((x) => x.prefillOS);
+  const ans = q ? draft.answers[q.id] : undefined;
+  const answered = ans?.kind === 'text' ? ans.value.trim() : '';
+  return answered ? { ...draft, osNumber: answered } : draft;
+}
+
 export function loadData(store: KeyValueStore): AppData {
   const current = readJson(store, STORAGE_KEY) as Partial<AppData> | null | undefined;
   if (current === undefined) {
@@ -49,7 +61,7 @@ export function loadData(store: KeyValueStore): AppData {
       version: 3,
       header: normalizeHeader(current.header),
       ordens: current.ordens,
-      draft: current.draft ?? null,
+      draft: normalizeDraft(current.draft),
       lastSheet: last && lastSheetHeader ? { ...last, header: lastSheetHeader, tecnicos: normalizeTecnicos(last.tecnicos) } : null,
       lastHeader: normalizeHeader(current.lastHeader),
       tecnicos: normalizeTecnicos(current.tecnicos),
@@ -74,8 +86,8 @@ interface LegacyData {
   version: 2;
   header?: Partial<ShiftHeader> | null;
   ordens: OrdemServico[];
-  /** `editingId`: na v2, a edição de uma OS concluída também era um rascunho do assistente. */
-  draft?: (WizardDraft & { editingId?: string }) | null;
+  /** `editingId`: na v2, a edição de uma OS concluída também era um rascunho (do antigo assistente). */
+  draft?: (OSDraft & { editingId?: string }) | null;
   lastSheet?: { header?: Partial<ShiftHeader>; ordens?: OrdemServico[]; fechadaEm?: string } | null;
 }
 
@@ -145,7 +157,7 @@ function migrateV2(old: LegacyData): AppData {
     // Um rascunho de EDIÇÃO (v2 editava pelo assistente) é descartado: a OS original continua salva, sem duplicar.
     draft:
       old.draft && !old.draft.editingId
-        ? { osNumber: old.draft.osNumber, serviceType: old.draft.serviceType, serviceCode: old.draft.serviceCode, index: 0, ...migrateAnswers(old.draft.serviceType, old.draft.answers) }
+        ? normalizeDraft({ osNumber: old.draft.osNumber, serviceType: old.draft.serviceType, serviceCode: old.draft.serviceCode, ...migrateAnswers(old.draft.serviceType, old.draft.answers) })
         : null,
     lastSheet,
     lastHeader: current ?? lastHeader,

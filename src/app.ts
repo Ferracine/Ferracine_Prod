@@ -1,18 +1,18 @@
 import { FileDown } from 'lucide';
 import { SERVICE_LABEL } from './domain/catalog';
 import { osLabel, pdfFileName, plural } from './domain/format';
-import type { AppData, ClosedSheet, OrdemServico, ServiceType, ShiftHeader, WizardDraft } from './domain/types';
-import * as wiz from './domain/wizard';
+import * as ordem from './domain/ordem';
+import type { AppData, ClosedSheet, OrdemServico, OSDraft, ServiceType, ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64 } from './platform';
 import { loadData, saveData, type KeyValueStore } from './storage';
-import { dashboardScreen } from './ui/dashboard-screen';
+import { dashboardScreen, serviceChooser } from './ui/dashboard-screen';
 import { CALLOUT, byId, h, icon } from './ui/dom';
-import { editScreen } from './ui/edit-screen';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
 import { headerScreen } from './ui/header-screen';
-import { wizardScreen } from './ui/wizard-screen';
+import { osScreen } from './ui/os-screen';
 
-type Screen = 'header' | 'dashboard' | 'wizard' | 'edit';
+/** `new` = OS nova em preenchimento (rascunho salvo); `edit` = lápis de uma OS concluída. Mesma tela da OS. */
+type Screen = 'header' | 'dashboard' | 'new' | 'edit';
 type PdfModule = typeof import('./pdf');
 /** PDF serializado uma vez; baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o mesmo base64). */
 type Pdf = { blob: Blob; fileName: string; base64?: string };
@@ -104,14 +104,22 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   let editingHeader = false;
   /** OS aberta na tela de edição (lápis). Só em memória: a OS salva muda apenas em "Salvar alterações". */
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
+  /** Algo foi mexido na OS nova desde que a tela abriu (inclusive o código): Cancelar confirma. */
+  let draftTouched = false;
   let shownScreen: Screen | null = null;
   let generating = false;
   const shareSupported = canShareFiles();
 
-  function persist(): void {
-    if (!saveData(store, data)) {
-      showToast('Não foi possível salvar no aparelho. Libere espaço e não feche o app.', 'error');
-    }
+  let saveFailed = false;
+
+  /**
+   * Grava no aparelho e avisa se falhar. `quiet`: gravação automática do rascunho a cada tecla, que avisa só na
+   * primeira falha seguida (senão seria um aviso por letra); ações do usuário (salvar, excluir...) avisam sempre.
+   */
+  function persist(quiet = false): void {
+    const ok = saveData(store, data);
+    if (!ok && !(quiet && saveFailed)) showToast('Não foi possível salvar no aparelho. Libere espaço e não feche o app.', 'error');
+    saveFailed = !ok;
   }
 
   function update(mutate: (d: AppData) => void, rerender = true): void {
@@ -120,14 +128,23 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (rerender) render();
   }
 
-  function setDraft(draft: WizardDraft, rerender = true): void {
-    update((d) => { d.draft = draft; }, rerender);
+  /** Abre, troca ou fecha o rascunho da OS nova. */
+  function setDraft(draft: OSDraft | null): void {
+    draftTouched = false;
+    update((d) => { d.draft = draft; });
+  }
+
+  /** Alteração na tela da OS nova: grava o rascunho sem redesenhar (a tela guarda o próprio estado). */
+  function touchDraft(edit: ordem.OSEdit): void {
+    draftTouched = true;
+    data.draft = { ...data.draft!, ...edit };
+    persist(true);
   }
 
   function currentScreen(): Screen {
     if (!data.header || editingHeader) return 'header';
     if (editing) return 'edit';
-    return data.draft ? 'wizard' : 'dashboard';
+    return data.draft ? 'new' : 'dashboard';
   }
 
   function render(): void {
@@ -153,39 +170,37 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     } else if (screen === 'edit') {
       const current = editing!;
       badge.textContent = `Editando OS ${osLabel(current.os.osNumber)}`;
-      view = editScreen({
-        os: current.os,
+      view = osScreen({
+        mode: 'edit',
+        serviceType: current.os.serviceType,
+        initial: current.os,
+        onChange: () => { current.dirty = true; },
         onSave: (edit) => saveEdit(current.os, edit),
         onCancel: cancelEdit,
-        onDirty: () => { current.dirty = true; },
       });
-    } else if (screen === 'dashboard') {
+    } else if (screen === 'new') {
+      const draft = data.draft!;
+      badge.textContent = 'Nova OS';
+      view = osScreen({
+        mode: 'new',
+        serviceType: draft.serviceType,
+        initial: draft,
+        // Rascunho gravado a cada alteração: fechar o app no meio não perde a OS.
+        onChange: touchDraft,
+        onSave: saveNew,
+        onCancel: cancelNew,
+      });
+    } else {
       badge.textContent = `Turno ativo (${plural(data.ordens.length, 'OS', 'OSs')})`;
       view = dashboardScreen({
         header: data.header!,
         ordens: data.ordens,
-        onStartOS: startOS,
+        onNewOS: chooseService,
         onView: viewOS,
         onEdit: openEdit,
         onDelete: deleteOS,
         onEditHeader: () => { editingHeader = true; render(); },
         onFinish: confirmFinish,
-      });
-    } else {
-      const draft = data.draft!;
-      badge.textContent = `Preenchendo OS ${osLabel(draft.osNumber)}`;
-      view = wizardScreen({
-        draft,
-        onText: (v) => setDraft(wiz.setText(data.draft!, v), false),
-        onChoice: (c) => {
-          setDraft(wiz.setChoice(data.draft!, c));
-          document.getElementById('wiz-detail-input')?.focus();
-        },
-        onDetail: (v) => setDraft(wiz.setDetail(data.draft!, v), false),
-        onNext: () => step(wiz.next(data.draft!)),
-        onSkip: () => step(wiz.skip(data.draft!)),
-        onBack: wizardBack,
-        onCancel: cancelWizard,
       });
     }
 
@@ -193,7 +208,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    if (screen === 'wizard') document.getElementById('wiz-text-input')?.focus();
     // Compartilhar precisa chamar navigator.share logo após o toque: deixa o jsPDF carregado em segundo plano.
     if (screen === 'header' && !editingHeader && data.lastSheet && shareSupported) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
@@ -241,12 +255,17 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   // --- Painel --------------------------------------------------------------
 
-  function startOS(osNumber: string, type: ServiceType, code: string): void {
-    confirmIfDuplicate(osNumber, undefined, () => setDraft(wiz.startDraft(osNumber, type, code)));
+  /** "+" do painel: escolhe tipo e código e abre a OS nova. */
+  function chooseService(): void {
+    const pick = (type: ServiceType, code: string) => {
+      closeModal();
+      setDraft(ordem.startDraft(type, code));
+    };
+    openModal('Nova OS', serviceChooser(pick), [{ label: 'Cancelar', variant: 'neutral', onClick: closeModal }]);
   }
 
   function viewOS(os: OrdemServico): void {
-    const rows = wiz.answerRows(os).map((r, i) =>
+    const rows = ordem.answerRows(os).map((r, i) =>
       h(
         'div',
         { class: 'border-b border-fg/10 pb-2.5 last:border-none' },
@@ -284,11 +303,16 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     render();
   }
 
-  function saveEdit(original: OrdemServico, edit: wiz.OSEdit): void {
-    const result = wiz.applyEdit(original, edit);
+  /** Regra não cumprida (DITAIS, complemento do SIM, código): avisa e rola até a pergunta. */
+  function showRuleError(result: ordem.RuleError): void {
+    showToast(result.error, 'warning');
+    if (result.questionId) document.querySelector(`[data-question="${result.questionId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function saveEdit(original: OrdemServico, edit: ordem.OSEdit): void {
+    const result = ordem.applyEdit(original, edit);
     if (!result.ok) {
-      showToast(result.error, 'warning');
-      if (result.questionId) document.querySelector(`[data-question="${result.questionId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showRuleError(result);
       return;
     }
     const saved = result.os;
@@ -309,60 +333,45 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     confirmModal('Descartar alterações', 'Sair sem salvar? A OS continua como estava.', { label: 'Descartar alterações', variant: 'danger' }, closeEdit, 'Continuar editando');
   }
 
-  // --- Assistente ----------------------------------------------------------
+  // --- OS nova --------------------------------------------------------------
 
-  function step(result: wiz.StepResult): void {
+  function saveNew(edit: ordem.OSEdit): void {
+    const result = ordem.createOS({ ...data.draft!, ...edit }, newId(), new Date());
     if (!result.ok) {
-      showToast(result.error, 'warning');
-      if (result.focus === 'detail') document.getElementById('wiz-detail-input')?.focus();
+      showRuleError(result);
       return;
     }
-    if (!result.done) {
-      setDraft(result.draft);
-      return;
-    }
-    const { draft } = result;
-    const saved = wiz.finalize(draft, newId(), new Date());
-    const commit = () => {
+    const saved = result.os;
+    confirmIfDuplicate(saved.osNumber, undefined, () => {
       update((d) => {
         d.ordens = [...d.ordens, saved];
         d.draft = null;
       });
       showToast(`OS ${osLabel(saved.osNumber)} adicionada à folha de produção!`, 'success');
-    };
-    // Só confere se o número mudou no assistente (pergunta do número): o digitado no painel já foi conferido em startOS.
-    if (saved.osNumber !== draft.osNumber) confirmIfDuplicate(saved.osNumber, saved.id, commit);
-    else commit();
+    });
   }
 
-  /** Voltar no assistente: pergunta anterior; na primeira, sai da OS (como "Cancelar OS"). */
-  function wizardBack(): void {
-    const draft = data.draft!;
-    if (draft.index > 0) setDraft(wiz.back(draft));
-    else cancelWizard();
-  }
-
-  /** Sai da OS em preenchimento; só pede confirmação se algo foi respondido. */
-  function cancelWizard(): void {
-    const draft = data.draft!;
-    if (wiz.isUnchanged(draft)) {
-      update((d) => { d.draft = null; });
+  /** Sai da OS nova; só pede confirmação se algo foi preenchido. */
+  function cancelNew(): void {
+    // Depois de recarregar não se sabe o que foi mexido: vale o conteúdo (isUnchanged).
+    if (!draftTouched && ordem.isUnchanged(data.draft!)) {
+      setDraft(null);
       return;
     }
     confirmModal(
       'Cancelar registro da OS',
-      `Deseja cancelar o preenchimento da OS ${osLabel(draft.osNumber)}? As respostas desta OS não serão salvas.`,
+      'Deseja sair sem salvar esta OS? O que foi preenchido nela será descartado.',
       { label: 'Descartar OS', variant: 'danger' },
-      () => update((d) => { d.draft = null; }),
+      () => setDraft(null),
       'Continuar preenchendo',
     );
   }
 
-  // Botão/gesto "voltar" do Android: no assistente e na edição ele faz o mesmo que o Voltar/Cancelar da tela
+  // Botão/gesto "voltar" do Android: na tela da OS (nova ou edição) ele faz o mesmo que o Cancelar da tela
   // (em vez de fechar o app). Uma entrada extra no histórico "segura" o voltar enquanto essas telas estão abertas.
   // Depois de recarregar, a entrada da sessão anterior ainda é a atual: reaproveita em vez de empilhar outra.
   let backTrap = (history.state as { ferracineBackTrap?: boolean } | null)?.ferracineBackTrap === true;
-  const trapsBack = (screen: Screen) => screen === 'wizard' || screen === 'edit';
+  const trapsBack = (screen: Screen) => screen === 'new' || screen === 'edit';
 
   function syncBackButton(screen: Screen): void {
     if (trapsBack(screen) && !backTrap) {
@@ -374,12 +383,20 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     }
   }
 
+  // APK: o voltar do Android chama esta função antes de tudo (MainActivity). Com uma janela aberta (o "+", ver
+  // respostas, confirmações), fecha a janela em vez de voltar ou sair do app. Sem janela, segue o fluxo normal.
+  window.ferracineBack = () => {
+    if (!isModalOpen()) return false;
+    closeModal();
+    return true;
+  };
+
   window.addEventListener('popstate', () => {
     if (!backTrap) return;
     backTrap = false;
     if (isModalOpen()) closeModal();
     else if (currentScreen() === 'edit') cancelEdit();
-    else wizardBack();
+    else cancelNew();
     syncBackButton(currentScreen()); // ainda na tela: segura o próximo voltar
   });
 

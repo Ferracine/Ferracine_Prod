@@ -2,7 +2,7 @@ import type { Question, ServiceType } from './types';
 
 /**
  * Catálogo de códigos e perguntas da Folha de Produção, na ordem definida pelo dono do app.
- * Mudanças aqui alteram o assistente, a edição de OS e o PDF.
+ * Mudanças aqui alteram a tela da OS (nova e edição) e o PDF.
  * `espelho` liga a resposta a uma coluna própria do Espelho de Campo; as demais (inclusive "Qual tipo de serviço?")
  * entram em INFO ADICIONAL com o rótulo `short`. Os ids são estáveis: OSs salvas guardam as respostas por id.
  */
