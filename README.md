@@ -19,8 +19,8 @@ houver, só serve para o app se atualizar.
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
 2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
-   branco com as perguntas do tipo; o código é tocado nos botões com os códigos do tipo ou digitado no campo
-   "Código do serviço". Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
+   branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
+   o do código do serviço. Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
    - **Comercial** (28 / 709 / 739 / 33 / 798), 12 perguntas: tipo de serviço, KM inicial, hora inicial, cliente
      presente, lançou ramal, medidor instalado e retirado (com número), leituras, KM final, horário final,
      dificuldade na execução.

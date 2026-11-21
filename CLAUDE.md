@@ -57,8 +57,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
   grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
-  abre a tela da OS em branco (`startDraft(tipo)`, código vazio; botões com os `SERVICE_CODES` do tipo preenchem o
-  campo). `checked` recusa código da lista do outro tipo; erro de regra rola até o campo (`data-field`) e o foca.
+  abre a tela da OS em branco (`startDraft(tipo)`, código vazio; no topo, número e, abaixo,
+  código, digitados). `checked` recusa código da lista do outro tipo; erro de regra rola até o campo
+  (`data-field`) e o foca.
   Toda mutação passa por `update()`, que persiste e re-renderiza. Na tela da OS, uma entrada extra no `history` faz
   o voltar do Android agir como o Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem

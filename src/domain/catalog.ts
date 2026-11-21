@@ -7,6 +7,7 @@ import type { Question, ServiceType } from './types';
  * entram em INFO ADICIONAL com o rótulo `short`. Os ids são estáveis: OSs salvas guardam as respostas por id.
  */
 
+/** Códigos conhecidos de cada tipo. O app não os mostra: servem para recusar código do outro tipo (ordem.ts). */
 export const SERVICE_CODES: Record<ServiceType, readonly string[]> = {
   COMERCIAL: ['28', '709', '739', '33', '798'],
   OCORRENCIA: ['508', '509', '503', '531', '324', '533'],

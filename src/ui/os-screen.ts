@@ -1,5 +1,5 @@
 import { CircleCheck, CircleX, Save } from 'lucide';
-import { SERVICE_CODES, SERVICE_LABEL, questionsFor } from '../domain/catalog';
+import { SERVICE_LABEL, questionsFor } from '../domain/catalog';
 import { CODE_FIELD, choiceAnswer, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
@@ -23,6 +23,12 @@ const CHOICE_ON: Record<Choice, string> = {
   Não: 'border-fg bg-fg text-app shadow-lg',
 };
 const CHOICE_OFF = 'border-fg/15 bg-fg/5 text-fg hover:border-brand';
+
+/** Rótulo do número no topo da tela: número da ocorrência ou da OS comercial. */
+const NUMBER_LABEL: Record<ServiceType, string> = {
+  COMERCIAL: 'Número da OS comercial',
+  OCORRENCIA: 'Número da ocorrência',
+};
 
 function typeBadge(type: ServiceType): HTMLElement {
   return h('span', { class: `text-xs font-extrabold uppercase px-2.5 py-0.5 rounded-md ${TYPE_BADGE[type]}` }, SERVICE_LABEL[type]);
@@ -68,44 +74,14 @@ export function osScreen(p: OSScreenProps): HTMLElement {
   const changed = () => p.onChange(current());
   const isNew = p.mode === 'new';
 
-  const textField = (id: string, label: string, value: string, attrs: Record<string, string>, onValue: (v: string) => void) =>
+  /** Campo de texto do topo. `field` = id para o erro de regra rolar até ele (data-field). */
+  const textField = (id: string, label: string, value: string, attrs: Record<string, string>, onValue: (v: string) => void, field?: string) =>
     h(
       'div',
-      null,
+      field ? { 'data-field': field } : null,
       h('label', { for: id, class: 'lbl' }, label),
       h('input', { id, class: 'field', autocomplete: 'off', value, ...attrs, onInput: (ev) => { onValue((ev.target as HTMLInputElement).value); changed(); } }),
     );
-
-  const codeInput = h('input', {
-    id: 'os-code',
-    class: 'field',
-    autocomplete: 'off',
-    inputmode: 'numeric',
-    maxlength: '10',
-    placeholder: `Ex: ${SERVICE_CODES[p.serviceType][0] ?? ''}`,
-    value: state.serviceCode,
-    onInput: () => setCode(codeInput.value),
-  });
-  const codeField = h('div', { 'data-field': CODE_FIELD }, h('label', { for: 'os-code', class: 'lbl' }, 'Código do serviço'), codeInput);
-  const codeChips = SERVICE_CODES[p.serviceType].map((code) =>
-    h('button', { type: 'button', 'data-code': code, class: 'min-w-12 px-3 py-2 rounded-xl border-2 font-extrabold text-sm transition-all active:scale-95', onClick: () => setCode(code, true) }, code),
-  );
-  /** Destaca o botão do código escolhido (o digitado no campo também conta). */
-  function paintChips(): void {
-    for (const chip of codeChips) {
-      const on = chip.dataset.code === state.serviceCode.trim().toUpperCase();
-      chip.setAttribute('aria-pressed', String(on));
-      for (const c of ['border-brand', 'bg-brand-600', 'text-white']) chip.classList.toggle(c, on);
-      for (const c of ['border-fg/15', 'bg-fg/5', 'text-fg']) chip.classList.toggle(c, !on);
-    }
-  }
-  /** Código digitado ou tocado. */
-  function setCode(code: string, fromChip = false): void {
-    state.serviceCode = code;
-    if (fromChip) codeInput.value = code;
-    paintChips();
-    changed();
-  }
 
   /** Um bloco por pergunta; SIM/NÃO redesenham só o próprio bloco (mantém o foco e o que foi digitado nos outros). */
   const questionBlock = (q: Question): HTMLElement => {
@@ -167,7 +143,7 @@ export function osScreen(p: OSScreenProps): HTMLElement {
     return block;
   };
 
-  const screen = h(
+  return h(
     'section',
     { id: 'screen-os', 'data-mode': p.mode, class: 'space-y-4 pb-8' },
     h(
@@ -182,17 +158,15 @@ export function osScreen(p: OSScreenProps): HTMLElement {
           typeBadge(p.serviceType),
           !isNew && h('span', { class: 'text-xs font-bold bg-fg/10 text-fg px-2.5 py-0.5 rounded-md' }, 'Editando'),
         ),
-        h('p', { class: 'text-xs text-muted mt-1' }, isNew ? 'Informe o código, preencha o que souber e toque em "Salvar OS".' : 'Altere o que precisar e toque em "Salvar alterações".'),
+        h('p', { class: 'text-xs text-muted mt-1' }, isNew ? 'Informe o número (opcional) e o código, preencha o que souber e toque em "Salvar OS".' : 'Altere o que precisar e toque em "Salvar alterações".'),
       ),
       h('button', { type: 'button', class: `${BTN.neutral} shrink-0`, onClick: p.onCancel }, 'Cancelar'),
     ),
     h(
       'div',
-      { class: 'card p-4 grid grid-cols-2 gap-3' },
-      textField('os-number', 'Número da OS', state.osNumber, { inputmode: 'numeric', placeholder: 'Vazio = S/N' }, (v) => (state.osNumber = v)),
-      codeField,
-      // Códigos do tipo: um toque preenche o campo (outro código pode ser digitado).
-      h('div', { class: 'col-span-2 flex flex-wrap gap-2', 'data-testid': 'os-code-chips' }, codeChips),
+      { class: 'card p-4 space-y-3' },
+      textField('os-number', NUMBER_LABEL[p.serviceType], state.osNumber, { inputmode: 'numeric', placeholder: 'Vazio = S/N' }, (v) => (state.osNumber = v)),
+      textField('os-code', 'Código do serviço', state.serviceCode, { inputmode: 'numeric', maxlength: '10', placeholder: 'Digite o código do serviço' }, (v) => (state.serviceCode = v), CODE_FIELD),
     ),
     // A pergunta do número da OS é respondida no campo acima.
     questionsFor(p.serviceType).filter((q) => !q.prefillOS).map(questionBlock),
@@ -203,6 +177,4 @@ export function osScreen(p: OSScreenProps): HTMLElement {
       isNew ? 'Salvar OS' : 'Salvar alterações',
     ),
   );
-  paintChips();
-  return screen;
 }

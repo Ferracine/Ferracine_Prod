@@ -120,10 +120,7 @@ test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perg
   await page.locator('#os-code').fill('508');
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('use o + OCORRÊNCIA');
-  // Os códigos do tipo ficam em botões: um toque preenche o campo.
-  await page.getByTestId('os-code-chips').locator('[data-code="709"]').click();
-  await expect(page.locator('#os-code')).toHaveValue('709');
-  await expect(page.getByTestId('os-code-chips').locator('[data-code="709"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel('Número da OS comercial')).toBeVisible();
   await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await page.getByRole('button', { name: 'Descartar OS' }).click();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
@@ -131,6 +128,7 @@ test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perg
 
   await page.locator('#btn-new-ocorrencia').click();
   await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('OCORRÊNCIA');
+  await expect(page.getByLabel('Número da ocorrência')).toBeVisible();
   await expect(page.locator('#screen-os [data-question="ditais"]')).toContainText('obrigatória');
   // Qualquer código vale (fora da lista também).
   await page.locator('#os-code').fill('510');
@@ -298,6 +296,7 @@ test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) =
   await page.reload();
   await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
   await expect(page.locator('#os-number')).toHaveValue('789');
+  await expect(page.locator('#os-code')).toHaveValue('28');
   await expect(page.locator('#q-tipo')).toHaveValue('Vistoria');
   await expect(page.locator('[data-question="clientePresente"] [data-choice="Não"]')).toHaveAttribute('aria-pressed', 'true');
   await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
