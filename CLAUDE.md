@@ -74,7 +74,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   usa `pageBreak: 'avoid'`. Testes travam: 15 OSs completas numa folha. Importado sob demanda em `app.ts`.
 - `android/`: Kotlin mínimo (AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, minSdk 24, target 35). `MainActivity` serve
   `assets/www` (cópia do `dist/` feita pelo `scripts/apk.mjs`, sem service worker) via `WebViewAssetLoader` em
-  `https://appassets.androidplatform.net/www/`; sem permissão de internet. `FerracineBridge` salva em Downloads
+  `https://appassets.androidplatform.net/www/`; sem permissão de internet. Borda a borda em todas as versões
+  (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
+  WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
   (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider.
 - `design/`: referências que o dono mandou. Não coloque arquivos em `dist/`: o build apaga a pasta.
 

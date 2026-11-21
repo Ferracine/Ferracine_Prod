@@ -6,7 +6,9 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
+import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.webkit.WebView
+import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.core.view.ViewCompat
@@ -27,6 +29,9 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Borda a borda em todas as versões (o Android 15 obriga com targetSdk 35): o mesmo caminho do 7 ao 15+,
+        // e o espaço das barras é reservado abaixo, no contêiner.
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         val assets = WebViewAssetLoader.Builder()
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
@@ -50,12 +55,19 @@ class MainActivity : ComponentActivity() {
             }
             addJavascriptInterface(FerracineBridge(this@MainActivity), "FerracineAndroid")
         }
-        setContentView(webView)
+        // O padding vai num contêiner, não na WebView: a WebView ignora o próprio padding ao desenhar a página,
+        // e o app ficava por baixo da barra de notificação e da barra de navegação.
+        val root = FrameLayout(this).apply { addView(webView, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT)) }
+        setContentView(root)
 
-        // Android 15 desenha atrás das barras do sistema: o conteúdo fica entre elas.
-        ViewCompat.setOnApplyWindowInsetsListener(webView) { view, insets ->
+        // Conteúdo entre as barras do sistema (e fora do recorte da câmera); o fundo delas é o da janela
+        // (FerracineBridge.setSystemBars pinta com a cor do tema).
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            // Borda a borda o sistema não encolhe a janela para o teclado: a parte de baixo reserva o maior dos dois,
+            // senão o teclado cobre o campo em que o eletricista está digitando.
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+            view.setPadding(bars.left, bars.top, bars.right, maxOf(bars.bottom, ime.bottom))
             WindowInsetsCompat.CONSUMED
         }
         updateBarIcons()
