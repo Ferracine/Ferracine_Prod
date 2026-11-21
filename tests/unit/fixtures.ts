@@ -19,5 +19,5 @@ export const baseHeader: ShiftHeader = {
 
 /** OS concluída como se a tela da OS tivesse sido preenchida com o número e `answers`. */
 export function finishedOS(osNumber: string, type: ServiceType, code: string, answers: Record<string, Answer> = {}, id = 'x'): OrdemServico {
-  return finalize({ ...startDraft(type, code), osNumber, answers }, id, new Date());
+  return finalize({ ...startDraft(type), osNumber, serviceCode: code, answers }, id, new Date());
 }

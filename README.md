@@ -18,15 +18,17 @@ houver, só serve para o app se atualizar.
    viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
-2. **Painel**: o botão **+** abre a escolha do serviço: toque no código (ou digite outro código).
+2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
+   branco com as perguntas do tipo; o código é tocado nos botões com os códigos do tipo ou digitado no campo
+   "Código do serviço". Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
    - **Comercial** (28 / 709 / 739 / 33 / 798), 12 perguntas: tipo de serviço, KM inicial, hora inicial, cliente
      presente, lançou ramal, medidor instalado e retirado (com número), leituras, KM final, horário final,
      dificuldade na execução.
    - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 12 perguntas: callback, número da OS, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, hora final, dificuldade.
-3. **Tela da OS**: número (opcional: vazio vira "S/N"), código e todas as perguntas numa página só, a mesma do
-   lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
+3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
+   mesma do lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
    Android) pede confirmação se algo foi preenchido.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as

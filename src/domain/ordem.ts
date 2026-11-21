@@ -1,4 +1,4 @@
-import { questionsFor } from './catalog';
+import { SERVICE_CODES, SERVICE_LABEL, questionsFor } from './catalog';
 import type { Answer, AnswerRow, Choice, OrdemServico, OSDraft, Question, ServiceType } from './types';
 
 /**
@@ -6,9 +6,9 @@ import type { Answer, AnswerRow, Choice, OrdemServico, OSDraft, Question, Servic
  * `AppData.draft`, salvo a cada alteração) e para a edição pelo lápis; as duas passam pelas mesmas regras.
  */
 
-/** OS nova, ainda vazia: o número (opcional, vazio = S/N) e as respostas são preenchidos na tela da OS. */
-export function startDraft(serviceType: ServiceType, serviceCode: string): OSDraft {
-  return { osNumber: '', serviceType, serviceCode, answers: {} };
+/** OS nova em branco: número (opcional, vazio = S/N), código e respostas são preenchidos na tela da OS. */
+export function startDraft(serviceType: ServiceType): OSDraft {
+  return { osNumber: '', serviceType, serviceCode: '', answers: {} };
 }
 
 /**
@@ -16,7 +16,11 @@ export function startDraft(serviceType: ServiceType, serviceCode: string): OSDra
  * Texto apagado ou "Sim" sem complemento contam como não respondidos.
  */
 export function isUnchanged(draft: OSDraft): boolean {
-  return !draft.osNumber.trim() && questionsFor(draft.serviceType).every((q) => normalizeAnswer(q, draft.answers[q.id]).kind === 'skipped');
+  return (
+    !draft.osNumber.trim() &&
+    !draft.serviceCode.trim() &&
+    questionsFor(draft.serviceType).every((q) => normalizeAnswer(q, draft.answers[q.id]).kind === 'skipped')
+  );
 }
 
 /** O que a tela da OS edita: número, código e respostas. */
@@ -26,11 +30,14 @@ export interface OSEdit {
   answers: Record<string, Answer>;
 }
 
-/** Regra não cumprida: o motivo e, quando é de uma pergunta, qual (para a tela rolar até ela). */
+/** Campo "Código do serviço" da tela da OS (o erro de código rola até ele, como o de uma pergunta). */
+export const CODE_FIELD = 'serviceCode' satisfies keyof OSEdit;
+
+/** Regra não cumprida: o motivo e o campo (id da pergunta ou CODE_FIELD) para a tela rolar até ele. */
 export interface RuleError {
   ok: false;
   error: string;
-  questionId?: string;
+  field: string;
 }
 
 export type EditResult = { ok: true; os: OrdemServico } | RuleError;
@@ -41,10 +48,15 @@ export type EditResult = { ok: true; os: OrdemServico } | RuleError;
  */
 function checked(type: ServiceType, edit: OSEdit, infoLegada?: string): { ok: true; draft: OSDraft } | RuleError {
   const serviceCode = edit.serviceCode.trim().toUpperCase();
-  if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.' };
+  if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.', field: CODE_FIELD };
+  // Código da lista do outro tipo: a OS ficaria com as perguntas erradas (ex.: ocorrência sem a pergunta dos DITAIS).
+  const outro: ServiceType = type === 'COMERCIAL' ? 'OCORRENCIA' : 'COMERCIAL';
+  if (SERVICE_CODES[outro].includes(serviceCode)) {
+    return { ok: false, error: `Código ${serviceCode} é de ${SERVICE_LABEL[outro]}: use o + ${SERVICE_LABEL[outro]}.`, field: CODE_FIELD };
+  }
   for (const q of questionsFor(type)) {
     const error = ruleError(q, edit.answers[q.id]);
-    if (error) return { ok: false, error: `${q.text} ${error}`, questionId: q.id };
+    if (error) return { ok: false, error: `${q.text} ${error}`, field: q.id };
   }
   return {
     ok: true,

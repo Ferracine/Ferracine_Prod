@@ -2,10 +2,10 @@ import { FileDown } from 'lucide';
 import { SERVICE_LABEL } from './domain/catalog';
 import { osLabel, pdfFileName, plural } from './domain/format';
 import * as ordem from './domain/ordem';
-import type { AppData, ClosedSheet, OrdemServico, OSDraft, ServiceType, ShiftHeader } from './domain/types';
+import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64 } from './platform';
 import { loadData, saveData, type KeyValueStore } from './storage';
-import { dashboardScreen, serviceChooser } from './ui/dashboard-screen';
+import { dashboardScreen } from './ui/dashboard-screen';
 import { CALLOUT, byId, h, icon } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
 import { headerScreen } from './ui/header-screen';
@@ -104,8 +104,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   let editingHeader = false;
   /** OS aberta na tela de edição (lápis). Só em memória: a OS salva muda apenas em "Salvar alterações". */
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
-  /** Algo foi mexido na OS nova desde que a tela abriu (inclusive o código): Cancelar confirma. */
-  let draftTouched = false;
   let shownScreen: Screen | null = null;
   let generating = false;
   const shareSupported = canShareFiles();
@@ -130,13 +128,11 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   /** Abre, troca ou fecha o rascunho da OS nova. */
   function setDraft(draft: OSDraft | null): void {
-    draftTouched = false;
     update((d) => { d.draft = draft; });
   }
 
   /** Alteração na tela da OS nova: grava o rascunho sem redesenhar (a tela guarda o próprio estado). */
   function touchDraft(edit: ordem.OSEdit): void {
-    draftTouched = true;
     data.draft = { ...data.draft!, ...edit };
     persist(true);
   }
@@ -195,7 +191,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       view = dashboardScreen({
         header: data.header!,
         ordens: data.ordens,
-        onNewOS: chooseService,
+        onNewOS: (type) => setDraft(ordem.startDraft(type)),
         onView: viewOS,
         onEdit: openEdit,
         onDelete: deleteOS,
@@ -255,15 +251,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   // --- Painel --------------------------------------------------------------
 
-  /** "+" do painel: escolhe tipo e código e abre a OS nova. */
-  function chooseService(): void {
-    const pick = (type: ServiceType, code: string) => {
-      closeModal();
-      setDraft(ordem.startDraft(type, code));
-    };
-    openModal('Nova OS', serviceChooser(pick), [{ label: 'Cancelar', variant: 'neutral', onClick: closeModal }]);
-  }
-
   function viewOS(os: OrdemServico): void {
     const rows = ordem.answerRows(os).map((r, i) =>
       h(
@@ -303,10 +290,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     render();
   }
 
-  /** Regra não cumprida (DITAIS, complemento do SIM, código): avisa e rola até a pergunta. */
+  /** Regra não cumprida (código, DITAIS, complemento do SIM): avisa e rola até o campo. */
   function showRuleError(result: ordem.RuleError): void {
     showToast(result.error, 'warning');
-    if (result.questionId) document.querySelector(`[data-question="${result.questionId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const field = document.querySelector(`[data-field="${result.field}"]`);
+    field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    field?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
   }
 
   function saveEdit(original: OrdemServico, edit: ordem.OSEdit): void {
@@ -353,8 +342,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   /** Sai da OS nova; só pede confirmação se algo foi preenchido. */
   function cancelNew(): void {
-    // Depois de recarregar não se sabe o que foi mexido: vale o conteúdo (isUnchanged).
-    if (!draftTouched && ordem.isUnchanged(data.draft!)) {
+    if (ordem.isUnchanged(data.draft!)) {
       setDraft(null);
       return;
     }
@@ -383,8 +371,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     }
   }
 
-  // APK: o voltar do Android chama esta função antes de tudo (MainActivity). Com uma janela aberta (o "+", ver
-  // respostas, confirmações), fecha a janela em vez de voltar ou sair do app. Sem janela, segue o fluxo normal.
+  // APK: o voltar do Android chama esta função antes de tudo (MainActivity). Com uma janela aberta (ver respostas,
+  // confirmações, PDF), fecha a janela em vez de voltar ou sair do app. Sem janela, segue o fluxo normal.
   window.ferracineBack = () => {
     if (!isModalOpen()) return false;
     closeModal();

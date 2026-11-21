@@ -21,11 +21,11 @@ async function iniciarTurno(page: Page) {
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 }
 
-/** "+" do painel → código na janela → tela da OS nova. */
-async function novaOS(page: Page, codigo: string, numero = '') {
-  await page.locator('#btn-new-os').click();
-  await page.getByTestId('service-chooser').locator(`[data-code="${codigo}"]`).click();
+/** "+" Comercial ou "+" Ocorrência → tela da OS em branco; preenche código e número. */
+async function novaOS(page: Page, tipo: 'comercial' | 'ocorrencia', codigo: string, numero = '') {
+  await page.locator(`#btn-new-${tipo}`).click();
   await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  await page.locator('#os-code').fill(codigo);
   if (numero) await page.locator('#os-number').fill(numero);
 }
 
@@ -46,7 +46,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByText('© Ferracine Prod')).toBeVisible();
 
   // Comercial sem número (S/N): a tela da OS traz as 12 perguntas de uma vez.
-  await novaOS(page, '709');
+  await novaOS(page, 'comercial', '709');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('709');
   await expect(page.locator('#screen-os [data-question]')).toHaveCount(12);
@@ -65,8 +65,8 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('os-item')).toContainText('OS 123');
   await expect(page.getByTestId('os-item')).not.toContainText('sem nº');
 
-  // Ocorrência: a pergunta do número é o campo do topo (11 blocos) e a DITAIS é obrigatória.
-  await novaOS(page, '508', '456');
+  // Ocorrência: a pergunta do número é o campo do topo e a DITAIS é obrigatória.
+  await novaOS(page, 'ocorrencia', '508', '456');
   await expect(page.locator('#screen-os [data-question]')).toHaveCount(11);
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('resposta obrigatória');
@@ -102,34 +102,66 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   expect((await last).suggestedFilename()).toBe('Joao_da_Silva_2_servicos.pdf');
 });
 
-test('o "+" abre a escolha do serviço e Cancelar volta ao painel sem criar OS', async ({ page }) => {
+test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perguntas de cada tipo', async ({ page }) => {
   await iniciarTurno(page);
   await expect(page.getByText('Registrar nova Ordem de Serviço')).toHaveCount(0);
-  await page.locator('#btn-new-os').click();
-  await expect(page.getByTestId('service-chooser')).toContainText('COMERCIAL');
-  await expect(page.getByTestId('service-chooser')).toContainText('OCORRÊNCIA');
-  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+
+  await page.locator('#btn-new-comercial').click();
+  await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('COMERCIAL');
+  await expect(page.locator('#os-number')).toHaveValue('');
+  await expect(page.locator('#os-code')).toHaveValue('');
+  await expect(page.locator('#screen-os [data-question]')).toHaveCount(12);
+  await expect(page.locator('#q-tipo')).toHaveValue('');
+  // Sem código não salva: avisa e leva ao campo.
+  await salvar(page);
+  await expect(page.getByRole('status').last()).toContainText('Informe o código');
+  await expect(page.locator('#os-code')).toBeFocused();
+  // Código da Ocorrência no "+ Comercial": não salva e indica o "+" certo.
+  await page.locator('#os-code').fill('508');
+  await salvar(page);
+  await expect(page.getByRole('status').last()).toContainText('use o + OCORRÊNCIA');
+  // Os códigos do tipo ficam em botões: um toque preenche o campo.
+  await page.getByTestId('os-code-chips').locator('[data-code="709"]').click();
+  await expect(page.locator('#os-code')).toHaveValue('709');
+  await expect(page.getByTestId('os-code-chips').locator('[data-code="709"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
+  await page.getByRole('button', { name: 'Descartar OS' }).click();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
 
-  // Voltar do Android (APK chama window.ferracineBack antes de navegar): fecha a janela em vez de sair do app.
-  await page.locator('#btn-new-os').click();
-  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(true);
-  await expect(page.getByRole('dialog')).toHaveCount(0);
-  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(false);
+  await page.locator('#btn-new-ocorrencia').click();
+  await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('OCORRÊNCIA');
+  await expect(page.locator('#screen-os [data-question="ditais"]')).toContainText('obrigatória');
+  // Qualquer código vale (fora da lista também).
+  await page.locator('#os-code').fill('510');
+  await marcar(page, 'ditais', 'Não');
+  await salvar(page);
+  await expect(page.getByTestId('os-item')).toContainText('Cód. 510');
+  await expect(page.getByTestId('os-item')).toContainText('OCORRÊNCIA');
 });
 
-test('OS nova: trocar só o código e cancelar pede confirmação', async ({ page }) => {
+test('OS nova: digitar só o código e cancelar pede confirmação', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '508');
+  await page.locator('#btn-new-ocorrencia').click();
   await page.locator('#os-code').fill('510');
   await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
 });
 
+test('voltar do Android com uma janela aberta fecha a janela (o APK chama window.ferracineBack antes)', async ({ page }) => {
+  await iniciarTurno(page);
+  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(false);
+  await novaOS(page, 'comercial', '28', '77');
+  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
+  expect(await page.evaluate(() => window.ferracineBack?.())).toBe(true);
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('#os-number')).toHaveValue('77');
+});
+
 test('lápis edita qualquer item da OS e o voltar do Android pede para descartar alterações', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '33', '321');
+  await novaOS(page, 'comercial', '33', '321');
   await page.locator('#q-tipo').fill('Corte');
   await salvar(page);
 
@@ -192,20 +224,11 @@ test('fechar a janela do PDF sem encerrar mantém o turno aberto', async ({ page
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 });
 
-test('outro código fora da lista abre a OS com esse código', async ({ page }) => {
-  await iniciarTurno(page);
-  await page.locator('#btn-new-os').click();
-  await page.locator('#custom-code-ocorrencia').fill('510');
-  await page.locator('[data-start-custom="OCORRENCIA"]').click();
-  await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('OCORRÊNCIA');
-  await expect(page.locator('#os-code')).toHaveValue('510');
-});
-
 test('número repetido pede confirmação (OS nova e edição)', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '28', '500');
+  await novaOS(page, 'comercial', '28', '500');
   await salvar(page);
-  await novaOS(page, '28', '500');
+  await novaOS(page, 'comercial', '28', '500');
   await salvar(page);
   await expect(page.getByRole('dialog')).toContainText('A OS 500 já está nesta folha');
   await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
@@ -226,7 +249,7 @@ test('número repetido pede confirmação (OS nova e edição)', async ({ page }
 
 test('voltar do Android na OS nova: com algo preenchido confirma; sem nada volta direto', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '508');
+  await novaOS(page, 'ocorrencia', '508');
   await marcar(page, 'callback', 'Sim');
   await page.goBack();
   await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
@@ -238,7 +261,7 @@ test('voltar do Android na OS nova: com algo preenchido confirma; sem nada volta
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 
   // OS aberta e nada preenchido: volta direto, também pelo voltar do sistema.
-  await novaOS(page, '28');
+  await page.locator('#btn-new-comercial').click();
   await page.goBack();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
@@ -246,7 +269,7 @@ test('voltar do Android na OS nova: com algo preenchido confirma; sem nada volta
 
 test('recarregar no meio da OS não deixa um "voltar" morto no histórico', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '28');
+  await page.locator('#btn-new-comercial').click();
   await page.reload();
   await page.reload();
   await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
@@ -269,7 +292,7 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
 
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '28', '789');
+  await novaOS(page, 'comercial', '28', '789');
   await page.locator('#q-tipo').fill('Vistoria');
   await marcar(page, 'clientePresente', 'Não');
   await page.reload();
@@ -284,7 +307,7 @@ test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) =
 
 test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
   await iniciarTurno(page);
-  await novaOS(page, '28', '1');
+  await novaOS(page, 'comercial', '28', '1');
   await salvar(page);
   await page.getByRole('button', { name: 'Corrigir' }).click();
   await page.getByLabel('Nome 1 *').fill('João Souza');

@@ -53,12 +53,12 @@ describe('catálogo', () => {
 describe('OS nova (tela da OS)', () => {
   const agora = new Date('2026-11-20T10:00:00Z');
 
-  it('OS nova começa vazia: sem número (S/N) e sem respostas', () => {
-    expect(ordem.startDraft('OCORRENCIA', '508')).toEqual({ osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: {} });
+  it('OS nova começa em branco: sem número (S/N), sem código e sem respostas', () => {
+    expect(ordem.startDraft('OCORRENCIA')).toEqual({ osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '', answers: {} });
   });
 
   it('salva com número, código e respostas normalizadas; número vazio vira S/N', () => {
-    const d = ordem.startDraft('COMERCIAL', '709');
+    const d = ordem.startDraft('COMERCIAL');
     const r = ordem.createOS({ ...d, osNumber: ' 555 ', serviceCode: ' 709 ', answers: { tipo: { kind: 'text', value: '  Ligação nova  ' }, dificuldade: { kind: 'choice', choice: 'Não' } } }, 'id-1', agora);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -66,26 +66,30 @@ describe('OS nova (tela da OS)', () => {
     expect(Object.keys(r.os.answers)).toHaveLength(12);
     expect(r.os.answers.tipo).toEqual({ kind: 'text', value: 'Ligação nova' });
     expect(r.os.answers.kmIni).toEqual({ kind: 'skipped' });
-    const sn = ordem.createOS(d, 'id-2', agora);
+    const sn = ordem.createOS({ ...d, serviceCode: '709' }, 'id-2', agora);
     expect(sn.ok && sn.os.osNumber).toBe('');
   });
 
   it('ocorrência: o número do topo vai para a pergunta do número', () => {
-    const d = ordem.startDraft('OCORRENCIA', '508');
+    const d = { ...ordem.startDraft('OCORRENCIA'), serviceCode: '508' };
     const r = ordem.createOS({ ...d, osNumber: '4455', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora);
     expect(r.ok && r.os.osNumber).toBe('4455');
     expect(r.ok && r.os.answers.os).toEqual({ kind: 'text', value: '4455' });
   });
 
   it('mesmas regras da edição: DITAIS obrigatória, complemento do SIM e código', () => {
-    const d = ordem.startDraft('OCORRENCIA', '508');
+    const d = { ...ordem.startDraft('OCORRENCIA'), serviceCode: '508' };
     const semDitais = ordem.createOS(d, 'x', agora);
     expect(semDitais.ok).toBe(false);
-    if (!semDitais.ok) expect(semDitais.questionId).toBe('ditais');
+    if (!semDitais.ok) expect(semDitais.field).toBe('ditais');
     const semComplemento = ordem.createOS({ ...d, answers: { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: ' ' } } }, 'x', agora);
     expect(semComplemento.ok).toBe(false);
-    if (!semComplemento.ok) expect(semComplemento.questionId).toBe('dificuldade');
-    expect(ordem.createOS({ ...d, serviceCode: ' ', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora).ok).toBe(false);
+    if (!semComplemento.ok) expect(semComplemento.field).toBe('dificuldade');
+    expect(ordem.createOS({ ...d, serviceCode: ' ', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora)).toMatchObject({ ok: false, field: ordem.CODE_FIELD });
+    // Código da lista do outro tipo: a OS teria as perguntas erradas.
+    const trocado = ordem.createOS({ ...d, serviceCode: '709', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora);
+    expect(trocado).toMatchObject({ ok: false, field: ordem.CODE_FIELD });
+    if (!trocado.ok) expect(trocado.error).toContain('COMERCIAL');
   });
 
   it('"Sim, qual?": NÃO descarta o complemento; SIM mantém o que já foi digitado', () => {
@@ -109,8 +113,9 @@ describe('OS nova (tela da OS)', () => {
   });
 
   it('isUnchanged: OS recém-aberta sai sem confirmação; número, texto ou SIM/NÃO contam como preenchido', () => {
-    const d = ordem.startDraft('OCORRENCIA', '508');
+    const d = ordem.startDraft('OCORRENCIA');
     expect(ordem.isUnchanged(d)).toBe(true);
+    expect(ordem.isUnchanged({ ...d, serviceCode: '508' })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { tipo: { kind: 'text', value: '' } } })).toBe(true); // texto apagado
     expect(ordem.isUnchanged({ ...d, osNumber: '12' })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { callback: { kind: 'choice', choice: 'Sim' } } })).toBe(false);
@@ -160,8 +165,8 @@ describe('edição completa de OS (lápis)', () => {
     const os = base();
     expect(ordem.applyEdit(os, { osNumber: '1', serviceCode: ' ', answers: os.answers }).ok).toBe(false);
     const semDitais = ordem.applyEdit(os, { osNumber: '1', serviceCode: '508', answers: { ...os.answers, ditais: { kind: 'skipped' } } });
-    expect(semDitais).toMatchObject({ ok: false, questionId: 'ditais' });
+    expect(semDitais).toMatchObject({ ok: false, field: 'ditais' });
     const semComplemento = ordem.applyEdit(os, { osNumber: '1', serviceCode: '508', answers: { ...os.answers, dificuldade: { kind: 'choice', choice: 'Sim', detail: ' ' } } });
-    expect(semComplemento).toMatchObject({ ok: false, questionId: 'dificuldade' });
+    expect(semComplemento).toMatchObject({ ok: false, field: 'dificuldade' });
   });
 });
