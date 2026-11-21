@@ -65,9 +65,9 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('os-item')).toContainText('OS 123');
   await expect(page.getByTestId('os-item')).not.toContainText('sem nº');
 
-  // Ocorrência: a pergunta do número é o campo do topo e a DITAIS é obrigatória.
+  // Ocorrência: a pergunta do número é o campo do topo (13 perguntas na tela, com medidor e leitura) e a DITAIS é obrigatória.
   await novaOS(page, 'ocorrencia', '508', '456');
-  await expect(page.locator('#screen-os [data-question]')).toHaveCount(11);
+  await expect(page.locator('#screen-os [data-question]')).toHaveCount(13);
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('resposta obrigatória');
   await marcar(page, 'ditais', 'Não');

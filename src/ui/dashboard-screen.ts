@@ -86,7 +86,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     { id: 'screen-dashboard', class: 'space-y-6' },
     h(
       'div',
-      { class: 'card p-5 border-l-4 border-l-accent' },
+      { class: 'card p-5' },
       h(
         'div',
         { class: 'flex flex-wrap items-center justify-between gap-2 pb-3 mb-3 border-b border-fg/10' },

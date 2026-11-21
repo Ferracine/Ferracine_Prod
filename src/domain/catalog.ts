@@ -29,6 +29,8 @@ const OCORRENCIA: readonly Question[] = [
   { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' },
   { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
   { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', placeholder: 'Descreva a alteração na UC...', short: 'Alteração UC' },
+  { id: 'medidorInst', text: 'Foi instalado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor instalado:', placeholder: 'Digite o nº do medidor instalado...', espelho: 'medidorInstalado' },
+  { id: 'leituraInst', text: 'Qual leitura do medidor instalado?', type: 'text', placeholder: 'Digite a leitura atual...', input: 'decimal', espelho: 'leituraInstalado' },
   { id: 'horaFin', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade, se sim qual?', type: 'yesno_detail', detailLabel: 'Qual foi a dificuldade?', placeholder: 'Descreva a dificuldade encontrada...', short: 'Dificuldade' },
 ];
@@ -72,6 +74,8 @@ export const LEGACY_QUESTION_IDS: Record<ServiceType, Record<string, string>> = 
     o9: 'horaIni',
     o10: 'horaFin',
     o11: 'dificuldade',
+    o12: 'medidorInst',
+    o14: 'leituraInst',
   },
 };
 
@@ -80,9 +84,7 @@ export const LEGACY_QUESTION_IDS: Record<ServiceType, Record<string, string>> = 
  * `infoLegada` da OS e vão para INFO ADICIONAL: nada do que já foi registrado se perde.
  */
 export const LEGACY_EXTRA_LABELS: Record<string, string> = {
-  o12: 'Medidor instalado',
   o13: 'Medidor retirado',
-  o14: 'Leitura medidor instalado',
   o15: 'Leitura medidor retirado',
   o16: 'KM inicial (2º)',
   o17: 'KM final (2º)',

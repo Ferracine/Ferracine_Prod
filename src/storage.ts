@@ -60,9 +60,12 @@ export function loadData(store: KeyValueStore): AppData {
     return {
       version: 3,
       header: normalizeHeader(current.header),
-      ordens: current.ordens,
+      ordens: current.ordens.map(adoptLegacyMeter),
       draft: normalizeDraft(current.draft),
-      lastSheet: last && lastSheetHeader ? { ...last, header: lastSheetHeader, tecnicos: normalizeTecnicos(last.tecnicos) } : null,
+      lastSheet:
+        last && lastSheetHeader
+          ? { ...last, header: lastSheetHeader, ordens: (last.ordens ?? []).map(adoptLegacyMeter), tecnicos: normalizeTecnicos(last.tecnicos) }
+          : null,
       lastHeader: normalizeHeader(current.lastHeader),
       tecnicos: normalizeTecnicos(current.tecnicos),
     };
@@ -99,8 +102,8 @@ function legacyText(ans: Answer): string {
 }
 
 /**
- * Respostas com os ids do catálogo antigo → ids atuais. As de perguntas que deixaram de existir (medidores e
- * leituras da ocorrência etc.) viram o texto `infoLegada`, que o espelho põe em INFO ADICIONAL.
+ * Respostas com os ids do catálogo antigo → ids atuais. As de perguntas que deixaram de existir (medidor e leitura
+ * retirados da ocorrência, 2º KM etc.) viram o texto `infoLegada`, que o espelho põe em INFO ADICIONAL.
  */
 function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): { answers: Record<string, Answer>; infoLegada?: string } {
   const map = LEGACY_QUESTION_IDS[type];
@@ -116,6 +119,38 @@ function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): { a
     }
   }
   return extras.length ? { answers: out, infoLegada: extras.join('; ') } : { answers: out };
+}
+
+/**
+ * Até a 1.4.0 a ocorrência não tinha medidor instalado nem leitura: OSs migradas da v2 guardaram essas respostas
+ * como texto em `infoLegada` ("Medidor instalado: M-1; Leitura medidor instalado: 123"). Agora há pergunta para
+ * elas: o texto volta para a resposta (coluna própria no PDF, campo preenchido no lápis) e sai da INFO ADICIONAL.
+ */
+const LEGACY_TEXT_TO_QUESTION: Record<string, string> = { 'Medidor instalado': 'medidorInst', 'Leitura medidor instalado': 'leituraInst' };
+
+function adoptLegacyMeter(os: OrdemServico): OrdemServico {
+  if (os.serviceType !== 'OCORRENCIA' || !os.infoLegada) return os;
+  const labels = [...Object.keys(LEGACY_TEXT_TO_QUESTION), ...Object.values(LEGACY_EXTRA_LABELS)];
+  // "Rótulo: valor; Rótulo: valor": um valor com "; " dentro continua no item anterior.
+  const items: string[] = [];
+  for (const part of os.infoLegada.split('; ')) {
+    if (items.length && !labels.some((l) => part.startsWith(`${l}: `))) items[items.length - 1] += `; ${part}`;
+    else items.push(part);
+  }
+  const answers = { ...os.answers };
+  const rest = items.filter((item) => {
+    const label = Object.keys(LEGACY_TEXT_TO_QUESTION).find((l) => item.startsWith(`${l}: `));
+    const id = label && LEGACY_TEXT_TO_QUESTION[label];
+    if (!label || !id || (answers[id] && answers[id].kind !== 'skipped')) return true;
+    const value = item.slice(label.length + 2).trim();
+    if (id === 'leituraInst') answers[id] = { kind: 'text', value };
+    else if (value === 'Não') answers[id] = { kind: 'choice', choice: 'Não' };
+    else if (value !== 'Sim') answers[id] = { kind: 'choice', choice: 'Sim', detail: value };
+    else return true; // "Sim" sem número: fica como estava
+    return false;
+  });
+  const { infoLegada: _antigo, ...semInfo } = os;
+  return rest.length ? { ...semInfo, answers, infoLegada: rest.join('; ') } : { ...semInfo, answers };
 }
 
 function migrateOS(os: OrdemServico): OrdemServico {

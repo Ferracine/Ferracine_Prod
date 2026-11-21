@@ -79,7 +79,7 @@ describe('armazenamento', () => {
       version: 2,
       header: { ...antigo, lider },
       ordens: [
-        { id: 'a', osNumber: '7', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: { o1: { kind: 'text', value: 'Falta' }, o6: { kind: 'choice', choice: 'Sim' }, o12: { kind: 'choice', choice: 'Sim', detail: 'M-1' }, o14: { kind: 'text', value: '12345' }, o16: { kind: 'skipped' } } },
+        { id: 'a', osNumber: '7', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: { o1: { kind: 'text', value: 'Falta' }, o6: { kind: 'choice', choice: 'Sim' }, o12: { kind: 'choice', choice: 'Sim', detail: 'M-1' }, o13: { kind: 'choice', choice: 'Sim', detail: 'M-0' }, o14: { kind: 'text', value: '12345' }, o16: { kind: 'skipped' } } },
         { id: 'b', osNumber: '8', serviceType: 'COMERCIAL', serviceCode: '28', registradaEm: 'x', answers: { c2: { kind: 'choice', choice: 'Não' } } },
       ],
       draft: { osNumber: '9', serviceType: 'OCORRENCIA', serviceCode: '509', index: 14, answers: { o2: { kind: 'text', value: '9' } } },
@@ -91,9 +91,15 @@ describe('armazenamento', () => {
     expect(loaded.header).toEqual({ ...header, lider: 'tec-migrado-1' });
     expect(loaded.lastHeader).toEqual(loaded.header);
     expect(loaded.lastSheet?.tecnicos).toEqual(loaded.tecnicos);
-    // Medidor e leitura não têm mais pergunta na ocorrência: ficam preservados para INFO ADICIONAL.
-    expect(loaded.ordens[0]?.answers).toEqual({ tipo: { kind: 'text', value: 'Falta' }, ditais: { kind: 'choice', choice: 'Sim' } });
-    expect(loaded.ordens[0]?.infoLegada).toBe('Medidor instalado: M-1; Leitura medidor instalado: 12345');
+    // Medidor instalado e leitura voltaram a ter pergunta na ocorrência; o medidor retirado (sem pergunta) fica
+    // preservado para INFO ADICIONAL.
+    expect(loaded.ordens[0]?.answers).toEqual({
+      tipo: { kind: 'text', value: 'Falta' },
+      ditais: { kind: 'choice', choice: 'Sim' },
+      medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-1' },
+      leituraInst: { kind: 'text', value: '12345' },
+    });
+    expect(loaded.ordens[0]?.infoLegada).toBe('Medidor retirado: M-0');
     expect(loaded.ordens[1]?.answers).toEqual({ clientePresente: { kind: 'choice', choice: 'Não' } });
     expect(loaded.draft).toMatchObject({ answers: { os: { kind: 'text', value: '9' } } });
   });
@@ -103,6 +109,25 @@ describe('armazenamento', () => {
     expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(antigo) })).draft?.osNumber).toBe('123');
     const semResposta = { ...emptyData(), draft: { osNumber: '9', serviceType: 'COMERCIAL', serviceCode: '28', answers: {} } };
     expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(semResposta) })).draft?.osNumber).toBe('9');
+  });
+
+  it('OS de ocorrência migrada antes da 1.4.1: medidor instalado e leitura saem da INFO ADICIONAL para as perguntas', () => {
+    const os = {
+      id: 'm', osNumber: '7', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x',
+      answers: { ditais: { kind: 'choice', choice: 'Sim' } },
+      infoLegada: 'Medidor instalado: M-1; Medidor retirado: M-0; Leitura medidor instalado: 123; KM inicial (2º): 5; 6',
+    };
+    const salvo = { ...emptyData(), ordens: [os], lastSheet: { header, ordens: [os], fechadaEm: 'y', tecnicos: [] } };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
+    for (const o of [loaded.ordens[0], loaded.lastSheet?.ordens[0]]) {
+      expect(o?.answers).toMatchObject({ medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-1' }, leituraInst: { kind: 'text', value: '123' } });
+      expect(o?.infoLegada).toBe('Medidor retirado: M-0; KM inicial (2º): 5; 6');
+    }
+    // Já respondida na pergunta nova: o texto antigo não sobrescreve.
+    const respondida = { ...os, answers: { ...os.answers, medidorInst: { kind: 'choice', choice: 'Não' } }, infoLegada: 'Medidor instalado: M-1' };
+    const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [respondida] }) })).ordens[0];
+    expect(r?.answers.medidorInst).toEqual({ kind: 'choice', choice: 'Não' });
+    expect(r?.infoLegada).toBe('Medidor instalado: M-1');
   });
 
   it('a versão 3 salva tem prioridade; se estiver corrompida, a versão 2 antiga não volta', () => {

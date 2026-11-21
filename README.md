@@ -24,9 +24,9 @@ houver, só serve para o app se atualizar.
    - **Comercial** (28 / 709 / 739 / 33 / 798), 12 perguntas: tipo de serviço, KM inicial, hora inicial, cliente
      presente, lançou ramal, medidor instalado e retirado (com número), leituras, KM final, horário final,
      dificuldade na execução.
-   - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 12 perguntas: callback, número da OS, hora inicial,
+   - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 14 perguntas: callback, número da OS, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
-     na UC do cliente, hora final, dificuldade.
+     na UC do cliente, medidor instalado (com número), leitura do medidor instalado, hora final, dificuldade.
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
    mesma do lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do

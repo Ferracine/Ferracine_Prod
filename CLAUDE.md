@@ -52,7 +52,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `lastSheet`, `lastHeader` (preenche o próximo turno) e `tecnicos` (cadastrados no app). A v2 só é migrada se a
   v3 nunca foi gravada: ids antigos → novos; respostas sem pergunta equivalente viram texto em `legado` (vai para
-  INFO ADICIONAL); o líder antigo vira técnico cadastrado. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
+  INFO ADICIONAL); o líder antigo vira técnico cadastrado. Ao carregar a v3, `adoptLegacyMeter` tira da
+  `infoLegada` das ocorrências o medidor instalado e a leitura (perguntas novas da 1.4.1) e põe nas respostas. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova

@@ -17,6 +17,8 @@ describe('catálogo', () => {
       'Houve necessidade de realizar os DITAIS?',
       'Deseja informar o KM final?',
       'Deseja informar alguma alteração feita na UC do cliente?',
+      'Foi instalado medidor? Se sim qual número?',
+      'Qual leitura do medidor instalado?',
       'Deseja informar a hora final?',
       'Houve alguma dificuldade, se sim qual?',
     ]);
@@ -125,10 +127,10 @@ describe('OS nova (tela da OS)', () => {
   it('answerRows descreve cada pergunta para o app', () => {
     const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Chuva' } });
     const rows = ordem.answerRows(os);
-    expect(rows).toHaveLength(12);
+    expect(rows).toHaveLength(14);
     expect(rows[0]).toEqual({ question: 'Tentou callback?', display: 'Não informado', skipped: true, isDitais: false });
     expect(rows[7]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
-    expect(rows[11]?.display).toBe('Sim — Chuva');
+    expect(rows[13]?.display).toBe('Sim — Chuva');
   });
 });
 
