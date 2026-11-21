@@ -17,7 +17,7 @@ describe('catálogo', () => {
       'Houve necessidade de realizar os DITAIS?',
       'Deseja informar o KM final?',
       'Deseja informar alguma alteração feita na UC do cliente?',
-      'Foi instalado medidor? Se sim qual número?',
+      'Número do medidor instalado',
       'Qual leitura do medidor instalado?',
       'Deseja informar a hora final?',
       'Houve alguma dificuldade, se sim qual?',

@@ -40,8 +40,9 @@ function readJson(store: KeyValueStore, key: string): unknown {
  * Rascunho salvo pelo antigo assistente (até a 1.3.0): o número respondido em "Qual número da Ordem de serviço?"
  * ficava só na resposta. A tela da OS esconde essa pergunta e usa o campo do topo, então o número vai para ele.
  */
-function normalizeDraft(draft: OSDraft | null | undefined): OSDraft | null {
-  if (!draft) return null;
+function normalizeDraft(raw: OSDraft | null | undefined): OSDraft | null {
+  if (!raw) return null;
+  const draft = { ...raw, answers: meterAsText(raw.serviceType, raw.answers) };
   const q = questionsFor(draft.serviceType).find((x) => x.prefillOS);
   const ans = q ? draft.answers[q.id] : undefined;
   const answered = ans?.kind === 'text' ? ans.value.trim() : '';
@@ -60,11 +61,11 @@ export function loadData(store: KeyValueStore): AppData {
     return {
       version: 3,
       header: normalizeHeader(current.header),
-      ordens: current.ordens.map(adoptLegacyMeter),
+      ordens: current.ordens.map(normalizeOS),
       draft: normalizeDraft(current.draft),
       lastSheet:
         last && lastSheetHeader
-          ? { ...last, header: lastSheetHeader, ordens: (last.ordens ?? []).map(adoptLegacyMeter), tecnicos: normalizeTecnicos(last.tecnicos) }
+          ? { ...last, header: lastSheetHeader, ordens: (last.ordens ?? []).map(normalizeOS), tecnicos: normalizeTecnicos(last.tecnicos) }
           : null,
       lastHeader: normalizeHeader(current.lastHeader),
       tecnicos: normalizeTecnicos(current.tecnicos),
@@ -128,6 +129,23 @@ function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): { a
  */
 const LEGACY_TEXT_TO_QUESTION: Record<string, string> = { 'Medidor instalado': 'medidorInst', 'Leitura medidor instalado': 'leituraInst' };
 
+/**
+ * Na 1.4.1 o medidor da ocorrência era "Foi instalado medidor? Se sim qual número?" (SIM/NÃO + número). Agora é só
+ * o número: SIM com número vira o número; NÃO ou SIM sem número ficam em branco.
+ */
+function meterAsText(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
+  const ans = answers.medidorInst;
+  if (type !== 'OCORRENCIA' || ans?.kind !== 'choice') return answers;
+  const numero = ans.choice === 'Sim' ? (ans.detail ?? '').trim() : '';
+  return { ...answers, medidorInst: numero ? { kind: 'text', value: numero } : { kind: 'skipped' } };
+}
+
+/** OS lida do aparelho: medidor das versões anteriores no formato atual. */
+function normalizeOS(os: OrdemServico): OrdemServico {
+  // Primeiro o formato da 1.4.1 (NÃO vira em branco), depois o texto legado: o resultado não muda entre carregamentos.
+  return adoptLegacyMeter({ ...os, answers: meterAsText(os.serviceType, os.answers) });
+}
+
 function adoptLegacyMeter(os: OrdemServico): OrdemServico {
   if (os.serviceType !== 'OCORRENCIA' || !os.infoLegada) return os;
   const labels = [...Object.keys(LEGACY_TEXT_TO_QUESTION), ...Object.values(LEGACY_EXTRA_LABELS)];
@@ -143,10 +161,8 @@ function adoptLegacyMeter(os: OrdemServico): OrdemServico {
     const id = label && LEGACY_TEXT_TO_QUESTION[label];
     if (!label || !id || (answers[id] && answers[id].kind !== 'skipped')) return true;
     const value = item.slice(label.length + 2).trim();
-    if (id === 'leituraInst') answers[id] = { kind: 'text', value };
-    else if (value === 'Não') answers[id] = { kind: 'choice', choice: 'Não' };
-    else if (value !== 'Sim') answers[id] = { kind: 'choice', choice: 'Sim', detail: value };
-    else return true; // "Sim" sem número: fica como estava
+    // "Sim" sem número ou "Não": não há número para o campo, e soltos na folha não dizem nada.
+    if (!(id === 'medidorInst' && (value === 'Sim' || value === 'Não'))) answers[id] = { kind: 'text', value };
     return false;
   });
   const { infoLegada: _antigo, ...semInfo } = os;
@@ -154,7 +170,8 @@ function adoptLegacyMeter(os: OrdemServico): OrdemServico {
 }
 
 function migrateOS(os: OrdemServico): OrdemServico {
-  return { ...os, ...migrateAnswers(os.serviceType, os.answers) };
+  const m = migrateAnswers(os.serviceType, os.answers);
+  return { ...os, ...m, answers: meterAsText(os.serviceType, m.answers) };
 }
 
 /**

@@ -29,7 +29,8 @@ const OCORRENCIA: readonly Question[] = [
   { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' },
   { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
   { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', placeholder: 'Descreva a alteração na UC...', short: 'Alteração UC' },
-  { id: 'medidorInst', text: 'Foi instalado medidor? Se sim qual número?', type: 'yesno_detail', detailLabel: 'Número do medidor instalado:', placeholder: 'Digite o nº do medidor instalado...', espelho: 'medidorInstalado' },
+  // Na ocorrência não há troca de medidor (isso é OS comercial): só o número do medidor que está na UC.
+  { id: 'medidorInst', text: 'Número do medidor instalado', type: 'text', placeholder: 'Digite o nº do medidor...', espelho: 'medidorInstalado' },
   { id: 'leituraInst', text: 'Qual leitura do medidor instalado?', type: 'text', placeholder: 'Digite a leitura atual...', input: 'decimal', espelho: 'leituraInstalado' },
   { id: 'horaFin', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade, se sim qual?', type: 'yesno_detail', detailLabel: 'Qual foi a dificuldade?', placeholder: 'Descreva a dificuldade encontrada...', short: 'Dificuldade' },

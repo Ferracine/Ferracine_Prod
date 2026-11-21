@@ -60,6 +60,24 @@ export function initUpdates(): void {
   if (!bridge) return;
 
   const banner = byId('update-banner');
+  const footerEl = footer.closest('footer')!;
+  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: 'underline font-semibold text-brand-fg inline-flex items-center gap-1', onClick: () => void check(true) });
+  /** "Procurar atualização" ↔ carregando (ícone girando, desativado) enquanto a consulta do toque não volta. */
+  const setChecking = (busy: boolean) => {
+    checkBtn.disabled = busy;
+    checkBtn.setAttribute('aria-busy', String(busy));
+    checkBtn.replaceChildren(...(busy ? [icon(LoaderCircle, 'w-3.5 h-3.5 animate-spin'), 'Procurando...'] : ['Procurar atualização']));
+  };
+  setChecking(false);
+  /**
+   * Onde o aviso aparece: achado pelo "Procurar atualização" (o eletricista está no rodapé), no rodapé, acima do
+   * "© Ferracine Prod"; achado sozinho ao abrir o app, no topo da tela.
+   */
+  const placeBanner = (inFooter: boolean) => {
+    if (inFooter) footerEl.prepend(banner);
+    else byId('app').before(banner);
+    banner.className = `${inFooter ? 'max-w-3xl w-full mx-auto pb-3 text-left' : 'max-w-3xl w-full mx-auto px-4 pt-4'} hidden`;
+  };
   /** Versão nova encontrada nesta abertura do app (não consulta de novo até reabrir, salvo pelo botão do rodapé). */
   let available: UpdateInfo | null = null;
   /** Versão sendo baixada/instalada: o andamento do Updater.kt fala dela, mesmo que uma consulta mude `available`. */
@@ -72,7 +90,7 @@ export function initUpdates(): void {
     banner.replaceChildren();
   };
 
-  /** Aviso no topo da tela; `busy` = baixando (só dá para esconder o aviso; o download continua). */
+  /** Aviso de versão nova (topo ou rodapé, ver placeBanner); `busy` = baixando (só dá para esconder; o download continua). */
   const render = (info: UpdateInfo, text: string, busy = false) => {
     banner.replaceChildren(
       h(
@@ -117,10 +135,22 @@ export function initUpdates(): void {
     // Automático: sem sinal, com versão nova já encontrada ou consultado há pouco, não gasta dados nem a cota da API.
     if (!manual && (!navigator.onLine || available || Date.now() - lastCheck() < INTERVAL_MS)) return;
     inflight ??= fetchUpdate().finally(() => (inflight = null));
+    if (manual) setChecking(true);
     try {
       available = await inflight;
       if (available) {
-        if (!installing) render(available, offerText(available)); // não apaga o "Baixando..." de um download em curso
+        if (installing) {
+          // Não apaga o "Baixando..." de um download em curso; o toque ainda recebe resposta.
+          if (manual) showToast(`A versão ${installing.version} já está sendo baixada e instalada.`, 'info');
+        } else if (manual) {
+          placeBanner(true);
+          render(available, offerText(available));
+          banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (banner.classList.contains('hidden')) {
+          // A automática só mostra o aviso se ele não estiver na tela (não tira do rodapé o que o toque pôs lá).
+          placeBanner(false);
+          render(available, offerText(available));
+        }
       } else {
         markChecked();
         if (manual) showToast(`Você já está na versão mais recente (${__APP_VERSION__}).`, 'success');
@@ -133,13 +163,12 @@ export function initUpdates(): void {
           'warning',
         );
       }
+    } finally {
+      if (manual) setChecking(false);
     }
   }
 
-  footer.append(
-    ' · ',
-    h('button', { type: 'button', id: 'btn-check-update', class: 'underline font-semibold text-brand-fg', onClick: () => void check(true) }, 'Procurar atualização'),
-  );
+  footer.append(' · ', checkBtn);
   void check(false);
   // Voltou para o app (talvez agora com sinal): tenta de novo, respeitando o intervalo.
   document.addEventListener('visibilitychange', () => {

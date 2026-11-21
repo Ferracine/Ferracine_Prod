@@ -26,7 +26,8 @@ houver, só serve para o app se atualizar.
      dificuldade na execução.
    - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 14 perguntas: callback, número da OS, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
-     na UC do cliente, medidor instalado (com número), leitura do medidor instalado, hora final, dificuldade.
+     na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do
+     medidor instalado, hora final, dificuldade.
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
    mesma do lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
@@ -124,7 +125,8 @@ desconhecidos" para a Folha de Produção; liberado, a instalação continua soz
 APK assinado com a mesma chave, e os dados do turno continuam. O Google Play Protect pode pedir para "Verificar
 app" (envia o APK ao Google) ou oferecer "Mais detalhes" → "Instalar sem análise" (o Samsung pede a digital ou o
 PIN); qualquer um dos dois segue a instalação. No rodapé ficam a versão instalada e o botão
-**Procurar atualização**. Sem internet nada muda. No navegador/PWA quem atualiza é o service worker.
+**Procurar atualização**: enquanto consulta mostra "Procurando..." e, se houver versão nova, o aviso aparece ali no
+rodapé. Sem internet nada muda. No navegador/PWA quem atualiza é o service worker.
 
 ## Histórico
 

@@ -53,6 +53,27 @@ test('APK com versão nova no GitHub: aviso, Atualizar chama o Android e mostra 
   await expect(page.locator('#update-banner')).toBeHidden();
 });
 
+test('"Procurar atualização" achando versão nova: o balão aparece no rodapé', async ({ page }) => {
+  await comoApk(page);
+  let resposta = release('v0.0.1'); // ao abrir: nada novo (o aviso do topo não aparece)
+  await page.route(API, (route) => route.fulfill({ json: resposta }));
+  await page.goto('/');
+  await expect(page.locator('#update-banner')).toBeHidden();
+  resposta = release('v99.0.0');
+  await page.locator('#btn-check-update').click();
+  const balao = page.locator('footer #update-banner');
+  await expect(balao).toBeVisible();
+  await expect(balao).toContainText('Nova versão 99.0.0 disponível');
+  // Voltar ao app (consulta automática) não tira o balão do rodapé.
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(balao).toBeVisible();
+  await balao.locator('#btn-update').click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __update?: string }).__update)).toBe(APK_URL);
+  // Tocar de novo durante o download: avisa que já está baixando.
+  await page.locator('#btn-check-update').click();
+  await expect(page.getByRole('status').filter({ hasText: 'já está sendo baixada' })).toBeVisible();
+});
+
 test('APK já na versão mais recente: sem aviso; "Procurar atualização" confirma', async ({ page }) => {
   await comoApk(page);
   await page.route(API, (route) => route.fulfill({ json: release('v0.0.1') }));
@@ -92,8 +113,12 @@ test('APK: tocar em "Procurar atualização" durante a consulta automática lent
   });
   await page.goto('/');
   await page.locator('#btn-check-update').click();
+  // Carregando enquanto a consulta não volta.
+  await expect(page.locator('#btn-check-update')).toContainText('Procurando...');
+  await expect(page.locator('#btn-check-update')).toBeDisabled();
   liberar();
   await expect(page.getByRole('status').filter({ hasText: 'versão mais recente' })).toBeVisible();
+  await expect(page.locator('#btn-check-update')).toHaveText('Procurar atualização');
   expect(consultas).toBe(1); // o toque esperou a mesma consulta em vez de abrir outra
 });
 

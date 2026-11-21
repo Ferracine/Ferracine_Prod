@@ -68,7 +68,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; ao abrir e ao
   voltar para o app, no máximo a cada 6 h quando não há nada novo), `src/domain/update.ts` decide (tag `vX.Y.Z` maior
   que `__APP_VERSION__` + asset `FerracineProd-X.Y.Z.apk` de `.../releases/download/`) e mostra o aviso
-  `#update-banner`. "Atualizar" chama `installUpdate(url)` da ponte: `Updater.kt` confere o mesmo prefixo, baixa em
+  `#update-banner` (no topo quando achado sozinho; no rodapé, com "Procurando..." no botão, quando achado pelo
+  "Procurar atualização"). "Atualizar" chama `installUpdate(url)` da ponte: `Updater.kt` confere o mesmo prefixo, baixa em
   `cache/update/`, confere pacote e versionCode maiores, pede "Instalar apps desconhecidos" (Android 8+, retoma no
   `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
   `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.

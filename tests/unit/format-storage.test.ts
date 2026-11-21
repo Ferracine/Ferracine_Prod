@@ -96,7 +96,7 @@ describe('armazenamento', () => {
     expect(loaded.ordens[0]?.answers).toEqual({
       tipo: { kind: 'text', value: 'Falta' },
       ditais: { kind: 'choice', choice: 'Sim' },
-      medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-1' },
+      medidorInst: { kind: 'text', value: 'M-1' },
       leituraInst: { kind: 'text', value: '12345' },
     });
     expect(loaded.ordens[0]?.infoLegada).toBe('Medidor retirado: M-0');
@@ -120,14 +120,39 @@ describe('armazenamento', () => {
     const salvo = { ...emptyData(), ordens: [os], lastSheet: { header, ordens: [os], fechadaEm: 'y', tecnicos: [] } };
     const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
     for (const o of [loaded.ordens[0], loaded.lastSheet?.ordens[0]]) {
-      expect(o?.answers).toMatchObject({ medidorInst: { kind: 'choice', choice: 'Sim', detail: 'M-1' }, leituraInst: { kind: 'text', value: '123' } });
+      expect(o?.answers).toMatchObject({ medidorInst: { kind: 'text', value: 'M-1' }, leituraInst: { kind: 'text', value: '123' } });
       expect(o?.infoLegada).toBe('Medidor retirado: M-0; KM inicial (2º): 5; 6');
     }
     // Já respondida na pergunta nova: o texto antigo não sobrescreve.
-    const respondida = { ...os, answers: { ...os.answers, medidorInst: { kind: 'choice', choice: 'Não' } }, infoLegada: 'Medidor instalado: M-1' };
+    const respondida = { ...os, answers: { ...os.answers, medidorInst: { kind: 'text', value: 'M-9' } }, infoLegada: 'Medidor instalado: M-1' };
     const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [respondida] }) })).ordens[0];
-    expect(r?.answers.medidorInst).toEqual({ kind: 'choice', choice: 'Não' });
+    expect(r?.answers.medidorInst).toEqual({ kind: 'text', value: 'M-9' });
     expect(r?.infoLegada).toBe('Medidor instalado: M-1');
+  });
+
+  it('ocorrência salva na 1.4.1 (medidor SIM/NÃO + número): vira só o número; NÃO fica em branco', () => {
+    const base = { osNumber: '1', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x' };
+    const sim = { ...base, id: 's', answers: { medidorInst: { kind: 'choice', choice: 'Sim', detail: ' N62123 ' } } };
+    const nao = { ...base, id: 'n', answers: { medidorInst: { kind: 'choice', choice: 'Não' } } };
+    const draft = { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: { medidorInst: { kind: 'choice', choice: 'Sim', detail: 'W61' } } };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [sim, nao], draft }) }));
+    expect(loaded.ordens[0]?.answers.medidorInst).toEqual({ kind: 'text', value: 'N62123' });
+    expect(loaded.ordens[1]?.answers.medidorInst).toEqual({ kind: 'skipped' });
+    expect(loaded.draft?.answers.medidorInst).toEqual({ kind: 'text', value: 'W61' });
+  });
+
+  it('medidor da 1.4.1 com NÃO e texto legado: o número legado vai para o campo já no primeiro carregamento', () => {
+    const os = { id: 'x', osNumber: '1', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: { medidorInst: { kind: 'choice', choice: 'Não' } }, infoLegada: 'Medidor instalado: M-1; Medidor retirado: Sim' };
+    const store = memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [os] }) });
+    const primeiro = loadData(store);
+    expect(primeiro.ordens[0]?.answers.medidorInst).toEqual({ kind: 'text', value: 'M-1' });
+    saveData(store, primeiro);
+    expect(loadData(store).ordens[0]).toEqual(primeiro.ordens[0]); // estável
+    // "Medidor instalado: Sim" sem número: descartado.
+    const soSim = { ...os, answers: {}, infoLegada: 'Medidor instalado: Sim' };
+    const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [soSim] }) })).ordens[0];
+    expect(r?.infoLegada).toBeUndefined();
+    expect(r?.answers.medidorInst).toBeUndefined();
   });
 
   it('a versão 3 salva tem prioridade; se estiver corrompida, a versão 2 antiga não volta', () => {

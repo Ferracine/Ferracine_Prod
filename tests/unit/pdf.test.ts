@@ -46,7 +46,7 @@ function ocorrenciaCompleta(n: number): OrdemServico {
     ditais: { kind: 'choice', choice: 'Sim' },
     kmFin: { kind: 'text', value: '45235' },
     alteracaoUC: { kind: 'text', value: 'Troca do disjuntor do padrão' },
-    medidorInst: { kind: 'choice', choice: 'Sim', detail: `N62${n}` },
+    medidorInst: { kind: 'text', value: `N62${n}` },
     leituraInst: { kind: 'text', value: '7788' },
     horaFin: { kind: 'text', value: '09:40' },
     dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Acesso difícil ao poste' },
