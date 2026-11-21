@@ -2,17 +2,19 @@
 
 App para o eletricista registrar no celular as Ordens de Serviço (OSs) do turno e gerar o PDF oficial do
 **Espelho de Campo** (Energisa, Departamento de Operação). Funciona **100% sem internet**: como APK Android ou como
-app web instalável (PWA). Nenhum dado sai do aparelho: tudo fica guardado no próprio celular.
+app web instalável (PWA). Nenhum dado sai do aparelho: tudo fica guardado no próprio celular. A internet, quando
+houver, só serve para o app se atualizar.
 
 - **APK (Android)**: baixe o `FerracineProd-<versão>.apk` em
   [Releases](https://github.com/Bruno1991/Ferracine_Prod/releases/latest) e instale (o Android pede para permitir
-  "instalar apps desconhecidos" na primeira vez).
+  "instalar apps desconhecidos" na primeira vez). Depois disso o próprio app avisa quando sair versão nova (ver
+  "Atualização do APK").
 - **Web / PWA**: <https://bruno1991.github.io/Ferracine_Prod/> (abra uma vez com internet; depois funciona offline e
   pode ser instalado pelo menu do navegador).
 
 ## Como funciona
 
-1. **Cabeçalho do turno**: nome e matrícula do integrante principal (obrigatórios), dupla (opcional), equipe,
+1. **Cabeçalho do turno**: nome e matrícula do eletricista 1 (obrigatórios), eletricista 2 (opcional), equipe,
    viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
@@ -75,7 +77,7 @@ pnpm apk          # build web + APK assinado em release/FerracineProd-<versão>.
 
 ## APK
 
-`android/` é um app nativo mínimo: uma WebView que serve o build web de dentro do APK (sem permissão de internet),
+`android/` é um app nativo mínimo: uma WebView que serve o build web de dentro do APK (funciona sem internet),
 mais uma ponte que salva o PDF em Downloads, abre no leitor de PDF e compartilha. O botão voltar do Android segue
 a navegação do app. A versão do APK é a do `package.json`.
 
@@ -104,8 +106,19 @@ Para mudar códigos ou perguntas, edite só [src/domain/catalog.ts](src/domain/c
 
 - **GitHub Pages**: todo push no `main` roda `.github/workflows/deploy-pages.yml` (tipos, testes unitários, build)
   e publica `dist/` em <https://bruno1991.github.io/Ferracine_Prod/>.
-- **APK**: `pnpm apk` e anexar `release/FerracineProd-<versão>.apk` a uma Release do GitHub
-  (`gh release create v<versão> release/FerracineProd-<versão>.apk`).
+- **APK**: suba a versão no `package.json`, rode `pnpm apk` e anexe `release/FerracineProd-<versão>.apk` a uma Release
+  do GitHub (`gh release create v<versão> release/FerracineProd-<versão>.apk`). Publicar a Release já entrega a
+  atualização a todos os celulares com o APK (ver abaixo).
+
+### Atualização do APK
+
+Com internet, o APK consulta a última Release do repositório (ao abrir e ao voltar para o app; se não houver nada
+novo, no máximo a cada 6 horas). Se a Release `vX.Y.Z` for maior que a versão instalada e tiver o
+`FerracineProd-X.Y.Z.apk` anexado, aparece um aviso no topo: **Atualizar** baixa o APK (~0,6 MB) e abre o instalador
+do Android; **X** esconde o aviso até a próxima abertura. Na primeira vez o Android pede para liberar "Instalar apps
+desconhecidos" para a Folha de Produção; liberado, a instalação continua sozinha. O Android só instala por cima um
+APK assinado com a mesma chave, e os dados do turno continuam. No rodapé ficam a versão instalada e o botão
+**Procurar atualização**. Sem internet nada muda. No navegador/PWA quem atualiza é o service worker.
 
 ## Histórico
 

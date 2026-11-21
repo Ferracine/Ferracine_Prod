@@ -5,9 +5,11 @@ import { startApp } from './app';
 import { androidBridge } from './platform';
 import { initTheme } from './theme';
 import { byId } from './ui/dom';
+import { initUpdates } from './update';
 
 initTheme(byId<HTMLButtonElement>('theme-toggle'));
 startApp(byId('app'), window.localStorage);
+initUpdates();
 
 // Service worker (só no navegador/PWA): guarda o app no aparelho para abrir sem internet e se atualiza sozinho.
 // O estado (inclusive a OS em preenchimento) está salvo, então a recarga da atualização não perde nada.

@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Sem permissão de internet: o app inteiro está dentro do APK e funciona 100% offline. -->
+    <!-- O app inteiro está dentro do APK e funciona 100% offline. A internet só é usada para procurar uma versão
+         nova nas Releases do GitHub e baixar o APK dela (src/update.ts + Updater.kt); nenhum dado do turno sai. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Abrir o instalador do Android com o APK baixado (o usuário libera uma vez para este app). -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Só Android 7 a 9: salvar o PDF na pasta Downloads. Do Android 10 em diante não precisa. -->
     <uses-permission

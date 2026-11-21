@@ -16,15 +16,18 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewClientCompat
+import org.json.JSONObject
 
 /**
- * O app web (build do Vite, copiado para assets/www pelo scripts/apk.mjs) roda numa WebView, 100% offline.
+ * O app web (build do Vite, copiado para assets/www pelo scripts/apk.mjs) roda numa WebView, 100% offline
+ * (a internet só serve para procurar e baixar atualizações, src/update.ts + Updater.kt).
  * O WebViewAssetLoader serve os arquivos do APK em https://appassets.androidplatform.net: contexto seguro,
  * então localStorage, crypto.randomUUID e o restante funcionam como no navegador.
  */
 class MainActivity : ComponentActivity() {
 
     private lateinit var webView: WebView
+    private lateinit var updater: Updater
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +39,14 @@ class MainActivity : ComponentActivity() {
         val assets = WebViewAssetLoader.Builder()
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
+
+        // Andamento da atualização para a página (evento UPDATE_EVENT de src/platform.ts, escutado em src/update.ts).
+        updater = Updater(this) { status, message ->
+            val detail = JSONObject().put("status", status).put("message", message)
+            runOnUiThread {
+                webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('ferracine-update', { detail: $detail }))", null)
+            }
+        }
 
         webView = WebView(this).apply {
             settings.javaScriptEnabled = true
@@ -53,7 +64,7 @@ class MainActivity : ComponentActivity() {
                     return true
                 }
             }
-            addJavascriptInterface(FerracineBridge(this@MainActivity), "FerracineAndroid")
+            addJavascriptInterface(FerracineBridge(this@MainActivity, updater), "FerracineAndroid")
         }
         // O padding vai num contêiner, não na WebView: a WebView ignora o próprio padding ao desenhar a página,
         // e o app ficava por baixo da barra de notificação e da barra de navegação.
@@ -92,6 +103,11 @@ class MainActivity : ComponentActivity() {
             isAppearanceLightStatusBars = !night
             isAppearanceLightNavigationBars = !night
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updater.resume() // voltou das configurações com "Instalar apps desconhecidos" liberado
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

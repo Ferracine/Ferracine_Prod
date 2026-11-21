@@ -158,7 +158,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
 
   form.append(
     group(
-      'Integrante principal (obrigatório)',
+      'Eletricista 1 (obrigatório)',
       UserCheck,
       null,
       h(
@@ -169,7 +169,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       ),
     ),
     group(
-      'Integrante auxiliar / dupla',
+      'Eletricista 2',
       Users,
       'Opcional se solo',
       h(

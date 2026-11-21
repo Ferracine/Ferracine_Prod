@@ -19,12 +19,15 @@ import androidx.core.content.FileProvider
 import androidx.core.view.WindowCompat
 import java.io.File
 
+/** content:// do FileProvider (autoridade do AndroidManifest, pastas em res/xml/file_paths.xml) para outro app ler. */
+fun Activity.shareableUri(file: File): Uri = FileProvider.getUriForFile(this, "$packageName.files", file)
+
 /**
  * Ponte com o JavaScript (src/platform.ts). Na WebView não dá para baixar um blob nem chamar o compartilhamento
  * web, então o app manda o PDF em base64 e o Android salva, abre ou compartilha.
  * Cada método devolve "" em caso de sucesso ou a mensagem de erro para o app mostrar.
  */
-class FerracineBridge(private val activity: Activity) {
+class FerracineBridge(private val activity: Activity, private val updater: Updater) {
 
     /**
      * Salva na pasta Downloads do celular. Android 10+ usa o MediaStore (sem permissão); Android 7 a 9 precisa da
@@ -97,11 +100,15 @@ class FerracineBridge(private val activity: Activity) {
         }
     }
 
+    /** Baixa e instala a versão nova do APK (src/update.ts); o andamento volta pelo evento "ferracine-update". */
+    @JavascriptInterface
+    fun installUpdate(url: String, size: Double): String = updater.start(url, size.toLong())
+
     /** Grava em cache/pdf e devolve um content:// do FileProvider (res/xml/file_paths.xml). */
     private fun cachedPdf(base64: String, fileName: String): Uri {
         val dir = File(activity.cacheDir, "pdf").apply { mkdirs() }
         val file = File(dir, safeName(fileName)).apply { writeBytes(decode(base64)) }
-        return FileProvider.getUriForFile(activity, "${activity.packageName}.files", file)
+        return activity.shareableUri(file)
     }
 
     private fun start(intent: Intent) {

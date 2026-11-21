@@ -1,11 +1,14 @@
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import pkg from './package.json' with { type: 'json' };
 import { UNUSED_ASSET_GLOBS } from './scripts/unused-assets.mjs';
 
 export default defineConfig({
   // Caminhos relativos: o build funciona em qualquer subpasta (GitHub Pages, Cloudflare, servidor local).
   base: './',
+  // Versão do app (mesma do APK: o build.gradle.kts lê o package.json), comparada com a das Releases.
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     tailwindcss(),
     VitePWA({

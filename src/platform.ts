@@ -10,6 +10,21 @@ interface AndroidBridge {
   sharePdf(base64: string, fileName: string): string;
   /** Cor de fundo do tema (#rrggbb) e modo, para as barras de status e de navegação acompanharem o app. */
   setSystemBars(color: string, dark: boolean): void;
+  /**
+   * Baixa o APK da Release (só de github.com/.../releases/download/; `size` em bytes, 0 se desconhecido) e abre o
+   * instalador. Volta na hora ("" ou
+   * erro); o andamento chega pelo evento "ferracine-update" (src/update.ts).
+   */
+  installUpdate(url: string, size: number): string;
+}
+
+/** Evento disparado pelo Updater.kt (via MainActivity) com o andamento da atualização. */
+export const UPDATE_EVENT = 'ferracine-update';
+
+/** Detalhe do evento UPDATE_EVENT. */
+export interface UpdateStatus {
+  status: 'permission' | 'installing' | 'error';
+  message?: string;
 }
 
 declare global {

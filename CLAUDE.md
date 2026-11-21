@@ -59,6 +59,13 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   na edição, uma entrada extra no `history` faz o voltar do Android agir como Voltar/Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
   `navigator.share`: o PDF vai em base64 para `FerracineBridge.kt`. No navegador a ponte não existe.
+- Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; ao abrir e ao
+  voltar para o app, no máximo a cada 6 h quando não há nada novo), `src/domain/update.ts` decide (tag `vX.Y.Z` maior
+  que `__APP_VERSION__` + asset `FerracineProd-X.Y.Z.apk` de `.../releases/download/`) e mostra o aviso
+  `#update-banner`. "Atualizar" chama `installUpdate(url)` da ponte: `Updater.kt` confere o mesmo prefixo, baixa em
+  `cache/update/`, confere pacote e versionCode maiores, pede "Instalar apps desconhecidos" (Android 8+, retoma no
+  `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
+  `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado. `edit-screen.ts` reaproveita os botões e
   campos do `wizard-screen.ts`. O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
@@ -76,7 +83,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   técnicos/produção só na última; data, equipe e "FOLHA n/N" embaixo de toda folha (`rodapePaginas`). Testes travam: 15 OSs completas numa folha. Importado sob demanda em `app.ts`.
 - `android/`: Kotlin mínimo (AGP 8.7.3, Kotlin 2.0.21, Gradle 8.9, minSdk 24, target 35). `MainActivity` serve
   `assets/www` (cópia do `dist/` feita pelo `scripts/apk.mjs`, sem service worker) via `WebViewAssetLoader` em
-  `https://appassets.androidplatform.net/www/`; sem permissão de internet. Borda a borda em todas as versões
+  `https://appassets.androidplatform.net/www/`; internet só para a atualização (INTERNET e
+  REQUEST_INSTALL_PACKAGES). Borda a borda em todas as versões
   (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
   WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
   (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider.
@@ -95,8 +103,9 @@ Regras de negócio que não são óbvias no código:
 
 Remoto `origin` = github.com/Bruno1991/Ferracine_Prod (público). Push no `main` publica no GitHub Pages pelo
 workflow `.github/workflows/deploy-pages.yml` (lint, testes unitários, build). O APK vai como asset de uma
-Release (`gh release create v<versão> release/FerracineProd-<versão>.apk`). Push, Release e publicação só com OK
-explícito do Bruno.
+Release (`gh release create v<versão> release/FerracineProd-<versão>.apk`). **Publicar a Release entrega a
+atualização a todos os APKs instalados**: tag `v` + versão do `package.json` e o APK com esse nome exato, assinado
+com a chave de sempre. Push, Release e publicação só com OK explícito do Bruno.
 
 ## Pendências conhecidas
 

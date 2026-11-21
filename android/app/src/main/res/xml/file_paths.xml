@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
     <cache-path name="pdf" path="pdf/" />
+    <!-- APK baixado pelo Updater.kt, entregue ao instalador do Android. -->
+    <cache-path name="update" path="update/" />
 </paths>
