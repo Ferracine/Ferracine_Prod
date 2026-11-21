@@ -79,7 +79,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - Tema claro/escuro (`src/theme.ts` + script no `<head>` do index.html, mesma chave `ferracine_prod:theme`).
   Cores em `src/styles.css`, do logo: `brand` = ciano `#0fabcc`, `accent` = laranja `#f36f23` (`-600/-700` para
   botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
-  `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Comercial = ciano, Ocorrência = laranja.
+  `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Avisos rápidos (toasts): `bg-brand-700`,
+  `bg-ok`, `bg-warn`, `bg-err` com texto branco, sem borda, centralizados e acima das janelas (`z-[60]`). Comercial = ciano, Ocorrência = laranja.
 - Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`) é o
   favicon, o ícone do PWA e o do APK. No `icon.png` a prancheta (sem o lápis) fica no centro; o lápis sobra para a
   direita. O ícone adaptativo usa a figura a 58% para caber no círculo seguro (tela de abertura do Android 12+).

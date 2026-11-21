@@ -20,7 +20,8 @@
     </script>
   </head>
   <body class="font-sans min-h-screen flex flex-col">
-    <div id="toast-container" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+    <!-- Avisos rápidos: centralizados sobre a coluna do app e acima das janelas (#modal é z-50). -->
+    <div id="toast-container" class="fixed top-4 inset-x-0 z-[60] mx-auto max-w-sm flex flex-col gap-2 px-4 pointer-events-none"></div>
     <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4"></div>
 
     <header class="sticky top-0 z-30 bg-card/95 border-b border-fg/10">

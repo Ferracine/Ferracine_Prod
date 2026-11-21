@@ -3,11 +3,15 @@ import { BTN, byId, h, icon } from './dom';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
+/**
+ * Só a cor de fundo distingue o tipo (sem borda): ciano do logo = informação, verde = deu certo, âmbar = falta algo,
+ * vermelho = erro. Todos sólidos: o aviso aparece por cima do cabeçalho e não pode se confundir com ele.
+ */
 const TOAST_COLORS: Record<ToastType, string> = {
-  info: 'bg-card text-fg border-brand',
-  success: 'bg-emerald-600 text-white border-emerald-300',
-  warning: 'bg-amber-600 text-white border-amber-300',
-  error: 'bg-rose-600 text-white border-rose-300',
+  info: 'bg-brand-700 text-white',
+  success: 'bg-ok text-white',
+  warning: 'bg-warn text-white',
+  error: 'bg-err text-white',
 };
 
 export function showToast(message: string, type: ToastType = 'info'): void {
@@ -15,7 +19,7 @@ export function showToast(message: string, type: ToastType = 'info'): void {
     'div',
     {
       role: type === 'error' ? 'alert' : 'status',
-      class: `${TOAST_COLORS[type]} border-l-4 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold pointer-events-auto transition-all duration-300`,
+      class: `${TOAST_COLORS[type]} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold pointer-events-auto transition-all duration-300`,
     },
     message,
   );

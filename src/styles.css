@@ -13,6 +13,10 @@
   --color-brand-700: #066a81;
   --color-accent-600: #c4500d;
   --color-accent-700: #a5430b;
+  /* Fundos dos avisos rápidos (texto branco por cima, contraste AA para ler ao sol): deu certo, falta algo, erro. */
+  --color-ok: #047857;
+  --color-warn: #b45309;
+  --color-err: #be123c;
 }
 
 /* Cores que mudam com o tema: superfícies, texto e as cores do logo usadas como texto. */

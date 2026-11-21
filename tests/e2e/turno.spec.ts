@@ -276,6 +276,27 @@ test('recarregar no meio da OS não deixa um "voltar" morto no histórico', asyn
   await expect.poll(() => page.evaluate(() => history.state?.ferracineBackTrap ?? false)).toBe(false);
 });
 
+test('avisos rápidos: sem borda e centralizados sobre o app também no computador', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await iniciarTurno(page);
+  const toast = page.getByRole('status').filter({ hasText: 'Turno iniciado' });
+  await expect(toast).toBeVisible();
+  expect(await toast.evaluate((el) => getComputedStyle(el).borderLeftWidth)).toBe('0px');
+  const box = await toast.boundingBox(); // o aviso dura ~3,8 s: mede logo
+  const app = await page.locator('#app').boundingBox();
+  expect(box && app).toBeTruthy();
+  expect(Math.abs(box!.x + box!.width / 2 - (app!.x + app!.width / 2))).toBeLessThan(4);
+
+  // Aviso disparado com uma janela aberta aparece acima dela (não atrás do fundo escurecido).
+  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.locator('#btn-tecnicos').click();
+  await page.getByRole('button', { name: 'Adicionar técnico' }).click();
+  const alerta = page.getByRole('status').filter({ hasText: 'Digite o nome do técnico' });
+  await expect(alerta).toBeVisible();
+  const z = await alerta.evaluate((el) => Number(getComputedStyle(el.parentElement!).zIndex) - Number(getComputedStyle(document.getElementById('modal')!).zIndex));
+  expect(z).toBeGreaterThan(0);
+});
+
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
   await page.goto('/');
   const html = page.locator('html');
