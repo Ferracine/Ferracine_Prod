@@ -117,7 +117,9 @@ novo, no máximo a cada 6 horas). Se a Release `vX.Y.Z` for maior que a versão 
 `FerracineProd-X.Y.Z.apk` anexado, aparece um aviso no topo: **Atualizar** baixa o APK (~0,6 MB) e abre o instalador
 do Android; **X** esconde o aviso até a próxima abertura. Na primeira vez o Android pede para liberar "Instalar apps
 desconhecidos" para a Folha de Produção; liberado, a instalação continua sozinha. O Android só instala por cima um
-APK assinado com a mesma chave, e os dados do turno continuam. No rodapé ficam a versão instalada e o botão
+APK assinado com a mesma chave, e os dados do turno continuam. O Google Play Protect pode pedir para "Verificar
+app" (envia o APK ao Google) ou oferecer "Mais detalhes" → "Instalar sem análise" (o Samsung pede a digital ou o
+PIN); qualquer um dos dois segue a instalação. No rodapé ficam a versão instalada e o botão
 **Procurar atualização**. Sem internet nada muda. No navegador/PWA quem atualiza é o service worker.
 
 ## Histórico
