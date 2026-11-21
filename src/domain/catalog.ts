@@ -18,19 +18,14 @@ export const SERVICE_LABEL: Record<ServiceType, string> = {
   OCORRENCIA: 'OCORRÊNCIA',
 };
 
-function escolha(answers: Record<string, Answer>, id: string): Choice | undefined {
+/** SIM/NÃO respondido na pergunta `id` (ou undefined). */
+export function escolha(answers: Record<string, Answer>, id: string): Choice | undefined {
   const a = answers[id];
   return a?.kind === 'choice' ? a.choice : undefined;
 }
 
-/** Comercial: número e leitura do medidor instalado aparecem se instalou, ou se não instalou nem retirou (medidor da UC). */
-function medidorDaUC(a: Record<string, Answer>): boolean {
-  const inst = escolha(a, 'medidorInst');
-  return inst === 'Sim' || (inst === 'Não' && escolha(a, 'medidorRet') === 'Não');
-}
-
-/** Comercial: número e leitura do medidor retirado só se retirou. */
-const retirou = (a: Record<string, Answer>) => escolha(a, 'medidorRet') === 'Sim';
+/** Comercial: "Foi instalado novo medidor?" = SIM (troca de medidor). */
+const trocou = (a: Record<string, Answer>) => escolha(a, 'novoMedidor') === 'Sim';
 
 const MEDIDOR_INST_NUM: Question = { id: 'medidorInstNum', text: 'Digite o número do medidor instalado', type: 'text', placeholder: 'Nº do medidor...', espelho: 'medidorInstalado' };
 const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do medidor instalado?', type: 'text', placeholder: 'Leitura atual...', input: 'decimal', espelho: 'leituraInstalado' };
@@ -59,13 +54,13 @@ const COMERCIAL: readonly Question[] = [
   { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' },
   { id: 'clientePresente', text: 'Cliente presente?', type: 'yesno', espelho: 'clientePresente' },
   { id: 'ramal', text: 'Foi necessário lançar ramal?', type: 'yesno', short: 'Lançou ramal' },
-  // Medidores: SIM abre o número e a leitura logo abaixo; com os dois NÃO, registra o medidor que ficou na UC.
-  { id: 'medidorInst', text: 'Foi instalado medidor?', type: 'yesno', semInfo: true },
-  { ...MEDIDOR_INST_NUM, showIf: medidorDaUC },
-  { ...LEITURA_INST, showIf: medidorDaUC },
-  { id: 'medidorRet', text: 'Foi retirado medidor?', type: 'yesno', semInfo: true },
-  { id: 'medidorRetNum', text: 'Digite o número do medidor retirado', type: 'text', placeholder: 'Nº do medidor retirado...', espelho: 'medidorRetirado', showIf: retirou },
-  { id: 'leituraRet', text: 'Qual a leitura do medidor retirado?', type: 'text', placeholder: 'Leitura final...', input: 'decimal', espelho: 'leituraRetirado', showIf: retirou },
+  // Medidor da UC (sempre). "Foi instalado novo medidor?" SIM abre o número e a leitura do novo; na troca, o
+  // Espelho de Campo leva o novo em MEDIDOR INSTALADO e o da UC em MEDIDOR RETIRADO.
+  { ...MEDIDOR_INST_NUM, espelho: (a) => (trocou(a) ? 'medidorRetirado' : 'medidorInstalado') },
+  { ...LEITURA_INST, espelho: (a) => (trocou(a) ? 'leituraRetirado' : 'leituraInstalado') },
+  { id: 'novoMedidor', text: 'Foi instalado novo medidor?', type: 'yesno', semInfo: true },
+  { id: 'novoMedidorNum', text: 'Digite o número do medidor novo', type: 'text', placeholder: 'Nº do medidor novo...', espelho: 'medidorInstalado', showIf: trocou },
+  { id: 'novoLeitura', text: 'Qual a leitura do medidor novo?', type: 'text', placeholder: 'Leitura do medidor novo...', input: 'decimal', espelho: 'leituraInstalado', showIf: trocou },
   { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
   { id: 'horaFin', text: 'Deseja informar o horário final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade na execução desse serviço? Se sim relate!', type: 'yesno_detail', detailLabel: 'Relate a dificuldade na execução:', placeholder: 'Relate detalhadamente...', short: 'Dificuldade' },

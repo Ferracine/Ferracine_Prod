@@ -1,6 +1,6 @@
 import { ArrowRight, Download, FileDown, Share2, Trash2, Truck, UserCheck, UserCog, Users } from 'lucide';
-import { formatDateBR, plural, todayISO } from '../domain/format';
-import { HEADER_FIELDS, type ClosedSheet, type ShiftHeader, type Tecnico } from '../domain/types';
+import { eletricistaLabel, formatDateBR, plural, todayISO } from '../domain/format';
+import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
 import { BTN, BTN_PRIMARY_LG, h, icon, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
 
@@ -13,6 +13,10 @@ export interface HeaderScreenProps {
   getTecnicos: () => readonly Tecnico[];
   onAddTecnico: (nome: string, telefone: string) => void;
   onRemoveTecnico: (id: string) => void;
+  /** Eletricistas cadastrados: escolher um preenche nome e matrícula (igual aos técnicos líderes). */
+  getEletricistas: () => readonly Eletricista[];
+  onAddEletricista: (nome: string, matricula: string) => void;
+  onRemoveEletricista: (id: string) => void;
   /** Últimas folhas encerradas (a mais recente primeiro). */
   sheets: readonly ClosedSheet[];
   canShare: boolean;
@@ -83,27 +87,43 @@ function tecnicoLabel(t: Tecnico): string {
   return t.telefone ? `${t.nome} - ${t.telefone}` : t.nome;
 }
 
-/** Janela com os técnicos cadastrados (excluir) e o formulário para cadastrar outro. */
-function manageTecnicos(p: HeaderScreenProps, onChange: () => void): void {
-  const list = h('ul', { class: 'space-y-2', 'data-testid': 'tecnicos-list' });
+/** O que muda entre os cadastros de técnicos e de eletricistas (a janela é a mesma). */
+interface Cadastro<T extends { id: string; nome: string }> {
+  titulo: string;
+  /** Chave dos ids (`tecnico-nome`, `tecnicos-list`...). */
+  item: string;
+  /** Nome nos textos ("técnico", "eletricista"). */
+  rotulo: string;
+  /** Segundo campo: id (`tecnico-telefone`), rótulo e exemplo. */
+  extra: { id: string; label: string; placeholder: string; inputmode: string };
+  nomePlaceholder: string;
+  get: () => readonly T[];
+  extraOf: (t: T) => string;
+  onAdd: (nome: string, extra: string) => void;
+  onRemove: (id: string) => void;
+}
+
+/** Janela com os cadastrados (excluir) e o formulário para cadastrar outro. `onChange`: a lista mudou. */
+function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, onChange: () => void): void {
+  const list = h('ul', { class: 'space-y-2', 'data-testid': `${c.item}s-list` });
   const drawList = () => {
-    const tecnicos = p.getTecnicos();
+    const itens = c.get();
     list.replaceChildren(
-      ...(tecnicos.length === 0
-        ? [h('li', { class: 'text-sm text-muted' }, 'Nenhum técnico cadastrado.')]
-        : tecnicos.map((t) =>
+      ...(itens.length === 0
+        ? [h('li', { class: 'text-sm text-muted' }, `Nenhum ${c.rotulo} cadastrado.`)]
+        : itens.map((t) =>
             h(
               'li',
               { class: 'flex items-center justify-between gap-3 p-3 rounded-xl bg-fg/5 border border-fg/10' },
-              h('div', { class: 'min-w-0' }, h('p', { class: 'text-sm font-bold text-fg break-words' }, t.nome), t.telefone && h('p', { class: 'text-xs text-muted' }, t.telefone)),
+              h('div', { class: 'min-w-0' }, h('p', { class: 'text-sm font-bold text-fg break-words' }, t.nome), c.extraOf(t) && h('p', { class: 'text-xs text-muted' }, c.extraOf(t))),
               h(
                 'button',
                 {
                   type: 'button',
                   class: 'p-2.5 rounded-xl border border-fg/10 text-danger-fg hover:bg-rose-500/10 shrink-0',
-                  'aria-label': `Excluir técnico ${t.nome}`,
+                  'aria-label': `Excluir ${c.rotulo} ${t.nome}`,
                   onClick: () => {
-                    p.onRemoveTecnico(t.id);
+                    c.onRemove(t.id);
                     onChange();
                     drawList();
                   },
@@ -117,23 +137,23 @@ function manageTecnicos(p: HeaderScreenProps, onChange: () => void): void {
 
   const add = () => {
     if (!nome.value.trim()) {
-      showToast('Digite o nome do técnico.', 'warning');
+      showToast(`Digite o nome do ${c.rotulo}.`, 'warning');
       nome.focus();
       return;
     }
-    p.onAddTecnico(nome.value.trim(), telefone.value.trim());
+    c.onAdd(nome.value.trim().toUpperCase(), extra.value.trim().toUpperCase());
     onChange();
     nome.value = '';
-    telefone.value = '';
+    extra.value = '';
     drawList();
     nome.focus();
   };
-  const nome = h('input', { id: 'tecnico-nome', class: 'field', autocomplete: 'off', placeholder: 'Ex: TEC. JOÃO SILVA' });
-  const telefone = h('input', { id: 'tecnico-telefone', class: 'field', autocomplete: 'off', inputmode: 'tel', placeholder: 'Ex: 69 99999-9999', onKeydown: onEnter(add) });
+  const nome = h('input', { id: `${c.item}-nome`, class: 'field', autocomplete: 'off', placeholder: c.nomePlaceholder });
+  const extra = h('input', { id: c.extra.id, class: 'field', autocomplete: 'off', inputmode: c.extra.inputmode, placeholder: c.extra.placeholder, onKeydown: onEnter(add) });
   drawList();
 
   openModal(
-    'Técnicos líderes',
+    c.titulo,
     h(
       'div',
       { class: 'space-y-4' },
@@ -141,14 +161,19 @@ function manageTecnicos(p: HeaderScreenProps, onChange: () => void): void {
       h(
         'div',
         { class: 'space-y-3 pt-3 border-t border-fg/10' },
-        h('p', { class: 'lbl' }, 'Cadastrar técnico'),
-        h('div', null, h('label', { for: 'tecnico-nome', class: 'lbl' }, 'Nome'), nome),
-        h('div', null, h('label', { for: 'tecnico-telefone', class: 'lbl' }, 'Telefone'), telefone),
-        h('button', { type: 'button', class: `${BTN.primary} w-full`, onClick: add }, 'Adicionar técnico'),
+        h('p', { class: 'lbl' }, `Cadastrar ${c.rotulo}`),
+        h('div', null, h('label', { for: `${c.item}-nome`, class: 'lbl' }, 'Nome'), nome),
+        h('div', null, h('label', { for: c.extra.id, class: 'lbl' }, c.extra.label), extra),
+        h('button', { type: 'button', class: `${BTN.primary} w-full`, onClick: add }, `Adicionar ${c.rotulo}`),
       ),
     ),
     [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }],
   );
+}
+
+/** Link "Adicionar / excluir ..." ao lado de um rótulo. */
+function manageLink(id: string, text: string, onClick: () => void): HTMLElement {
+  return h('button', { type: 'button', id, class: 'text-xs font-bold text-brand-fg hover:underline flex items-center gap-1 mb-1.5', onClick }, icon(UserCog, 'w-3.5 h-3.5'), text);
 }
 
 export function headerScreen(p: HeaderScreenProps): HTMLElement {
@@ -167,11 +192,76 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   };
   fillLider(v('lider'));
 
+  const tecnicosCadastro: Cadastro<Tecnico> = {
+    titulo: 'Técnicos líderes',
+    item: 'tecnico',
+    rotulo: 'técnico',
+    extra: { id: 'tecnico-telefone', label: 'Telefone', placeholder: 'Ex: 69 99999-9999', inputmode: 'tel' },
+    nomePlaceholder: 'Ex: TEC. JOÃO SILVA',
+    get: p.getTecnicos,
+    extraOf: (t) => t.telefone,
+    onAdd: p.onAddTecnico,
+    onRemove: p.onRemoveTecnico,
+  };
+
+  // Eletricista 1 e 2: escolher um cadastrado preenche nome e matrícula (que continuam editáveis).
+  const sels: { n: 1 | 2; sel: HTMLSelectElement }[] = [];
+  const fillEletricistas = () => {
+    const lista = p.getEletricistas();
+    for (const { n, sel } of sels) {
+      // Marca quem já está nos campos (turno anterior), se for um cadastrado.
+      const nome = input(`nome${n}`).value.trim().toUpperCase();
+      const mat = input(`mat${n}`).value.trim().toUpperCase();
+      sel.replaceChildren(
+        h('option', { value: '' }, lista.length ? 'Escolher eletricista cadastrado…' : 'Nenhum eletricista cadastrado'),
+        ...lista.map((e) => h('option', { value: e.id }, e.matricula ? eletricistaLabel(e.nome, e.matricula) : e.nome)),
+      );
+      sel.value = lista.find((e) => e.nome === nome && e.matricula === mat)?.id ?? '';
+    }
+  };
+  const eletricistasCadastro: Cadastro<Eletricista> = {
+    titulo: 'Eletricistas',
+    item: 'eletricista',
+    rotulo: 'eletricista',
+    extra: { id: 'eletricista-matricula', label: 'Matrícula', placeholder: 'Ex: 123456', inputmode: 'numeric' },
+    nomePlaceholder: 'Ex: JOÃO DA SILVA',
+    get: p.getEletricistas,
+    extraOf: (e) => (e.matricula ? `Mat: ${e.matricula}` : ''),
+    onAdd: p.onAddEletricista,
+    onRemove: p.onRemoveEletricista,
+  };
+  const escolher = (n: 1 | 2) => {
+    const sel = h('select', {
+      id: `eletricista${n}`,
+      class: 'field',
+      'aria-label': `Escolher eletricista ${n} cadastrado`,
+      onChange: () => {
+        const e = p.getEletricistas().find((x) => x.id === sel.value);
+        if (!e) return;
+        input(`nome${n}`).value = e.nome;
+        input(`mat${n}`).value = e.matricula;
+      },
+    });
+    sels.push({ n, sel });
+    return h(
+      'div',
+      null,
+      h(
+        'div',
+        { class: 'flex items-center justify-between gap-2' },
+        h('label', { for: `eletricista${n}`, class: 'lbl' }, 'Cadastrado'),
+        n === 1 && manageLink('btn-eletricistas', 'Adicionar / excluir eletricistas', () => manageCadastro(eletricistasCadastro, fillEletricistas)),
+      ),
+      sel,
+    );
+  };
+
   form.append(
     group(
       'Eletricista 1 (obrigatório)',
       UserCheck,
       null,
+      escolher(1),
       h(
         'div',
         { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
@@ -183,6 +273,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       'Eletricista 2',
       Users,
       'Opcional se solo',
+      escolher(2),
       h(
         'div',
         { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
@@ -222,17 +313,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
         'div',
         { class: 'flex items-center justify-between gap-2' },
         h('label', { for: 'lider', class: 'lbl' }, 'Técnico líder responsável'),
-        h(
-          'button',
-          {
-            type: 'button',
-            id: 'btn-tecnicos',
-            class: 'text-xs font-bold text-brand-fg hover:underline flex items-center gap-1 mb-1.5',
-            onClick: () => manageTecnicos(p, () => fillLider(liderSelect.value)),
-          },
-          icon(UserCog, 'w-3.5 h-3.5'),
-          'Adicionar / excluir técnicos',
-        ),
+        manageLink('btn-tecnicos', 'Adicionar / excluir técnicos', () => manageCadastro(tecnicosCadastro, () => fillLider(liderSelect.value))),
       ),
       liderSelect,
     ),
@@ -243,6 +324,8 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h('button', { type: 'submit', class: `flex-1 ${BTN_PRIMARY_LG}` }, init ? 'Salvar cabeçalho' : 'Iniciar turno e liberar OSs', icon(ArrowRight, 'w-5 h-5')),
     ),
   );
+
+  fillEletricistas(); // depois de montar o form: lê os nomes já preenchidos
 
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();

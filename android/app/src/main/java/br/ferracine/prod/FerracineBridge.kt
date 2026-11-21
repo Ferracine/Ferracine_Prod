@@ -34,7 +34,15 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
      * permissão de armazenamento, pedida no primeiro "Baixar PDF".
      */
     @JavascriptInterface
-    fun savePdf(base64: String, fileName: String): String = attempt("salvar") {
+    fun savePdf(base64: String, fileName: String): String {
+        var salvo = ""
+        val erro = attempt("salvar") { salvo = writeToDownloads(base64, fileName) }
+        // Sucesso: "salvo:<nome>" (o Android pode ter acrescentado " (1)" ao nome); erro: a mensagem.
+        return if (erro.isEmpty()) "$SAVED$salvo" else erro
+    }
+
+    /** Grava em Downloads e devolve o nome com que o arquivo ficou lá. */
+    private fun writeToDownloads(base64: String, fileName: String): String {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
             ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
         ) {
@@ -57,11 +65,14 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
             values.clear()
             values.put(MediaStore.Downloads.IS_PENDING, 0)
             resolver.update(uri, values, null, null)
-        } else {
-            @Suppress("DEPRECATION")
-            val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).apply { mkdirs() }
-            uniqueFile(dir, name).writeBytes(bytes)
+            // Com um arquivo de mesmo nome, o MediaStore salva como "nome (1).pdf": lê o nome que ficou.
+            return resolver.query(uri, arrayOf(MediaStore.Downloads.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0) else null
+            } ?: name
         }
+        @Suppress("DEPRECATION")
+        val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).apply { mkdirs() }
+        return uniqueFile(dir, name).apply { writeBytes(bytes) }.name
     }
 
     @JavascriptInterface
@@ -129,6 +140,9 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
 
     private companion object {
         const val PDF = "application/pdf"
+
+        /** Prefixo da resposta de sucesso de savePdf (src/platform.ts). */
+        const val SAVED = "salvo:"
 
         fun decode(base64: String): ByteArray = Base64.decode(base64, Base64.DEFAULT)
 

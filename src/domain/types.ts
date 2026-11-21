@@ -24,7 +24,8 @@ export interface Question {
   isDitais?: boolean;
   /** Pergunta do número da OS: começa com o número do painel e, respondida, define o número. */
   prefillOS?: boolean;
-  espelho?: EspelhoColumn;
+  /** Coluna própria no Espelho de Campo (fixa, ou conforme as respostas: ex. medidor atual vira "retirado" na troca). */
+  espelho?: EspelhoColumn | ((answers: Record<string, Answer>) => EspelhoColumn);
   /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho` e que não são o número da OS). */
   short?: string;
   /**
@@ -32,7 +33,7 @@ export interface Question {
    * conta, não é validada e não vai ao PDF. Na tela, fica recuada embaixo da pergunta de que depende.
    */
   showIf?: (answers: Record<string, Answer>) => boolean;
-  /** Pergunta de controle (ex.: "Foi instalado medidor?"): a resposta não vai para INFO ADICIONAL. */
+  /** Pergunta de controle (ex.: "Foi instalado novo medidor?"): a resposta não vai para INFO ADICIONAL. */
   semInfo?: boolean;
 }
 
@@ -73,6 +74,13 @@ export interface OSDraft {
   infoLegada?: string;
 }
 
+/** Eletricista cadastrado no aparelho: escolhido no cabeçalho, preenche nome e matrícula. */
+export interface Eletricista {
+  id: string;
+  nome: string;
+  matricula: string;
+}
+
 /** Técnico líder cadastrado no aparelho (rodapé do Espelho de Campo). */
 export interface Tecnico {
   id: string;
@@ -102,6 +110,7 @@ export interface AppData {
   /** Último cabeçalho usado: preenche o próximo turno automaticamente (menos a data, que vem do sistema). */
   lastHeader: ShiftHeader | null;
   tecnicos: Tecnico[];
+  eletricistas: Eletricista[];
 }
 
 /** Linha pronta para exibir no app ou no PDF. */

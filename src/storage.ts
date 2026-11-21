@@ -1,5 +1,5 @@
-import { LEGACY_EXTRA_LABELS, LEGACY_QUESTION_IDS, questionsFor } from './domain/catalog';
-import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
+import { LEGACY_EXTRA_LABELS, LEGACY_QUESTION_IDS, escolha, questionsFor } from './domain/catalog';
+import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type Eletricista, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
 /** Chave da versão 2 (catálogo antigo, técnicos fixos): lida uma vez e migrada. */
@@ -8,7 +8,7 @@ export const LEGACY_STORAGE_KEY = 'ferracine_prod:v2';
 export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
 
 export function emptyData(): AppData {
-  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [] };
+  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [] };
 }
 
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
@@ -20,6 +20,25 @@ function normalizeHeader(raw: Partial<ShiftHeader> | null | undefined): ShiftHea
 function normalizeTecnicos(raw: unknown): Tecnico[] {
   if (!Array.isArray(raw)) return [];
   return raw.filter((t): t is Tecnico => !!t && typeof t.id === 'string' && typeof t.nome === 'string' && typeof t.telefone === 'string');
+}
+
+/**
+ * Eletricistas cadastrados. Sem a lista (até a 1.4.4), o cadastro começa com quem estava nos últimos cabeçalhos, para
+ * a dupla de sempre já aparecer para escolher.
+ */
+function normalizeEletricistas(raw: unknown, ...headers: (ShiftHeader | null)[]): Eletricista[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((e): e is Eletricista => !!e && typeof e.id === 'string' && typeof e.nome === 'string' && typeof e.matricula === 'string');
+  }
+  const out: Eletricista[] = [];
+  for (const h of headers) {
+    if (!h) continue;
+    for (const [nome, matricula] of [[h.nome1, h.mat1], [h.nome2, h.mat2]] as const) {
+      const n = nome.trim().toUpperCase();
+      if (n && !out.some((e) => e.nome === n)) out.push({ id: `ele-migrado-${out.length + 1}`, nome: n, matricula: matricula.trim().toUpperCase() });
+    }
+  }
+  return out;
 }
 
 /** `undefined` = chave ausente; `null` = ilegível (corrompida ou armazenamento indisponível). */
@@ -71,14 +90,17 @@ export function loadData(store: KeyValueStore): AppData {
   }
   if (current?.version === 3 && Array.isArray(current.ordens)) {
     const sheets = Array.isArray(current.sheets) ? current.sheets : current.lastSheet ? [current.lastSheet] : [];
+    const header = normalizeHeader(current.header);
+    const lastHeader = normalizeHeader(current.lastHeader);
     return {
       version: 3,
-      header: normalizeHeader(current.header),
+      header,
       ordens: current.ordens.map(normalizeOS),
       draft: normalizeDraft(current.draft),
       sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
-      lastHeader: normalizeHeader(current.lastHeader),
+      lastHeader,
       tecnicos: normalizeTecnicos(current.tecnicos),
+      eletricistas: normalizeEletricistas(current.eletricistas, header, lastHeader),
     };
   }
   return emptyData();
@@ -140,9 +162,9 @@ function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): { a
 const LEGACY_TEXT_TO_QUESTION: Record<string, string> = { 'Medidor instalado': 'medidorInstNum', 'Leitura medidor instalado': 'leituraInst' };
 
 /**
- * Medidores das versões anteriores no formato atual (número em pergunta própria: `medidorInstNum`/`medidorRetNum`).
- * - Comercial até a 1.4.3: "Foi instalado/retirado medidor? Se sim qual número?" (SIM/NÃO + número) vira a resposta
- *   SIM/NÃO e o número separado.
+ * Medidores das versões anteriores no formato atual.
+ * - Comercial até a 1.4.4 (ver abaixo): vira medidor da UC (`medidorInstNum`/`leituraInst`) + "Foi instalado novo
+ *   medidor?" (`novoMedidor`, `novoMedidorNum`/`novoLeitura`), com o mesmo Espelho de Campo de antes.
  * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
  *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
  */
@@ -160,16 +182,41 @@ function migrateMeters(type: ServiceType, answers: Record<string, Answer>): Reco
     }
     return out;
   }
-  const preenchido = (id: string) => out[id]?.kind === 'text' && (out[id] as { value: string }).value.trim() !== '';
-  for (const [id, num, leitura] of [['medidorInst', 'medidorInstNum', 'leituraInst'], ['medidorRet', 'medidorRetNum', 'leituraRet']] as const) {
+  // Comercial até a 1.4.4: "Foi instalado medidor?"/"Foi retirado medidor?" (≤1.4.3 com o número junto, "Se sim qual
+  // número?") → atual: medidor da UC + "Foi instalado novo medidor?". O Espelho de Campo sai igual ao de antes.
+  if (!['medidorInst', 'medidorRet', 'medidorRetNum', 'leituraRet'].some((k) => k in out)) return out;
+  for (const [id, num] of [['medidorInst', 'medidorInstNum'], ['medidorRet', 'medidorRetNum']] as const) {
     const ans = out[id];
-    if (ans?.kind === 'choice' && ans.detail !== undefined) {
-      out[id] = { kind: 'choice', choice: ans.choice };
-      const n = numero(ans);
-      if (n) out[num] = n;
-    }
-    // Até a 1.4.3 a leitura não dependia do SIM/NÃO: com número ou leitura e o SIM/NÃO sem resposta, houve medidor.
-    if (out[id]?.kind !== 'choice' && (preenchido(num) || preenchido(leitura))) out[id] = { kind: 'choice', choice: 'Sim' };
+    if (ans?.kind !== 'choice' || ans.detail === undefined) continue;
+    out[id] = { kind: 'choice', choice: ans.choice };
+    const n = numero(ans);
+    if (n) out[num] = n;
+  }
+  const preenchido = (id: string) => {
+    const a = out[id];
+    return a?.kind === 'text' && a.value.trim() !== '';
+  };
+  const vazio: Answer = { kind: 'skipped' };
+  /** Resposta de texto preenchida e visível na 1.4.4 (`ok`); senão, em branco. */
+  const pega = (id: string, ok: boolean): Answer => (ok && preenchido(id) ? out[id]! : vazio);
+  // Até a 1.4.3 a leitura não dependia do SIM/NÃO: número ou leitura preenchidos contam como "houve medidor".
+  let inst = escolha(out, 'medidorInst');
+  let ret = escolha(out, 'medidorRet');
+  if (ret !== 'Sim' && (preenchido('medidorRetNum') || preenchido('leituraRet'))) ret = 'Sim';
+  // Na 1.4.4 o número/leitura do instalado apareciam com instalou=SIM ou com os dois NÃO (medidor da UC).
+  const instVisivel = () => inst === 'Sim' || (inst === 'Não' && ret === 'Não');
+  if (!instVisivel() && (preenchido('medidorInstNum') || preenchido('leituraInst'))) inst = 'Sim';
+  const iNum = pega('medidorInstNum', instVisivel());
+  const iLei = pega('leituraInst', instVisivel());
+  const rNum = pega('medidorRetNum', ret === 'Sim');
+  const rLei = pega('leituraRet', ret === 'Sim');
+  for (const k of ['medidorInst', 'medidorRet', 'medidorRetNum', 'leituraRet']) delete out[k];
+  if (ret === 'Sim' || inst === 'Sim') {
+    // Troca (ou só instalação): o instalado é o "novo"; o retirado é o medidor que estava na UC.
+    Object.assign(out, { medidorInstNum: rNum, leituraInst: rLei, novoMedidor: { kind: 'choice', choice: 'Sim' }, novoMedidorNum: iNum, novoLeitura: iLei });
+  } else {
+    Object.assign(out, { medidorInstNum: iNum, leituraInst: iLei });
+    if (inst === 'Não') out.novoMedidor = { kind: 'choice', choice: 'Não' };
   }
   return out;
 }
@@ -248,5 +295,6 @@ function migrateV2(old: LegacyData): AppData {
     sheets: lastSheet ? [lastSheet] : [],
     lastHeader: current ?? lastHeader,
     tecnicos,
+    eletricistas: normalizeEletricistas(undefined, current, lastHeader),
   };
 }

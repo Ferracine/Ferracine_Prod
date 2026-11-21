@@ -18,12 +18,12 @@ describe('linhas do Espelho de Campo', () => {
       horaIni: { kind: 'text', value: '08:15' },
       clientePresente: { kind: 'choice', choice: 'Sim' },
       ramal: { kind: 'choice', choice: 'Não' },
-      medidorInst: { kind: 'choice', choice: 'Sim' },
-      medidorInstNum: { kind: 'text', value: 'M-100' },
-      leituraInst: { kind: 'text', value: '0' },
-      medidorRet: { kind: 'choice', choice: 'Sim' },
-      medidorRetNum: { kind: 'text', value: 'M-050' },
-      leituraRet: { kind: 'text', value: '15432' },
+      // Troca: o medidor da UC (M-050) sai em MEDIDOR RETIRADO; o novo (M-100), em MEDIDOR INSTALADO.
+      medidorInstNum: { kind: 'text', value: 'M-050' },
+      leituraInst: { kind: 'text', value: '15432' },
+      novoMedidor: { kind: 'choice', choice: 'Sim' },
+      novoMedidorNum: { kind: 'text', value: 'M-100' },
+      novoLeitura: { kind: 'text', value: '0' },
       kmFin: { kind: 'text', value: '45235' },
       horaFin: { kind: 'text', value: '09:40' },
       dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Cachorro solto' },
@@ -45,6 +45,16 @@ describe('linhas do Espelho de Campo', () => {
         info: 'Tipo: Ligação nova; Lançou ramal: Não; Dificuldade: Cachorro solto',
       },
     ]);
+  });
+
+  it('comercial sem troca: o medidor da UC vai para MEDIDOR INSTALADO', () => {
+    const os = finishedOS('1', 'COMERCIAL', '709', {
+      medidorInstNum: { kind: 'text', value: 'UC-1' },
+      leituraInst: { kind: 'text', value: '42' },
+      novoMedidor: { kind: 'choice', choice: 'Não' },
+    });
+    expect(espelhoRows([os])[0]).toMatchObject({ medidorInstalado: 'UC-1', leituraInstalado: '42', medidorRetirado: '', leituraRetirado: '' });
+    expect(espelhoRows([os])[0]?.info).not.toContain('novo medidor');
   });
 
   it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e dificuldade vão para INFO ADICIONAL', () => {

@@ -66,6 +66,7 @@ describe('armazenamento', () => {
       ordens: [{ id: '1', osNumber: '10', serviceType: 'COMERCIAL', serviceCode: '28', answers: { tipo: { kind: 'skipped' } }, registradaEm: '2026-11-20T10:00:00.000Z' }],
       draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: {} },
       sheets: [{ header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos }],
+      eletricistas: [{ id: 'e1', nome: 'ANA', matricula: '1' }],
       lastHeader: header,
       tecnicos,
     };
@@ -147,31 +148,35 @@ describe('armazenamento', () => {
     expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [soNumero] }) })).ordens[0]?.answers).toEqual({ medidorInstNum: { kind: 'text', value: 'D60' } });
   });
 
-  it('comercial até a 1.4.3 com leitura e SIM/NÃO sem resposta: marca SIM para a leitura continuar valendo', () => {
-    const os = {
-      id: 'l', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: 'x',
-      answers: { medidorInst: { kind: 'skipped' }, leituraInst: { kind: 'text', value: '12345' }, leituraRet: { kind: 'text', value: '777' } },
+  it('comercial até a 1.4.4 (instalado/retirado) → medidor da UC + novo medidor, com o mesmo Espelho de Campo', () => {
+    const carrega = (answers: Record<string, unknown>) => {
+      const os = { id: 'c', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: 'x', answers };
+      return loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [os] }) })).ordens[0]!;
     };
-    const store = memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [os] }) });
-    const o = loadData(store).ordens[0]!;
-    expect(o.answers.medidorInst).toEqual({ kind: 'choice', choice: 'Sim' });
-    expect(o.answers.medidorRet).toEqual({ kind: 'choice', choice: 'Sim' });
-    // A leitura vai para o PDF (não fica escondida).
-    expect(espelhoRows([o])[0]).toMatchObject({ leituraInstalado: '12345', leituraRetirado: '777' });
+    const t = (value: string) => ({ kind: 'text', value });
+    const sim = { kind: 'choice', choice: 'Sim' };
+    const nao = { kind: 'choice', choice: 'Não' };
+    // 1.4.4, troca: instalou N1 e retirou R1 → UC = R1, novo = N1.
+    const troca = carrega({ medidorInst: sim, medidorInstNum: t('N1'), leituraInst: t('10'), medidorRet: sim, medidorRetNum: t('R1'), leituraRet: t('20') });
+    expect(troca.answers).toEqual({ medidorInstNum: t('R1'), leituraInst: t('20'), novoMedidor: sim, novoMedidorNum: t('N1'), novoLeitura: t('10') });
+    expect(espelhoRows([troca])[0]).toMatchObject({ medidorInstalado: 'N1', leituraInstalado: '10', medidorRetirado: 'R1', leituraRetirado: '20' });
+    // 1.4.4, os dois NÃO: medidor da UC.
+    const uc = carrega({ medidorInst: nao, medidorRet: nao, medidorInstNum: t('UC'), leituraInst: t('5') });
+    expect(uc.answers).toEqual({ medidorInstNum: t('UC'), leituraInst: t('5'), novoMedidor: nao });
+    // ≤1.4.3: "Se sim qual número?" junto e leituras sem depender do SIM/NÃO (retirado NÃO com leitura = houve).
+    const antiga = carrega({ medidorInst: { ...sim, detail: ' N62 ' }, medidorRet: nao, leituraInst: t('5'), leituraRet: t('777') });
+    expect(espelhoRows([antiga])[0]).toMatchObject({ medidorInstalado: 'N62', leituraInstalado: '5', leituraRetirado: '777' });
+    // Estável: carregar de novo não muda nada.
+    const store = memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [troca] }) });
+    expect(loadData(store).ordens[0]).toEqual(troca);
   });
 
-  it('comercial até a 1.4.3 ("Foi instalado/retirado medidor? Se sim qual número?"): SIM/NÃO e número separados', () => {
-    const os = {
-      id: 'c', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: 'x',
-      answers: { medidorInst: { kind: 'choice', choice: 'Sim', detail: ' N62 ' }, medidorRet: { kind: 'choice', choice: 'Não' }, leituraInst: { kind: 'text', value: '5' } },
-    };
-    const a = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [os] }) })).ordens[0]?.answers;
-    expect(a).toEqual({
-      medidorInst: { kind: 'choice', choice: 'Sim' },
-      medidorInstNum: { kind: 'text', value: 'N62' },
-      medidorRet: { kind: 'choice', choice: 'Não' },
-      leituraInst: { kind: 'text', value: '5' },
-    });
+  it('eletricistas: sem cadastro (até a 1.4.4), começa com a dupla dos últimos cabeçalhos', () => {
+    const h1 = { ...header, nome1: 'Ana', mat1: '1', nome2: 'Bia', mat2: '2' };
+    const r = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), eletricistas: undefined, header: h1, lastHeader: { ...h1, nome2: '' } }) }));
+    expect(r.eletricistas.map((e) => [e.nome, e.matricula])).toEqual([['ANA', '1'], ['BIA', '2']]);
+    // Com cadastro salvo (mesmo vazio), não semeia de novo.
+    expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), header: h1 }) })).eletricistas).toEqual([]);
   });
 
   it('medidor da 1.4.1 com NÃO e texto legado: o número legado vai para o campo já no primeiro carregamento', () => {

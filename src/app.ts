@@ -3,7 +3,7 @@ import { SERVICE_LABEL } from './domain/catalog';
 import { osLabel, pdfFileName, plural } from './domain/format';
 import * as ordem from './domain/ordem';
 import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
-import { androidBridge, blobToBase64 } from './platform';
+import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
 import { loadData, pushSheet, saveData, type KeyValueStore } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { CALLOUT, byId, h, icon } from './ui/dom';
@@ -60,17 +60,18 @@ async function sheetPdf(sheet: ClosedSheet): Promise<Pdf> {
 }
 
 /** No APK, entrega o PDF ao código nativo; devolve true se a ponte tratou o pedido. */
-async function viaAndroid(action: 'savePdf' | 'openPdf' | 'sharePdf', pdf: Pdf, ok?: string): Promise<boolean> {
+async function viaAndroid(action: 'savePdf' | 'openPdf' | 'sharePdf', pdf: Pdf): Promise<boolean> {
   if (!androidBridge) return false;
   pdf.base64 ??= await blobToBase64(pdf.blob);
-  const error = androidBridge[action](pdf.base64, pdf.fileName);
-  if (error) showToast(error, 'error');
-  else if (ok) showToast(ok, 'success');
+  const r = androidBridge[action](pdf.base64, pdf.fileName);
+  // savePdf: "salvo:<nome que ficou em Downloads>"; os outros: "" quando dá certo. Senão, a mensagem de erro.
+  if (r.startsWith(SAVED_PREFIX)) showToast(`PDF salvo em Downloads: ${r.slice(SAVED_PREFIX.length)}`, 'success');
+  else if (r) showToast(r, 'error');
   return true;
 }
 
 async function downloadPdf(pdf: Pdf): Promise<void> {
-  if (await viaAndroid('savePdf', pdf, `PDF salvo em Downloads: ${pdf.fileName}`)) return;
+  if (await viaAndroid('savePdf', pdf)) return;
   const url = URL.createObjectURL(pdf.blob);
   const a = h('a', { href: url, download: pdf.fileName, class: 'hidden' });
   document.body.append(a);
@@ -155,8 +156,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         editing: editingHeader ? data.header : null,
         defaults: data.lastHeader,
         getTecnicos: () => data.tecnicos,
-        onAddTecnico: addTecnico,
-        onRemoveTecnico: removeTecnico,
+        onAddTecnico: (nome, telefone) => update((d) => { d.tecnicos = [...d.tecnicos, { id: newId(), nome, telefone }]; }, false),
+        // Um líder excluído deixa de aparecer: o seletor cai em "—" e o PDF não marca ninguém (id desconhecido é ignorado).
+        onRemoveTecnico: (id) => update((d) => { d.tecnicos = d.tecnicos.filter((t) => t.id !== id); }, false),
+        getEletricistas: () => data.eletricistas,
+        onAddEletricista: (nome, matricula) => update((d) => { d.eletricistas = [...d.eletricistas, { id: newId(), nome, matricula }]; }, false),
+        onRemoveEletricista: (id) => update((d) => { d.eletricistas = d.eletricistas.filter((e) => e.id !== id); }, false),
         sheets: data.sheets,
         canShare: shareSupported,
         onSubmit: submitHeader,
@@ -244,15 +249,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       d.lastHeader = header; // preenche o próximo turno
     });
     showToast(wasEditing ? 'Cabeçalho atualizado.' : 'Turno iniciado! Registro de OSs liberado.', 'success');
-  }
-
-  // Um líder excluído deixa de aparecer: o seletor cai em "—" e o PDF não marca ninguém (ids desconhecidos são ignorados).
-  function addTecnico(nome: string, telefone: string): void {
-    update((d) => { d.tecnicos = [...d.tecnicos, { id: newId(), nome, telefone }]; }, false);
-  }
-
-  function removeTecnico(id: string): void {
-    update((d) => { d.tecnicos = d.tecnicos.filter((t) => t.id !== id); }, false);
   }
 
   // --- Painel --------------------------------------------------------------
@@ -475,11 +471,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     showToast('Turno encerrado. Os dados da equipe já ficam preenchidos para o próximo turno.', 'success');
   }
 
-  let delivering = false;
+  /** Folhas sendo entregues agora: toque duplo na mesma entrega uma vez só; as outras folhas seguem livres. */
+  const delivering = new Set<ClosedSheet>();
 
   async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'share'): Promise<void> {
-    if (delivering) return; // toque duplo: entrega uma vez só
-    delivering = true;
+    if (delivering.has(sheet)) return;
+    delivering.add(sheet);
     try {
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
       const pdf = pdfModule ? buildPdf(pdfModule, sheet) : await sheetPdf(sheet);
@@ -489,7 +486,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       console.error('Erro ao gerar PDF:', error);
       showToast('Não foi possível gerar o PDF.', 'error');
     } finally {
-      delivering = false;
+      delivering.delete(sheet);
     }
   }
 

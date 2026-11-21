@@ -18,14 +18,15 @@ houver, só serve para o app se atualizar.
    viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
+   Os eletricistas também ("Adicionar / excluir eletricistas"): escolher um preenche nome e matrícula.
 2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
    o do código do serviço. Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
    - **Comercial** (28 / 709 / 739 / 33 / 798): tipo de serviço, KM inicial, hora inicial, cliente presente,
-     lançou ramal, **foi instalado medidor?** (SIM abre número e leitura do instalado), **foi retirado medidor?**
-     (SIM abre número e leitura do retirado; com os dois NÃO, abre número e leitura do medidor da UC), KM final,
-     horário final, dificuldade na execução. Os campos que dependem da resposta ficam recuados e só aparecem
-     conforme ela; números e leituras vão para as colunas do Espelho de Campo.
+     lançou ramal, número e leitura do medidor instalado (o da UC), **foi instalado novo medidor?** (SIM abre,
+     recuados, o número e a leitura do medidor novo), KM final, horário final, dificuldade na execução. No Espelho
+     de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
+     o da UC para MEDIDOR RETIRADO.
    - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 14 perguntas: callback, número da OS, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do

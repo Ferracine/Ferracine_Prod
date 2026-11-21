@@ -19,7 +19,7 @@ export function showToast(message: string, type: ToastType = 'info'): void {
     'div',
     {
       role: type === 'error' ? 'alert' : 'status',
-      class: `${TOAST_COLORS[type]} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold pointer-events-auto transition-all duration-300`,
+      class: `${TOAST_COLORS[type]} px-4 py-3 rounded-xl shadow-lg break-words [overflow-wrap:anywhere] text-sm font-semibold pointer-events-auto transition-all duration-300`,
     },
     message,
   );

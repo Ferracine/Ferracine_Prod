@@ -49,7 +49,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await novaOS(page, 'comercial', '709');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('709');
-  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(10);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(11);
   await page.locator('#q-tipo').fill('LIGAÇÃO NOVA');
   await marcar(page, 'clientePresente', 'Sim');
   await salvar(page);
@@ -111,7 +111,7 @@ test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perg
   await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('COMERCIAL');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('');
-  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(10);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(11);
   await expect(page.locator('#q-tipo')).toHaveValue('');
   // Sem código não salva: avisa e leva ao campo.
   await salvar(page);
@@ -298,40 +298,75 @@ test('avisos rápidos: sem borda e centralizados sobre o app também no computad
   expect(z).toBeGreaterThan(0);
 });
 
-test('medidores da comercial: número e leitura aparecem conforme SIM/NÃO, recuados', async ({ page }) => {
+test('medidores da comercial: o da UC sempre; o novo só com "Foi instalado novo medidor?" = SIM, recuado', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '709', '55');
-  const inst = ['medidorInstNum', 'leituraInst'].map((id) => page.locator(`[data-question="${id}"]`));
-  const ret = ['medidorRetNum', 'leituraRet'].map((id) => page.locator(`[data-question="${id}"]`));
-  for (const el of [...inst, ...ret]) await expect(el).toBeHidden();
+  // Medidor da UC: sempre na tela.
+  await expect(page.locator('#q-medidorInstNum')).toBeVisible();
+  await expect(page.locator('#q-leituraInst')).toBeVisible();
+  await page.locator('#q-medidorInstNum').fill('uc777');
+  await page.locator('#q-leituraInst').fill('900');
+  const novo = ['novoMedidorNum', 'novoLeitura'].map((id) => page.locator(`[data-question="${id}"]`));
+  for (const el of novo) await expect(el).toBeHidden();
 
-  // Instalou: número (com o teclado já nele) e leitura do instalado.
-  await marcar(page, 'medidorInst', 'Sim');
-  for (const el of inst) await expect(el).toBeVisible();
-  await expect(page.locator('#q-medidorInstNum')).toBeFocused();
-  await expect(inst[0]!).toHaveClass(/ml-6/);
-  await page.locator('#q-medidorInstNum').fill('n62123');
-  await page.locator('#q-leituraInst').fill('1500');
+  // SIM: número (com o teclado já nele) e leitura do medidor novo, recuados.
+  await marcar(page, 'novoMedidor', 'Sim');
+  for (const el of novo) await expect(el).toBeVisible();
+  await expect(page.locator('#q-novoMedidorNum')).toBeFocused();
+  await expect(novo[0]!).toHaveClass(/ml-6/);
+  await page.locator('#q-novoMedidorNum').fill('n62123');
+  await page.locator('#q-novoLeitura').fill('0');
 
-  // Retirou também: número e leitura do retirado.
-  await marcar(page, 'medidorRet', 'Sim');
-  for (const el of ret) await expect(el).toBeVisible();
-  await page.locator('#q-medidorRetNum').fill('w61999');
-  await page.locator('#q-leituraRet').fill('9000');
-
-  // Nem instalou nem retirou: volta só o número e a leitura (do medidor da UC).
-  await marcar(page, 'medidorInst', 'Não');
-  await marcar(page, 'medidorRet', 'Não');
-  for (const el of inst) await expect(el).toBeVisible();
-  for (const el of ret) await expect(el).toBeHidden();
-  await expect(page.locator('#q-medidorInstNum')).not.toBeFocused(); // apareceu acima: o teclado não pula para lá
+  // NÃO: os campos do novo somem e o que foi digitado neles não vale.
+  await marcar(page, 'novoMedidor', 'Não');
+  for (const el of novo) await expect(el).toBeHidden();
   await salvar(page);
-
-  // O retirado escondido não vale; o número digitado foi para maiúsculas.
   await page.getByRole('button', { name: 'Ver respostas OS 55' }).click();
   const respostas = page.getByRole('dialog');
-  await expect(respostas).toContainText('N62123');
-  await expect(respostas).not.toContainText('W61999');
+  await expect(respostas).toContainText('UC777');
+  await expect(respostas).not.toContainText('N62123');
+});
+
+test('eletricistas: cadastrar e escolher preenche nome e matrícula', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#btn-eletricistas').click();
+  for (const [nome, mat] of [['Ana Lima', '111'], ['Bia Souza', '222']] as const) {
+    await page.locator('#eletricista-nome').fill(nome);
+    await page.locator('#eletricista-matricula').fill(mat);
+    await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
+  }
+  await expect(page.getByTestId('eletricistas-list')).toContainText('BIA SOUZA');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+
+  await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA (Mat: 222)' });
+  await expect(page.getByLabel('Nome 2')).toHaveValue('BIA SOUZA');
+  await expect(page.getByLabel('Mat. 2')).toHaveValue('222');
+  // Excluir tira da lista de escolha.
+  await page.locator('#btn-eletricistas').click();
+  await page.getByRole('button', { name: 'Excluir eletricista ANA LIMA' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolher eletricista cadastrado…', 'BIA SOUZA (Mat: 222)']);
+});
+
+test('aviso "PDF salvo" com nome de arquivo comprido não vaza para fora do aviso', async ({ page }) => {
+  const nome = 'CARLOS_ALBERTO_NUNES_DIEGO_MARTINS_COSTA_21-11-2026_30_servicos (1).pdf';
+  // APK simulado: o Android salvou com outro nome (" (1)"), e o aviso mostra o nome que ficou em Downloads.
+  await page.addInitScript((salvo) => {
+    (window as unknown as Record<string, unknown>).FerracineAndroid = {
+      savePdf: () => `salvo:${salvo}`,
+      openPdf: () => '',
+      sharePdf: () => '',
+      setSystemBars: () => undefined,
+      installUpdate: () => '',
+    };
+  }, nome);
+  await page.route('https://api.github.com/**', (route) => route.abort());
+  await iniciarTurno(page);
+  await page.locator('#btn-finish').click();
+  await page.getByRole('button', { name: 'Gerar mesmo assim' }).click();
+  const aviso = page.getByRole('status').filter({ hasText: nome });
+  await expect(aviso).toBeVisible();
+  expect(await aviso.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 
 test('teclado em maiúsculas: campos abrem com caps e o texto digitado vira maiúsculas', async ({ page }) => {

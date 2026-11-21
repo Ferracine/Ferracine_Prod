@@ -31,12 +31,11 @@ describe('catálogo', () => {
       'Deseja informar a hora inicial?',
       'Cliente presente?',
       'Foi necessário lançar ramal?',
-      'Foi instalado medidor?',
       'Digite o número do medidor instalado',
       'Qual a leitura do medidor instalado?',
-      'Foi retirado medidor?',
-      'Digite o número do medidor retirado',
-      'Qual a leitura do medidor retirado?',
+      'Foi instalado novo medidor?',
+      'Digite o número do medidor novo',
+      'Qual a leitura do medidor novo?',
       'Deseja informar o KM final?',
       'Deseja informar o horário final?',
       'Houve alguma dificuldade na execução desse serviço? Se sim relate!',
@@ -67,7 +66,7 @@ describe('OS nova (tela da OS)', () => {
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.os).toMatchObject({ id: 'id-1', osNumber: '555', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: '2026-11-20T10:00:00.000Z' });
-    expect(Object.keys(r.os.answers)).toHaveLength(14);
+    expect(Object.keys(r.os.answers)).toHaveLength(13);
     expect(r.os.answers.tipo).toEqual({ kind: 'text', value: 'Ligação nova' });
     expect(r.os.answers.kmIni).toEqual({ kind: 'skipped' });
     const sn = ordem.createOS({ ...d, serviceCode: '709' }, 'id-2', agora);
@@ -103,32 +102,28 @@ describe('OS nova (tela da OS)', () => {
     expect(ordem.choiceAnswer(q, sim, 'Sim')).toEqual(sim);
   });
 
-  it('medidores da comercial: o número e a leitura só valem conforme SIM/NÃO', () => {
+  it('medidores da comercial: o da UC sempre vale; o novo só com "Foi instalado novo medidor?" = SIM', () => {
     const base = { ...ordem.startDraft('COMERCIAL'), serviceCode: '709' };
-    const num: Record<string, Answer> = { medidorInstNum: { kind: 'text', value: 'N1' }, leituraInst: { kind: 'text', value: '10' }, medidorRetNum: { kind: 'text', value: 'R1' }, leituraRet: { kind: 'text', value: '20' } };
-    const salvar = (inst?: 'Sim' | 'Não', ret?: 'Sim' | 'Não') => {
+    const num: Record<string, Answer> = { medidorInstNum: { kind: 'text', value: 'N1' }, leituraInst: { kind: 'text', value: '10' }, novoMedidorNum: { kind: 'text', value: 'NV1' }, novoLeitura: { kind: 'text', value: '0' } };
+    const salvar = (novo?: 'Sim' | 'Não') => {
       const answers: Record<string, Answer> = { ...num };
-      if (inst) answers.medidorInst = { kind: 'choice', choice: inst };
-      if (ret) answers.medidorRet = { kind: 'choice', choice: ret };
+      if (novo) answers.novoMedidor = { kind: 'choice', choice: novo };
       const r = ordem.createOS({ ...base, answers }, 'x', agora);
       if (!r.ok) throw new Error(r.error);
       return r.os.answers;
     };
-    // Instalou e retirou: os quatro campos valem.
-    expect(salvar('Sim', 'Sim')).toMatchObject({ medidorInstNum: num.medidorInstNum, leituraInst: num.leituraInst, medidorRetNum: num.medidorRetNum, leituraRet: num.leituraRet });
-    // Só retirou: o que foi digitado no instalado (escondido) não vale.
-    expect(salvar('Não', 'Sim')).toMatchObject({ medidorInstNum: { kind: 'skipped' }, leituraInst: { kind: 'skipped' }, medidorRetNum: num.medidorRetNum });
-    // Nem instalou nem retirou: número e leitura do medidor da UC (campos do instalado); o retirado não vale.
-    expect(salvar('Não', 'Não')).toMatchObject({ medidorInstNum: num.medidorInstNum, leituraInst: num.leituraInst, medidorRetNum: { kind: 'skipped' } });
-    // Sem resposta: nenhum campo aparece.
-    expect(salvar()).toMatchObject({ medidorInstNum: { kind: 'skipped' }, medidorRetNum: { kind: 'skipped' } });
+    expect(salvar('Sim')).toMatchObject(num);
+    // NÃO (ou sem resposta): o que foi digitado no novo (escondido) não vale; o da UC continua.
+    for (const r of [salvar('Não'), salvar()]) {
+      expect(r).toMatchObject({ medidorInstNum: num.medidorInstNum, leituraInst: num.leituraInst, novoMedidorNum: { kind: 'skipped' }, novoLeitura: { kind: 'skipped' } });
+    }
   });
 
   it('"X de Y respondidas" conta só as perguntas que aparecem', () => {
-    const os = finishedOS('1', 'COMERCIAL', '709', { medidorInst: { kind: 'choice', choice: 'Não' } });
-    expect(ordem.answerRows(os)).toHaveLength(14 - 4);
-    const ambosNao = finishedOS('1', 'COMERCIAL', '709', { medidorInst: { kind: 'choice', choice: 'Não' }, medidorRet: { kind: 'choice', choice: 'Não' } });
-    expect(ordem.answerRows(ambosNao)).toHaveLength(14 - 2);
+    const semNovo = finishedOS('1', 'COMERCIAL', '709', { novoMedidor: { kind: 'choice', choice: 'Não' } });
+    expect(ordem.answerRows(semNovo)).toHaveLength(13 - 2);
+    const comNovo = finishedOS('1', 'COMERCIAL', '709', { novoMedidor: { kind: 'choice', choice: 'Sim' } });
+    expect(ordem.answerRows(comNovo)).toHaveLength(13);
   });
 
   it('finalize transforma respostas incompletas em "pulada"', () => {
@@ -152,9 +147,9 @@ describe('OS nova (tela da OS)', () => {
     expect(ordem.isUnchanged({ ...d, osNumber: '12' })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { callback: { kind: 'choice', choice: 'Sim' } } })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { tipo: { kind: 'text', value: 'Falta' } } })).toBe(false);
-    // Número digitado e depois escondido (SIM desmarcado): não conta.
+    // Número do medidor novo digitado e depois escondido (SIM desmarcado): não conta.
     const comercial = ordem.startDraft('COMERCIAL');
-    expect(ordem.isUnchanged({ ...comercial, answers: { medidorInstNum: { kind: 'text', value: 'N1' } } })).toBe(true);
+    expect(ordem.isUnchanged({ ...comercial, answers: { novoMedidorNum: { kind: 'text', value: 'N1' } } })).toBe(true);
   });
 
   it('answerRows descreve cada pergunta para o app', () => {

@@ -27,7 +27,6 @@ function comercial(n: number): OrdemServico {
     kmIni: { kind: 'text', value: '45210' },
     horaIni: { kind: 'text', value: '08:15' },
     clientePresente: { kind: 'choice', choice: 'Sim' },
-    medidorInst: { kind: 'choice', choice: 'Sim' },
     medidorInstNum: { kind: 'text', value: `MED-${n}` },
     leituraInst: { kind: 'text', value: '1543210' },
     kmFin: { kind: 'text', value: '45235' },

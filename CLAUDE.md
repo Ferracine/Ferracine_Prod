@@ -45,8 +45,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
     coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. `prefillOS` marca a pergunta do número
     da OS. `LEGACY_*` serve só à migração da v2.
-  - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor da comercial conforme
-    "Foi instalado/retirado medidor?"; com os dois NÃO, número e leitura do medidor da UC). Escondida não vale:
+  - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor novo da comercial só com
+    "Foi instalado novo medidor?" = SIM). `espelho` pode ser função das respostas: na troca, o medidor da UC vai para
+    MEDIDOR RETIRADO e o novo para MEDIDOR INSTALADO. Escondida não vale:
     `finalize` grava `skipped`, `checked` não valida, `answerRows`/espelho ignoram (`isVisible`). `semInfo` = pergunta
     de controle que não vai para INFO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
   - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
@@ -55,7 +56,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
-  `lastHeader` (preenche o próximo turno) e `tecnicos` (cadastrados no app). A v2 só é migrada se a
+  `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
+  eletricistas começam com a dupla dos últimos cabeçalhos). A v2 só é migrada se a
   v3 nunca foi gravada: ids antigos → novos; respostas sem pergunta equivalente viram texto em `legado` (vai para
   INFO ADICIONAL); o líder antigo vira técnico cadastrado. Ao carregar a v3, `adoptLegacyMeter` tira da
   `infoLegada` das ocorrências o medidor instalado e a leitura (perguntas novas da 1.4.1) e põe nas respostas. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
@@ -114,7 +116,7 @@ Regras de negócio que não são óbvias no código:
   (`SHEETS_KEPT` = 4; a mais antiga sai).
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - O "Não" de pergunta "se sim, qual?" não entra em INFO ADICIONAL; DITAIS e demais SIM/NÃO entram sempre, menos as
-  perguntas de controle (`semInfo`: "Foi instalado/retirado medidor?"), porque as colunas de medidor já dizem.
+  perguntas de controle (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem.
 - Testes de PDF procuram texto direto em `doc.output()` (sem compressão, acentos em latin-1); `flat()` emenda
   linhas quebradas da mesma célula.
 
