@@ -127,27 +127,34 @@ describe('PDF do Espelho de Campo', () => {
     for (const t of muitos) expect(text).toContain(`(${t.nome})`);
   });
 
-  it('mais de 15 OSs: cada folha é completa (logo, identificação, 15 linhas) e numerada; rodapé só na última', () => {
+  it('mais de 15 OSs: logo e identificação só na 1ª folha; data, equipe e folha embaixo de todas; produção na última', () => {
     const doc = buildSheetPdf(header, Array.from({ length: 22 }, (_, i) => (i % 2 ? comercial(i) : ocorrenciaCompleta(i))), tecnicos);
     expect(doc.getNumberOfPages()).toBe(2);
     const [f1 = '', f2 = ''] = doc.output().split('/Type /Page\n').slice(1);
-    for (const pagina of [f1, f2]) {
-      for (const s of ['ESPELHO DE CAMPO', '(Carlos Pereira)', '(20/11/2026)', '/I0 Do']) expect(pagina).toContain(s);
+    for (const s of ['ESPELHO DE CAMPO', '(Carlos Pereira)', '/I0 Do']) {
+      expect(f1).toContain(s);
+      expect(f2).not.toContain(s);
     }
-    expect(f1).toContain('(FOLHA 1/2)');
+    for (const [pagina, n] of [[f1, 1], [f2, 2]] as const) {
+      expect(pagina).toContain('(DATA: 20/11/2026   |   EQUIPE: PVH-01)');
+      expect(pagina).toContain(`(FOLHA ${n}/2)`);
+      expect(flat(pagina)).toContain('TIPO DE SERVIÇO'); // títulos das colunas em toda folha
+    }
     expect(f1).toContain('(15) Tj');
     expect(f1).not.toContain('(16) Tj');
     expect(f1).not.toContain('PRODUÇÃO TOTAL:');
     // Segunda folha: OSs 16 a 22 e linhas em branco numeradas até 30, como no papel.
-    expect(f2).toContain('(FOLHA 2/2)');
     expect(f2).toContain('(16) Tj');
     expect(f2).toContain('(30) Tj');
     expect(f2).toContain('PRODUÇÃO TOTAL:');
     expect(f2).toContain('(22) Tj');
   });
 
-  it('até 15 OSs a folha não leva numeração', () => {
-    expect(pdfText(buildSheetPdf(header, [comercial(1)], tecnicos))).not.toContain('FOLHA');
+  it('folha única também leva data, equipe e FOLHA 1/1 embaixo', () => {
+    const text = pdfText(buildSheetPdf(header, [comercial(1)], tecnicos));
+    expect(text).toContain('(DATA: 20/11/2026   |   EQUIPE: PVH-01)');
+    expect(text).toContain('(FOLHA 1/1)');
+    expect(pdfText(buildSheetPdf({ ...header, equipe: '' }, [], []))).toContain('(DATA: 20/11/2026)');
   });
 
   it('mais de 15 OSs: o rodapé nunca se divide', () => {
