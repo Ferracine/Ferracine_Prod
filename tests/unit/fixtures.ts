@@ -1,6 +1,9 @@
 import type { Answer, OrdemServico, ServiceType, ShiftHeader } from '../../src/domain/types';
 import { finalize, startDraft } from '../../src/domain/ordem';
 
+/** Resposta mínima obrigatória de toda OS (DITAIS, nos dois tipos): espalhe com `...DITAIS_NAO`. */
+export const DITAIS_NAO: Record<string, Answer> = { ditais: { kind: 'choice', choice: 'Não' } };
+
 /** Cabeçalho mínimo válido; os testes sobrescrevem só o que importa. */
 export const baseHeader: ShiftHeader = {
   nome1: 'João da Silva',

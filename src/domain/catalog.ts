@@ -1,17 +1,11 @@
 import type { Answer, Choice, Question, ServiceType } from './types';
 
 /**
- * Catálogo de códigos e perguntas da Folha de Produção, na ordem definida pelo dono do app.
+ * Catálogo de perguntas da Folha de Produção, por tipo de OS, na ordem definida pelo dono do app.
  * Mudanças aqui alteram a tela da OS (nova e edição) e o PDF.
  * `espelho` liga a resposta a uma coluna própria do Espelho de Campo; as demais (inclusive "Qual tipo de serviço?")
  * entram em INFO ADICIONAL com o rótulo `short`. Os ids são estáveis: OSs salvas guardam as respostas por id.
  */
-
-/** Códigos conhecidos de cada tipo. O app não os mostra: servem para recusar código do outro tipo (ordem.ts). */
-export const SERVICE_CODES: Record<ServiceType, readonly string[]> = {
-  COMERCIAL: ['28', '709', '739', '33', '798'],
-  OCORRENCIA: ['508', '509', '503', '531', '324', '533'],
-};
 
 export const SERVICE_LABEL: Record<ServiceType, string> = {
   COMERCIAL: 'COMERCIAL',
@@ -29,16 +23,22 @@ const trocou = (a: Record<string, Answer>) => escolha(a, 'novoMedidor') === 'Sim
 
 const MEDIDOR_INST_NUM: Question = { id: 'medidorInstNum', text: 'Digite o número do medidor instalado', type: 'text', placeholder: 'Nº do medidor...', espelho: 'medidorInstalado' };
 const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do medidor instalado?', type: 'text', placeholder: 'Leitura atual...', input: 'decimal', espelho: 'leituraInstalado' };
+// Perguntas iguais nos dois tipos (mesmo id, texto e coluna do PDF).
+const HORA_INI: Question = { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' };
+const KM_INI: Question = { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' };
+const KM_FIN: Question = { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' };
+/** Segurança: obrigatória nos dois tipos (a OS comercial também pode ter o procedimento). */
+const DITAIS: Question = { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' };
 
 const OCORRENCIA: readonly Question[] = [
   { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
-  { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' },
-  { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' },
+  HORA_INI,
+  KM_INI,
   { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o tipo de serviço...', short: 'Tipo' },
   { id: 'defeito', text: 'Qual foi o defeito?', type: 'text', placeholder: 'Informe o defeito encontrado...', short: 'Defeito' },
   { id: 'dispositivo', text: 'Qual dispositivo manobrado?', type: 'text', placeholder: 'Ex: Chave fusível, religador, disjuntor...', short: 'Disp.' },
-  { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' },
-  { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
+  DITAIS,
+  KM_FIN,
   { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', placeholder: 'Descreva a alteração na UC...', short: 'Alteração UC' },
   // Na ocorrência não há troca de medidor (isso é OS comercial): só o número e a leitura do medidor que está na UC.
   MEDIDOR_INST_NUM,
@@ -49,8 +49,8 @@ const OCORRENCIA: readonly Question[] = [
 
 const COMERCIAL: readonly Question[] = [
   { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o serviço comercial executado...', short: 'Tipo' },
-  { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' },
-  { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' },
+  KM_INI,
+  HORA_INI,
   { id: 'clientePresente', text: 'Cliente presente?', type: 'yesno', espelho: 'clientePresente' },
   { id: 'ramal', text: 'Foi necessário lançar ramal?', type: 'yesno', short: 'Lançou ramal' },
   // Medidor da UC (sempre). "Foi instalado novo medidor?" SIM abre o número e a leitura do novo; na troca, o
@@ -60,7 +60,8 @@ const COMERCIAL: readonly Question[] = [
   { id: 'novoMedidor', text: 'Foi instalado novo medidor?', type: 'yesno', semInfo: true },
   { id: 'novoMedidorNum', text: 'Digite o número do medidor novo', type: 'text', placeholder: 'Nº do medidor novo...', espelho: 'medidorInstalado', showIf: trocou },
   { id: 'novoLeitura', text: 'Qual a leitura do medidor novo?', type: 'text', placeholder: 'Leitura do medidor novo...', input: 'decimal', espelho: 'leituraInstalado', showIf: trocou },
-  { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' },
+  DITAIS,
+  KM_FIN,
   { id: 'horaFin', text: 'Deseja informar o horário final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
   { id: 'dificuldade', text: 'Houve alguma dificuldade na execução desse serviço? Se sim relate!', type: 'yesno_detail', detailLabel: 'Relate a dificuldade na execução:', placeholder: 'Relate detalhadamente...', short: 'Dificuldade' },
 ];

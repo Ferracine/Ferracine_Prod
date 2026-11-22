@@ -38,16 +38,20 @@ async function iniciarTurno(page: Page) {
   await expect(page.locator('#screen-dashboard')).toBeVisible();
 }
 
-/** "+" Comercial ou "+" Ocorrência → tela da OS em branco; preenche código e número. */
-async function novaOS(page: Page, tipo: 'comercial' | 'ocorrencia', codigo: string, numero = '') {
+const salvar = (page: Page) => page.locator('#btn-os-save').click();
+const marcar = (page: Page, pergunta: string, escolha: 'Sim' | 'Não') => page.locator(`[data-question="${pergunta}"] [data-choice="${escolha}"]`).click();
+
+/**
+ * "+" Comercial ou "+" Ocorrência → tela da OS em branco; preenche código, número e a DITAIS (obrigatória nos dois
+ * tipos; `null` deixa em branco, para testar a falta).
+ */
+async function novaOS(page: Page, tipo: 'comercial' | 'ocorrencia', codigo: string, numero = '', ditais: 'Sim' | 'Não' | null = 'Não') {
   await page.locator(`#btn-new-${tipo}`).click();
   await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
   await page.locator('#os-code').fill(codigo);
   if (numero) await page.locator('#os-number').fill(numero);
+  if (ditais) await marcar(page, 'ditais', ditais);
 }
-
-const salvar = (page: Page) => page.locator('#btn-os-save').click();
-const marcar = (page: Page, pergunta: string, escolha: 'Sim' | 'Não') => page.locator(`[data-question="${pergunta}"] [data-choice="${escolha}"]`).click();
 
 test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento e próximo turno já preenchido', async ({ page }) => {
   await page.goto('/');
@@ -63,11 +67,11 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('header-info')).toContainText('123456');
   await expect(page.getByText('© Ferracine Prod')).toBeVisible();
 
-  // Comercial sem número (S/N): a tela da OS traz as 12 perguntas de uma vez.
+  // Comercial sem número (S/N): a tela da OS traz as perguntas de uma vez (sem as do medidor novo, escondidas).
   await novaOS(page, 'comercial', '709');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('709');
-  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(11);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(12);
   await page.locator('#q-tipo').fill('LIGAÇÃO NOVA');
   await marcar(page, 'clientePresente', 'Sim');
   await salvar(page);
@@ -84,7 +88,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('os-item')).not.toContainText('sem nº');
 
   // Ocorrência: a pergunta do número é o campo do topo (13 perguntas na tela, com medidor e leitura) e a DITAIS é obrigatória.
-  await novaOS(page, 'ocorrencia', '508', '456');
+  await novaOS(page, 'ocorrencia', '508', '456', null);
   await expect(page.locator('#screen-os [data-question]')).toHaveCount(13);
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('resposta obrigatória');
@@ -130,27 +134,31 @@ test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perg
   await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('COMERCIAL');
   await expect(page.locator('#os-number')).toHaveValue('');
   await expect(page.locator('#os-code')).toHaveValue('');
-  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(11);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(12);
   await expect(page.locator('#q-tipo')).toHaveValue('');
+  await expect(page.getByLabel('Número da OS comercial')).toBeVisible();
   // Sem código não salva: avisa e leva ao campo.
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('Informe o código');
   await expect(page.locator('#os-code')).toBeFocused();
-  // Código da Ocorrência no "+ Comercial": não salva e indica o "+" certo.
+  // DITAIS também é obrigatória na comercial.
   await page.locator('#os-code').fill('508');
   await salvar(page);
-  await expect(page.getByRole('status').last()).toContainText('use o + OCORRÊNCIA');
-  await expect(page.getByLabel('Número da OS comercial')).toBeVisible();
-  await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
-  await page.getByRole('button', { name: 'Descartar OS' }).click();
-  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.locator('[data-question="ditais"]')).toHaveClass(/faltando/);
+  // Sem trava de código: um código que antes era "de ocorrência" vale na comercial.
+  await marcar(page, 'ditais', 'Não');
+  await salvar(page);
+  await expect(page.getByTestId('os-item')).toContainText('Cód. 508');
+  await expect(page.getByTestId('os-item')).toContainText('COMERCIAL');
+  await page.getByRole('button', { name: /Excluir OS/ }).click();
+  await page.getByRole('button', { name: 'Sim, excluir' }).click();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
 
   await page.locator('#btn-new-ocorrencia').click();
   await expect(page.locator('#screen-os[data-mode="new"]')).toContainText('OCORRÊNCIA');
   await expect(page.getByLabel('Número da ocorrência')).toBeVisible();
   await expect(page.locator('#screen-os [data-question="ditais"]')).toContainText('obrigatória');
-  // Qualquer código vale (fora da lista também).
+  // Qualquer código vale.
   await page.locator('#os-code').fill('510');
   await marcar(page, 'ditais', 'Não');
   await salvar(page);
@@ -393,6 +401,27 @@ test('eletricistas: cadastro igual ao dos técnicos, lista com o nome, matrícul
   await page.getByRole('button', { name: 'Excluir eletricista ANA LIMA' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
   await expect(page.locator('#eletricista1 option:checked')).toHaveText('Escolha o eletricista');
+});
+
+test('OS comercial salva antes da DITAIS valer na comercial: selo "falta DITAIS", aviso no PDF e o lápis pede', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return;
+    const h = { nome1: 'ANA', mat1: '1', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' };
+    const os = { id: 'velha', osNumber: '77', serviceType: 'COMERCIAL', serviceCode: '28', answers: { tipo: { kind: 'text', value: 'RELIGA' } }, registradaEm: '2026-11-20T10:00:00.000Z' };
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: h, ordens: [os], draft: null, sheets: [], lastHeader: h, tecnicos: [], eletricistas: [] }));
+  });
+  await page.route('https://api.github.com/**', (route) => route.abort());
+  await page.goto('/');
+  await expect(page.getByTestId('os-item')).toContainText('falta DITAIS');
+  await page.locator('#btn-finish').click();
+  await expect(page.getByRole('dialog')).toContainText('1 OS está sem a resposta dos DITAIS');
+  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await page.getByRole('button', { name: 'Editar OS 77' }).click();
+  await salvar(page);
+  await expect(page.locator('[data-question="ditais"]')).toHaveClass(/faltando/);
+  await marcar(page, 'ditais', 'Não');
+  await salvar(page);
+  await expect(page.getByTestId('os-item')).not.toContainText('falta DITAIS');
 });
 
 test('eletricista do turno anterior fora do cadastro aparece marcado e sem matrícula não inicia', async ({ page }) => {

@@ -274,7 +274,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         'div',
         { class: 'border-b border-fg/10 pb-2.5 last:border-none' },
         h('p', { class: 'text-xs font-bold text-muted' }, `${i + 1}. ${r.question}`),
-        h('p', { class: `text-sm font-semibold mt-0.5 ${r.skipped ? 'text-subtle italic' : r.isDitais ? 'text-danger-fg' : 'text-fg'}` }, r.display),
+        h('p', { class: `text-sm font-semibold mt-0.5 ${r.isDitais ? 'text-danger-fg' : r.skipped ? 'text-subtle' : 'text-fg'}${r.skipped ? ' italic' : ''}` }, r.display),
       ),
     );
     openModal(`OS ${osLabel(os.osNumber)} (${SERVICE_LABEL[os.serviceType]} - Cód. ${os.serviceCode})`, h('div', { class: 'space-y-3' }, rows), [
@@ -439,12 +439,15 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       return;
     }
     const semNumero = data.ordens.filter((o) => !o.osNumber).length;
+    const semDitais = data.ordens.filter(ordem.faltaObrigatoria).length;
     const body = h(
       'div',
       { class: 'space-y-3' },
       h('p', null, `Você está prestes a gerar o Espelho de Campo com ${plural(n, 'Ordem de Serviço', 'Ordens de Serviço')}.`),
       semNumero > 0 &&
         h('div', { class: CALLOUT.danger }, `${plural(semNumero, 'OS está', 'OSs estão')} sem número (S/N). Use o lápis na lista para preencher antes de gerar, se quiser.`),
+      semDitais > 0 &&
+        h('div', { class: CALLOUT.danger }, `${plural(semDitais, 'OS está', 'OSs estão')} sem a resposta dos DITAIS (obrigatória). Use o lápis na lista para responder antes de gerar.`),
       h('div', { class: CALLOUT.warning }, 'O turno só é encerrado quando você tocar em "Encerrar turno", depois de ter o PDF em mãos.'),
     );
     confirmModal('Finalizar turno e gerar PDF', body, { label: h('span', { class: 'inline-flex items-center gap-2' }, icon(FileDown, 'w-5 h-5'), 'Gerar PDF'), variant: 'accent' }, () => void generatePdf());

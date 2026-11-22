@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { OrdemServico, ShiftHeader, Tecnico } from '../../src/domain/types';
 import { buildSheetPdf } from '../../src/pdf';
-import { baseHeader, finishedOS } from './fixtures';
+import { baseHeader, DITAIS_NAO, finishedOS } from './fixtures';
 
 const tecnicos: Tecnico[] = [
   { id: 't1', nome: 'TEC. FULANO DE TAL', telefone: '69 90000-0001' },
@@ -29,6 +29,7 @@ function comercial(n: number): OrdemServico {
     clientePresente: { kind: 'choice', choice: 'Sim' },
     medidorInstNum: { kind: 'text', value: `MED-${n}` },
     leituraInst: { kind: 'text', value: '1543210' },
+    ...DITAIS_NAO,
     kmFin: { kind: 'text', value: '45235' },
     horaFin: { kind: 'text', value: '09:40' },
   }, `id-${n}`);

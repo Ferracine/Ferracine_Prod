@@ -20,7 +20,7 @@ export interface Question {
   input?: InputKind;
   /** Não pode ser pulada. */
   required?: boolean;
-  /** Pergunta de segurança dos DITAIS: obrigatória e destacada no PDF. */
+  /** Pergunta de segurança dos DITAIS: destacada em "Ver respostas". */
   isDitais?: boolean;
   /** Coluna própria no Espelho de Campo (fixa, ou conforme as respostas: ex. medidor atual vira "retirado" na troca). */
   espelho?: EspelhoColumn | ((answers: Record<string, Answer>) => EspelhoColumn);

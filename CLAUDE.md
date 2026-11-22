@@ -41,7 +41,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 ## Arquitetura
 
 - `src/domain/` é puro (sem DOM, sem storage) e é onde estão as regras:
-  - `catalog.ts`: códigos por tipo e a lista exata de perguntas, na ordem definida pelo dono. Ids descritivos e
+  - `catalog.ts`: a lista exata de perguntas de cada tipo, na ordem definida pelo dono (código do serviço é livre). Ids descritivos e
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
     coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. O número da OS não é pergunta: fica
     em `osNumber` (campo do topo da tela; vazio = S/N).
@@ -75,7 +75,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
   grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
   abre a tela da OS em branco (`startDraft(tipo)`, código vazio; no topo, número e, abaixo,
-  código, digitados). `checked` recusa código da lista do outro tipo; erro de regra rola até o campo
+  código, digitados). Erro de regra rola até o campo
   (`data-field`) e o foca.
   Toda mutação passa por `update()`, que persiste e re-renderiza. Na tela da OS, uma entrada extra no `history` faz
   o voltar do Android agir como o Cancelar da tela.
@@ -133,7 +133,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `design/`: referência que o dono mandou (foto do PDF em papel, com os dados à mão cobertos por tarja preta). Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
-- A pergunta dos DITAIS (`ditais`) é a única obrigatória (OS nova e edição).
+- A pergunta dos DITAIS (`ditais`) é a única obrigatória, nos dois tipos (OS nova e edição). OS comercial salva
+  antes da 1.4.11 não tem a resposta: o lápis pede antes de salvar.
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
 - Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha no topo de `sheets`
   (`SHEETS_KEPT` = 4; a mais antiga sai).

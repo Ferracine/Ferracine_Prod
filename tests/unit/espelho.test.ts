@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { questionsFor } from '../../src/domain/catalog';
 import { espelhoRows } from '../../src/domain/espelho';
-import { finishedOS } from './fixtures';
+import { DITAIS_NAO, finishedOS } from './fixtures';
 
 describe('linhas do Espelho de Campo', () => {
   it('toda pergunta sem coluna própria tem rótulo curto para INFO ADICIONAL', () => {
@@ -64,7 +64,7 @@ describe('linhas do Espelho de Campo', () => {
       tipo: { kind: 'text', value: 'Falta de energia' },
       defeito: { kind: 'text', value: 'Fusível' },
       dispositivo: { kind: 'text', value: 'Chave fusível' },
-      ditais: { kind: 'choice', choice: 'Não' },
+      ...DITAIS_NAO,
       alteracaoUC: { kind: 'text', value: 'Troca de disjuntor' },
       dificuldade: { kind: 'choice', choice: 'Não' },
     });

@@ -21,13 +21,15 @@ houver, só serve para o app se atualizar.
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
 2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
-   o do código do serviço. Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
-   - **Comercial** (28 / 709 / 739 / 33 / 798): tipo de serviço, KM inicial, hora inicial, cliente presente,
+   o do código do serviço. Qualquer código vale nos dois tipos (são muitos serviços; a folha pode ser corrigida
+   depois).
+   - **Comercial** (ex.: 28 / 709 / 739 / 33 / 798): tipo de serviço, KM inicial, hora inicial, cliente presente,
      lançou ramal, número e leitura do medidor instalado (o da UC), **foi instalado novo medidor?** (SIM abre,
-     recuados, o número e a leitura do medidor novo), KM final, horário final, dificuldade na execução. No Espelho
+     recuados, o número e a leitura do medidor novo), **DITAIS** (obrigatória), KM final, horário final,
+     dificuldade na execução. No Espelho
      de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
      o da UC para MEDIDOR RETIRADO.
-   - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 13 perguntas: callback, hora inicial,
+   - **Ocorrência** (ex.: 508 / 509 / 503 / 531 / 324 / 533), 13 perguntas: callback, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do
      medidor instalado, hora final, dificuldade.
@@ -103,7 +105,7 @@ nova não instala por cima da antiga. O `android/local.properties` aponta o SDK 
 
 ```
 design/       referência do dono do app: foto do PDF em papel (dados à mão cobertos)
-src/domain/   regras puras: catálogo de códigos e perguntas, regras da OS, linhas do espelho, formatação
+src/domain/   regras puras: catálogo de perguntas, regras da OS, linhas do espelho, formatação
 src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
 src/planilha.ts planilha .xlsx do espelho (Office Open XML + zip do fflate)
@@ -114,7 +116,7 @@ android/      app Android (WebView + ponte de arquivos: PDF e planilha)
 tests/unit/   Vitest   ·   tests/e2e/  Playwright
 ```
 
-Para mudar códigos ou perguntas, edite só [src/domain/catalog.ts](src/domain/catalog.ts): o app e o PDF se ajustam.
+Para mudar perguntas, edite só [src/domain/catalog.ts](src/domain/catalog.ts): o app e o PDF se ajustam.
 
 ## Publicação
 

@@ -1,4 +1,4 @@
-import { SERVICE_CODES, SERVICE_LABEL, isVisible, questionsFor, visibleQuestions } from './catalog';
+import { isVisible, questionsFor, visibleQuestions } from './catalog';
 import type { Answer, AnswerRow, Choice, OrdemServico, OSDraft, Question, ServiceType } from './types';
 
 /**
@@ -47,14 +47,9 @@ export type EditResult = { ok: true; os: OrdemServico } | RuleError;
  * Devolve o rascunho pronto para `finalize` (número e código aparados) ou o erro.
  */
 function checked(type: ServiceType, edit: OSEdit): { ok: true; draft: OSDraft } | RuleError {
-  // Sem espaços nem zero à esquerda: "0508" é o 508 (senão passaria pela trava do código do outro tipo abaixo).
-  const serviceCode = edit.serviceCode.replace(/\s+/g, '').toUpperCase().replace(/^0+(?=\d)/, '');
+  // Qualquer código vale nos dois tipos: são muitos serviços, e o eletricista corrige a folha depois se precisar.
+  const serviceCode = edit.serviceCode.replace(/\s+/g, '').toUpperCase();
   if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.', field: CODE_FIELD };
-  // Código da lista do outro tipo: a OS ficaria com as perguntas erradas (ex.: ocorrência sem a pergunta dos DITAIS).
-  const outro: ServiceType = type === 'COMERCIAL' ? 'OCORRENCIA' : 'COMERCIAL';
-  if (SERVICE_CODES[outro].includes(serviceCode)) {
-    return { ok: false, error: `Código ${serviceCode} é de ${SERVICE_LABEL[outro]}: use o + ${SERVICE_LABEL[outro]}.`, field: CODE_FIELD };
-  }
   // Escondida pela resposta de outra pergunta: não vale, não é validada.
   for (const q of visibleQuestions(type, edit.answers)) {
     const error = ruleError(q, edit.answers[q.id]);
@@ -134,13 +129,21 @@ function describeAnswer(ans: Answer | undefined): string | null {
   return ans.choice === 'Sim' && ans.detail ? `Sim — ${ans.detail}` : ans.choice;
 }
 
+/**
+ * OS já salva sem a resposta de uma pergunta obrigatória (ex.: OS comercial registrada antes da 1.4.11, quando a
+ * DITAIS ainda não valia na comercial). O lápis pede a resposta; o painel e o "Gerar PDF" avisam.
+ */
+export function faltaObrigatoria(os: Pick<OrdemServico, 'serviceType' | 'answers'>): boolean {
+  return visibleQuestions(os.serviceType, os.answers).some((q) => q.required && os.answers[q.id]?.kind !== 'choice');
+}
+
 export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers'>): AnswerRow[] {
   // Só as perguntas que aparecem com estas respostas ("X de Y respondidas" conta as visíveis).
   return visibleQuestions(os.serviceType, os.answers).map((q) => {
     const display = describeAnswer(os.answers[q.id]);
     return {
       question: q.text,
-      display: display ?? 'Não informado',
+      display: display ?? (q.required ? 'Falta responder (obrigatória): use Editar' : 'Não informado'),
       skipped: display === null,
       isDitais: !!q.isDitais,
     };

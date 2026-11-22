@@ -2,7 +2,7 @@ import { ClipboardList, Eye, FileDown, Pencil, Plus, Trash2 } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
-import { answerRows } from '../domain/ordem';
+import { answerRows, faltaObrigatoria } from '../domain/ordem';
 import { btn, h, icon } from './dom';
 
 export interface DashboardProps {
@@ -61,6 +61,7 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
         'div',
         { class: 'flex items-center gap-1.5 flex-wrap mt-1' },
         !os.osNumber && h('span', { class: `${BADGE} bg-rose-500/15 text-danger-fg` }, 'sem nº'),
+        faltaObrigatoria(os) && h('span', { class: `${BADGE} bg-rose-500/15 text-danger-fg` }, 'falta DITAIS'),
         h('span', { class: `${BADGE} ${TYPE_BADGE[os.serviceType]}` }, SERVICE_LABEL[os.serviceType]),
         h('span', { class: `${BADGE} bg-fg/10 text-fg` }, `Cód. ${os.serviceCode}`),
       ),
