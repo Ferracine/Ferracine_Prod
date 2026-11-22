@@ -44,7 +44,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   - `catalog.ts`: códigos por tipo e a lista exata de perguntas, na ordem definida pelo dono. Ids descritivos e
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
     coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. `prefillOS` marca a pergunta do número
-    da OS. `LEGACY_*` serve só à migração da v2.
+    da OS.
   - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor novo da comercial só com
     "Foi instalado novo medidor?" = SIM). `espelho` pode ser função das respostas: na troca, o medidor da UC vai para
     MEDIDOR RETIRADO e o novo para MEDIDOR INSTALADO. Escondida não vale:
@@ -57,10 +57,10 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
-  eletricistas começam com a dupla dos últimos cabeçalhos). A v2 só é migrada se a
-  v3 nunca foi gravada: ids antigos → novos; respostas sem pergunta equivalente viram texto em `legado` (vai para
-  INFO ADICIONAL); o líder antigo vira técnico cadastrado. Ao carregar a v3, `adoptLegacyMeter` tira da
-  `infoLegada` das ocorrências o medidor instalado e a leitura (perguntas novas da 1.4.1) e põe nas respostas. Campo novo no cabeçalho: acrescente em `HEADER_FIELDS`
+  eletricistas começam com a dupla dos últimos cabeçalhos). Ao carregar, `migrateMeters` converte os medidores das
+  versões 1.4.1 a 1.4.4; dados de antes da 1.3.0 (primeiro APK com atualização automática, inclusive o protótipo v2)
+  não são mais migrados. `infoLegada` (texto de respostas antigas) ainda é exibido se existir. Campo novo no
+  cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`
   no lugar de `lastSheet`) fica na v3 com detecção na carga: subir a versão faria um APK antigo descartar tudo.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
@@ -73,14 +73,18 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   o voltar do Android agir como o Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
   `navigator.share`: o PDF vai em base64 para `FerracineBridge.kt`. No navegador a ponte não existe.
-- Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; ao abrir e ao
-  voltar para o app, no máximo a cada 6 h quando não há nada novo), `src/domain/update.ts` decide (tag `vX.Y.Z` maior
+- Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; a cada abertura e,
+  ao voltar para o app, se a última consulta foi há mais de 1 h; se o GitHub recusou por limite, espera 1 h), `src/domain/update.ts` decide (tag `vX.Y.Z` maior
   que `__APP_VERSION__` + asset `FerracineProd-X.Y.Z.apk` de `.../releases/download/`) e mostra o aviso
   `#update-banner` (no topo quando achado sozinho; no rodapé, com "Procurando..." no botão, quando achado pelo
   "Procurar atualização"). "Atualizar" chama `installUpdate(url)` da ponte: `Updater.kt` confere o mesmo prefixo, baixa em
   `cache/update/`, confere pacote e versionCode maiores, pede "Instalar apps desconhecidos" (Android 8+, retoma no
   `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
   `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.
+- Cabeçalho (`header-screen.ts`): Eletricista 1 e 2 são listas dos cadastrados ("NOME - MATRÍCULA"), como o técnico
+  líder; a janela de cadastro (`manageCadastro`) é a mesma para técnicos e eletricistas. Solo esconde o Eletricista 2.
+  Quem estava no cabeçalho e não está mais no cadastro aparece como opção "anterior" (não se perde na correção).
+  O `ShiftHeader` continua guardando nome/matrícula (o PDF não muda).
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Todo `input`/`textarea`
   sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
@@ -107,7 +111,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
   WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
   (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider.
-- `design/`: referências que o dono mandou. Não coloque arquivos em `dist/`: o build apaga a pasta.
+- `design/`: referências que o dono mandou (foto do PDF com os dados à mão cobertos por tarja preta e o modelo). Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
 - A pergunta dos DITAIS (`ditais`) é a única obrigatória (OS nova e edição).

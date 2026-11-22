@@ -81,38 +81,3 @@ export function isVisible(q: Question, answers: Record<string, Answer>): boolean
 export function visibleQuestions(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
   return questionsFor(type).filter((q) => isVisible(q, answers));
 }
-
-/**
- * Ids da versão anterior do catálogo (c1..c3, o1..o18) → ids atuais, para não perder OSs de um turno aberto
- * na atualização. Perguntas que deixaram de existir no tipo ficam de fora (resposta descartada).
- */
-export const LEGACY_QUESTION_IDS: Record<ServiceType, Record<string, string>> = {
-  COMERCIAL: { c1: 'tipo', c2: 'clientePresente', c3: 'ramal' },
-  OCORRENCIA: {
-    o1: 'tipo',
-    o2: 'os',
-    o3: 'callback',
-    o4: 'defeito',
-    o5: 'dispositivo',
-    o6: 'ditais',
-    o7: 'kmIni',
-    o8: 'kmFin',
-    o9: 'horaIni',
-    o10: 'horaFin',
-    o11: 'dificuldade',
-    o12: 'medidorInst',
-    o14: 'leituraInst',
-  },
-};
-
-/**
- * Perguntas antigas da ocorrência sem equivalente no catálogo atual. Na migração, as respostas delas viram o texto
- * `infoLegada` da OS e vão para INFO ADICIONAL: nada do que já foi registrado se perde.
- */
-export const LEGACY_EXTRA_LABELS: Record<string, string> = {
-  o13: 'Medidor retirado',
-  o15: 'Leitura medidor retirado',
-  o16: 'KM inicial (2º)',
-  o17: 'KM final (2º)',
-  o18: 'Dificuldade na execução',
-};

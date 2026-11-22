@@ -5,14 +5,16 @@ import { BTN, byId, h, icon } from './ui/dom';
 import { showToast } from './ui/feedback';
 
 /**
- * Atualização do APK. Com internet, o app consulta a última Release do GitHub (no máximo a cada 6 h quando não há
- * nada novo) e, se houver versão maior, mostra um aviso que não atrapalha o trabalho. "Atualizar" pede ao Android
+ * Atualização do APK. Com internet, o app consulta a última Release do GitHub toda vez que é aberto (e ao voltar
+ * para ele, se a última consulta foi há mais de 1 h) e, se houver versão maior, mostra um aviso no topo que não
+ * atrapalha o trabalho. "Procurar atualização" (rodapé) consulta na hora. "Atualizar" pede ao Android
  * (Updater.kt) para baixar o APK e abrir o instalador; o Android só aceita o APK assinado com a mesma chave e os
  * dados do app continuam. Sem internet, nada acontece. No navegador/PWA quem atualiza é o service worker.
  */
 
 const LAST_CHECK_KEY = 'ferracine_prod:update-check';
-const INTERVAL_MS = 6 * 60 * 60 * 1000;
+/** Ao voltar para o app (ele continuou aberto), consulta de novo só depois deste intervalo. */
+const RETORNO_MS = 60 * 60 * 1000;
 const TIMEOUT_MS = 10_000;
 
 function lastCheck(): number {
@@ -31,8 +33,28 @@ function markChecked(): void {
   }
 }
 
-/** A API respondeu com erro (ex.: limite de 60 consultas/h por IP): esperar o intervalo antes de tentar de novo. */
+/** A API respondeu com erro (ex.: limite de 60 consultas/h por IP): espera RETORNO_MS antes de tentar de novo. */
 class ApiError extends Error {}
+
+const API_ERROR_KEY = 'ferracine_prod:update-erro';
+
+/** O GitHub recusou há menos de RETORNO_MS (vale até ao abrir: muitos celulares dividem o IP da operadora). */
+function recusouHaPouco(): boolean {
+  try {
+    return Date.now() - (Number(localStorage.getItem(API_ERROR_KEY)) || 0) < RETORNO_MS;
+  } catch {
+    return false;
+  }
+}
+
+function marcaRecusa(recusou: boolean): void {
+  try {
+    if (recusou) localStorage.setItem(API_ERROR_KEY, String(Date.now()));
+    else localStorage.removeItem(API_ERROR_KEY);
+  } catch {
+    // sem armazenamento: nada a guardar
+  }
+}
 
 /** null = já está na versão mais recente. Lança erro sem internet, em timeout ou se a API recusar. */
 async function fetchUpdate(): Promise<UpdateInfo | null> {
@@ -61,7 +83,7 @@ export function initUpdates(): void {
 
   const banner = byId('update-banner');
   const footerEl = footer.closest('footer')!;
-  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: 'underline font-semibold text-brand-fg inline-flex items-center gap-1', onClick: () => void check(true) });
+  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: 'underline font-semibold text-brand-fg inline-flex items-center gap-1', onClick: () => void check('manual') });
   /** "Procurar atualização" ↔ carregando (ícone girando, desativado) enquanto a consulta do toque não volta. */
   const setChecking = (busy: boolean) => {
     checkBtn.disabled = busy;
@@ -131,13 +153,18 @@ export function initUpdates(): void {
     }
   });
 
-  async function check(manual: boolean): Promise<void> {
-    // Automático: sem sinal, com versão nova já encontrada ou consultado há pouco, não gasta dados nem a cota da API.
-    if (!manual && (!navigator.onLine || available || Date.now() - lastCheck() < INTERVAL_MS)) return;
+  /** `abertura`: o app acabou de abrir; `retorno`: voltou para ele; `manual`: "Procurar atualização". */
+  async function check(quando: 'abertura' | 'retorno' | 'manual'): Promise<void> {
+    const manual = quando === 'manual';
+    // Sem sinal não tenta. Ao voltar para o app: não repete se já achou versão nova ou consultou há pouco.
+    if (!manual && (!navigator.onLine || recusouHaPouco())) return;
+    if (quando === 'retorno' && (available || Date.now() - lastCheck() < RETORNO_MS)) return;
     inflight ??= fetchUpdate().finally(() => (inflight = null));
     if (manual) setChecking(true);
     try {
       available = await inflight;
+      markChecked();
+      marcaRecusa(false);
       if (available) {
         if (installing) {
           // Não apaga o "Baixando..." de um download em curso; o toque ainda recebe resposta.
@@ -152,11 +179,10 @@ export function initUpdates(): void {
           render(available, offerText(available));
         }
       } else {
-        markChecked();
         if (manual) showToast(`Você já está na versão mais recente (${__APP_VERSION__}).`, 'success');
       }
     } catch (e) {
-      if (e instanceof ApiError) markChecked(); // GitHub recusou (limite de consultas): espera o intervalo
+      if (e instanceof ApiError) marcaRecusa(true); // GitHub recusou (limite de consultas): não insiste por 1 h
       if (manual) {
         showToast(
           e instanceof ApiError ? 'O GitHub não respondeu agora. Tente de novo mais tarde.' : 'Sem internet agora. A atualização é procurada sozinha quando houver sinal.',
@@ -169,9 +195,9 @@ export function initUpdates(): void {
   }
 
   footer.append(' · ', checkBtn);
-  void check(false);
+  void check('abertura');
   // Voltou para o app (talvez agora com sinal): tenta de novo, respeitando o intervalo.
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void check(false);
+    if (document.visibilityState === 'visible') void check('retorno');
   });
 }

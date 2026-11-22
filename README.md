@@ -14,11 +14,11 @@ houver, só serve para o app se atualizar.
 
 ## Como funciona
 
-1. **Cabeçalho do turno**: nome e matrícula do eletricista 1 (obrigatórios), eletricista 2 (opcional), equipe,
-   viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
+1. **Cabeçalho do turno**: **Solo** ou **Dupla**, Eletricista 1 (e 2 na dupla) escolhidos na lista dos cadastrados
+   ("NOME - MATRÍCULA"), equipe, viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
-   Os técnicos líderes são cadastrados no próprio app ("Adicionar / excluir técnicos").
-   Os eletricistas também ("Adicionar / excluir eletricistas"): escolher um preenche nome e matrícula.
+   Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
+   ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
 2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
    o do código do serviço. Código da lista do outro tipo é recusado (as perguntas seriam as erradas).
@@ -98,9 +98,9 @@ nova não instala por cima da antiga. O `android/local.properties` aponta o SDK 
 ## Estrutura
 
 ```
-design/       referências do dono do app: layout, logo, ícone, modelo e foto do PDF
+design/       referências do dono do app: modelo e foto do PDF (dados à mão cobertos)
 src/domain/   regras puras: catálogo de códigos e perguntas, regras da OS, linhas do espelho, formatação
-src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3; migra a v2)
+src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
 src/platform.ts ponte com o APK (salvar/abrir/compartilhar o PDF)
 src/ui/       telas (cabeçalho, painel, tela da OS), toast e modal
@@ -121,8 +121,8 @@ Para mudar códigos ou perguntas, edite só [src/domain/catalog.ts](src/domain/c
 
 ### Atualização do APK
 
-Com internet, o APK consulta a última Release do repositório (ao abrir e ao voltar para o app; se não houver nada
-novo, no máximo a cada 6 horas). Se a Release `vX.Y.Z` for maior que a versão instalada e tiver o
+Com internet, o APK consulta a última Release do repositório (toda vez que o app é aberto, e ao voltar para ele se a
+última consulta foi há mais de 1 hora). Se a Release `vX.Y.Z` for maior que a versão instalada e tiver o
 `FerracineProd-X.Y.Z.apk` anexado, aparece um aviso no topo: **Atualizar** baixa o APK (~0,6 MB) e abre o instalador
 do Android; **X** esconde o aviso até a próxima abertura. Na primeira vez o Android pede para liberar "Instalar apps
 desconhecidos" para a Folha de Produção; liberado, a instalação continua sozinha. O Android só instala por cima um
@@ -135,7 +135,7 @@ rodapé. Sem internet nada muda. No navegador/PWA quem atualiza é o service wor
 ## Histórico
 
 A primeira versão foi um `index.html` único gerado com o Gemini (preservado no primeiro commit deste repositório).
-O layout segue `design/index_base.html` e o PDF segue a folha de papel do Espelho de Campo. Sobre essa base, o app
+O layout seguiu um modelo enviado pelo dono e o PDF segue a folha de papel do Espelho de Campo. Sobre essa base, o app
 acrescenta: funcionamento offline (PWA e APK), salvamento da OS em andamento, edição completa de OS, correção do
 cabeçalho, preenchimento automático do turno, técnicos cadastráveis, reenvio do último PDF e proteção contra
 injeção de HTML.

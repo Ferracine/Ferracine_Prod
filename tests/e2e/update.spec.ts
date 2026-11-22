@@ -90,7 +90,21 @@ test('APK sem internet: "Procurar atualização" avisa e o app segue normal', as
   await page.goto('/');
   await page.locator('#btn-check-update').click();
   await expect(page.getByRole('status').filter({ hasText: 'Sem internet' })).toBeVisible();
-  await expect(page.getByLabel('Nome 1 *')).toBeVisible();
+  await expect(page.locator('#eletricista1')).toBeVisible();
+});
+
+test('GitHub recusou há pouco (limite de consultas): ao abrir de novo o app não insiste', async ({ page }) => {
+  await comoApk(page);
+  let consultas = 0;
+  await page.route(API, (route) => {
+    consultas++;
+    return route.fulfill({ status: 403, json: { message: 'API rate limit exceeded' } });
+  });
+  await page.goto('/');
+  await expect.poll(() => consultas).toBe(1);
+  await page.reload();
+  await page.waitForTimeout(500);
+  expect(consultas).toBe(1);
 });
 
 test('APK com o GitHub recusando (limite de consultas): avisa que o GitHub não respondeu, não "sem internet"', async ({ page }) => {
@@ -135,9 +149,8 @@ test('navegador/PWA: mostra a versão, mas não procura APK (o service worker at
   expect(consultou).toBe(false);
 });
 
-test('cabeçalho do turno: grupos "Eletricista 1" e "Eletricista 2"', async ({ page }) => {
+test('cabeçalho do turno: campo "Eletricista 1" com a lista de cadastrados', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('Eletricista 1 (obrigatório)')).toBeVisible();
-  await expect(page.getByText('Eletricista 2', { exact: true })).toBeVisible();
+  await expect(page.getByText('Eletricista 1 *')).toBeVisible();
   await expect(page.getByText('Integrante')).toHaveCount(0);
 });

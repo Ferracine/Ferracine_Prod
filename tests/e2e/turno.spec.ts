@@ -10,10 +10,26 @@ async function cadastrarTecnico(page: Page, nome: string, telefone: string) {
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
 }
 
+/** Cadastra eletricistas pela janela "Adicionar / excluir eletricistas" do cabeçalho. */
+async function cadastrarEletricistas(page: Page, ...pessoas: [string, string][]) {
+  await page.locator('#btn-eletricistas').click();
+  for (const [nome, mat] of pessoas) {
+    await page.locator('#eletricista-nome').fill(nome);
+    await page.locator('#eletricista-matricula').fill(mat);
+    await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
+  }
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+}
+
+/** Cadastra e escolhe o Eletricista 1 (turno solo). */
+async function escolherEletricista1(page: Page, nome: string, mat: string) {
+  await cadastrarEletricistas(page, [nome, mat]);
+  await page.locator('#eletricista1').selectOption({ label: `${nome.toUpperCase()} - ${mat}` });
+}
+
 async function iniciarTurno(page: Page) {
   await page.goto('/');
-  await page.getByLabel('Nome 1 *').fill('JOÃO DA SILVA');
-  await page.getByLabel('Mat. 1 *').fill('123456');
+  await escolherEletricista1(page, 'João da Silva', '123456');
   await page.getByLabel('Equipe', { exact: true }).fill('PVH-01');
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
@@ -35,7 +51,7 @@ const marcar = (page: Page, pergunta: string, escolha: 'Sim' | 'Não') => page.l
 test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento e próximo turno já preenchido', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
-  await expect(page.getByRole('alert')).toContainText('Preencha Nome 1');
+  await expect(page.getByRole('alert')).toContainText('Escolha o Eletricista 1');
 
   // Técnico líder começa em branco; cadastra e escolhe.
   await expect(page.getByLabel('Técnico líder responsável')).toHaveValue('');
@@ -88,7 +104,7 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
   await expect(page.locator('#screen-header')).toBeVisible();
-  await expect(page.getByLabel('Nome 1 *')).toHaveValue('JOÃO DA SILVA');
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('JOÃO DA SILVA - 123456');
   await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('PVH-01');
   await expect(page.getByLabel('Início *')).toHaveValue('07:00');
   const hoje = await page.evaluate(() => {
@@ -207,9 +223,9 @@ test('técnicos: cadastrar, excluir e a lista do cabeçalho acompanha', async ({
   await expect(lider.locator('option')).toHaveText(['—', 'TEC. DOIS']);
 
   // O que foi digitado no formulário não se perde ao mexer nos técnicos.
-  await page.getByLabel('Nome 1 *').fill('MARIA');
+  await page.getByLabel('Equipe', { exact: true }).fill('PVH-09');
   await cadastrarTecnico(page, 'TEC. TRES', '69 3333-3333');
-  await expect(page.getByLabel('Nome 1 *')).toHaveValue('MARIA');
+  await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('PVH-09');
   await page.reload();
   await expect(lider.locator('option')).toHaveText(['—', 'TEC. DOIS', 'TEC. TRES - 69 3333-3333']);
 });
@@ -327,25 +343,62 @@ test('medidores da comercial: o da UC sempre; o novo só com "Foi instalado novo
   await expect(respostas).not.toContainText('N62123');
 });
 
-test('eletricistas: cadastrar e escolher preenche nome e matrícula', async ({ page }) => {
+test('eletricistas: cadastro igual ao dos técnicos, lista "NOME - MATRÍCULA" e Solo/Dupla', async ({ page }) => {
   await page.goto('/');
+  // Sem dupla no turno anterior: começa em Solo, com o Eletricista 2 escondido.
+  await expect(page.locator('[data-modo="Solo"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#eletricista2')).toBeHidden();
+  // Matrícula é obrigatória no cadastro.
   await page.locator('#btn-eletricistas').click();
-  for (const [nome, mat] of [['Ana Lima', '111'], ['Bia Souza', '222']] as const) {
-    await page.locator('#eletricista-nome').fill(nome);
-    await page.locator('#eletricista-matricula').fill(mat);
-    await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
-  }
-  await expect(page.getByTestId('eletricistas-list')).toContainText('BIA SOUZA');
+  await page.locator('#eletricista-nome').fill('Sem Matricula');
+  await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
+  await expect(page.getByRole('status').last()).toContainText('Digite a matrícula');
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
 
-  await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA (Mat: 222)' });
-  await expect(page.getByLabel('Nome 2')).toHaveValue('BIA SOUZA');
-  await expect(page.getByLabel('Mat. 2')).toHaveValue('222');
-  // Excluir tira da lista de escolha.
+  await cadastrarEletricistas(page, ['Ana Lima', '111'], ['Bia Souza', '222'], ['Caio Rocha', '333']);
+  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolha o eletricista', 'ANA LIMA - 111', 'BIA SOUZA - 222', 'CAIO ROCHA - 333']);
+  await page.locator('#eletricista1').selectOption({ label: 'ANA LIMA - 111' });
+  await page.locator('[data-modo="Dupla"]').click();
+  await expect(page.locator('#eletricista2')).toBeVisible();
+  await page.getByLabel('Início *').fill('07:00');
+  await page.getByLabel('Fim *').fill('17:00');
+  // Dupla sem o segundo, ou a mesma pessoa duas vezes: não inicia.
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await expect(page.getByRole('alert')).toContainText('Escolha o Eletricista 2');
+  await page.locator('#eletricista2').selectOption({ label: 'ANA LIMA - 111' });
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await expect(page.getByRole('alert').last()).toContainText('mesma pessoa');
+  await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA - 222' });
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await expect(page.getByTestId('header-info')).toContainText('ANA LIMA (Mat: 111)');
+  await expect(page.getByTestId('header-info')).toContainText('BIA SOUZA (Mat: 222)');
+
+  // Corrigir: volta em Dupla com os dois escolhidos; Solo tira o Eletricista 2.
+  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await expect(page.locator('[data-modo="Dupla"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#eletricista2 option:checked')).toHaveText('BIA SOUZA - 222');
+  await page.locator('[data-modo="Solo"]').click();
+  await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
+  await expect(page.getByTestId('header-info').locator('dt')).toHaveText(['Eletricista 1', 'Equipe', 'Viatura', 'Bodycam']);
+
+  // Excluir do cadastro quem está escolhido: a lista volta para "Escolha o eletricista" (não fica escolhido escondido).
+  await page.getByRole('button', { name: 'Corrigir' }).click();
   await page.locator('#btn-eletricistas').click();
   await page.getByRole('button', { name: 'Excluir eletricista ANA LIMA' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
-  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolher eletricista cadastrado…', 'BIA SOUZA (Mat: 222)']);
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('Escolha o eletricista');
+});
+
+test('eletricista do turno anterior fora do cadastro aparece marcado e sem matrícula não inicia', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return;
+    const h = { nome1: 'ZÉ ANTIGO', mat1: '', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' };
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: h, tecnicos: [], eletricistas: [] }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('ZÉ ANTIGO (turno anterior)');
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await expect(page.getByRole('alert')).toContainText('está sem matrícula');
 });
 
 test('aviso "PDF salvo" com nome de arquivo comprido não vaza para fora do aviso', async ({ page }) => {
@@ -371,17 +424,17 @@ test('aviso "PDF salvo" com nome de arquivo comprido não vaza para fora do avis
 
 test('teclado em maiúsculas: campos abrem com caps e o texto digitado vira maiúsculas', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByLabel('Nome 1 *')).toHaveAttribute('autocapitalize', 'characters');
-  await page.getByLabel('Nome 1 *').pressSequentially('josé');
-  await expect(page.getByLabel('Nome 1 *')).toHaveValue('JOSÉ');
+  await expect(page.getByLabel('Equipe', { exact: true })).toHaveAttribute('autocapitalize', 'characters');
+  await page.getByLabel('Equipe', { exact: true }).pressSequentially('josé');
+  await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('JOSÉ');
 });
 
 test('cabeçalho do turno: uma informação por linha (eletricistas separados)', async ({ page }) => {
   await page.goto('/');
-  await page.getByLabel('Nome 1 *').fill('ANA');
-  await page.getByLabel('Mat. 1 *').fill('1');
-  await page.getByLabel('Nome 2').fill('BIA');
-  await page.getByLabel('Mat. 2').fill('2');
+  await cadastrarEletricistas(page, ['Ana', '1'], ['Bia', '2']);
+  await page.locator('#eletricista1').selectOption({ label: 'ANA - 1' });
+  await page.locator('[data-modo="Dupla"]').click();
+  await page.locator('#eletricista2').selectOption({ label: 'BIA - 2' });
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
@@ -404,8 +457,7 @@ test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeir
     localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: null, ordens: [], draft: null, sheets, lastHeader: null, tecnicos: [] }));
   });
   await page.goto('/');
-  await page.getByLabel('Nome 1 *').fill('TURNO 5');
-  await page.getByLabel('Mat. 1 *').fill('1');
+  await escolherEletricista1(page, 'Turno 5', '1');
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
@@ -457,7 +509,7 @@ test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
   await novaOS(page, 'comercial', '28', '1');
   await salvar(page);
   await page.getByRole('button', { name: 'Corrigir' }).click();
-  await page.getByLabel('Nome 1 *').fill('JOÃO SOUZA');
+  await escolherEletricista1(page, 'João Souza', '123456');
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
   await expect(page.getByTestId('header-info')).toContainText('JOÃO SOUZA (Mat: 123456)');
   await expect(page.getByTestId('os-item')).toHaveCount(1);

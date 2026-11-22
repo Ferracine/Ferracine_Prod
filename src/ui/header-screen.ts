@@ -1,5 +1,5 @@
-import { ArrowRight, Download, FileDown, Share2, Trash2, Truck, UserCheck, UserCog, Users } from 'lucide';
-import { eletricistaLabel, formatDateBR, plural, todayISO } from '../domain/format';
+import { ArrowRight, Download, FileDown, Share2, Trash2, Truck, UserCog, Users } from 'lucide';
+import { formatDateBR, plural, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
 import { BTN, BTN_PRIMARY_LG, h, icon, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
@@ -13,7 +13,7 @@ export interface HeaderScreenProps {
   getTecnicos: () => readonly Tecnico[];
   onAddTecnico: (nome: string, telefone: string) => void;
   onRemoveTecnico: (id: string) => void;
-  /** Eletricistas cadastrados: escolher um preenche nome e matrícula (igual aos técnicos líderes). */
+  /** Eletricistas cadastrados (nome e matrícula): Eletricista 1 e 2 são escolhidos nesta lista, como o técnico líder. */
   getEletricistas: () => readonly Eletricista[];
   onAddEletricista: (nome: string, matricula: string) => void;
   onRemoveEletricista: (id: string) => void;
@@ -83,8 +83,9 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
   );
 }
 
-function tecnicoLabel(t: Tecnico): string {
-  return t.telefone ? `${t.nome} - ${t.telefone}` : t.nome;
+/** Opção das listas de cadastrados: "NOME - TELEFONE" (técnico) ou "NOME - MATRÍCULA" (eletricista). */
+function cadastroLabel(nome: string, extra: string): string {
+  return extra ? `${nome} - ${extra}` : nome;
 }
 
 /** O que muda entre os cadastros de técnicos e de eletricistas (a janela é a mesma). */
@@ -94,8 +95,8 @@ interface Cadastro<T extends { id: string; nome: string }> {
   item: string;
   /** Nome nos textos ("técnico", "eletricista"). */
   rotulo: string;
-  /** Segundo campo: id (`tecnico-telefone`), rótulo e exemplo. */
-  extra: { id: string; label: string; placeholder: string; inputmode: string };
+  /** Segundo campo: id (`tecnico-telefone`), rótulo, exemplo e se é obrigatório (matrícula). */
+  extra: { id: string; label: string; placeholder: string; inputmode: string; obrigatorio?: boolean };
   nomePlaceholder: string;
   get: () => readonly T[];
   extraOf: (t: T) => string;
@@ -139,6 +140,11 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
     if (!nome.value.trim()) {
       showToast(`Digite o nome do ${c.rotulo}.`, 'warning');
       nome.focus();
+      return;
+    }
+    if (c.extra.obrigatorio && !extra.value.trim()) {
+      showToast(`Digite a ${c.extra.label.toLowerCase()} do ${c.rotulo}.`, 'warning');
+      extra.focus();
       return;
     }
     c.onAdd(nome.value.trim().toUpperCase(), extra.value.trim().toUpperCase());
@@ -187,7 +193,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   const liderSelect = h('select', { id: 'lider', name: 'lider', class: 'field' });
   const fillLider = (selected: string) => {
     const tecnicos = p.getTecnicos();
-    liderSelect.replaceChildren(h('option', { value: '' }, '—'), ...tecnicos.map((t) => h('option', { value: t.id }, tecnicoLabel(t))));
+    liderSelect.replaceChildren(h('option', { value: '' }, '—'), ...tecnicos.map((t) => h('option', { value: t.id }, cadastroLabel(t.nome, t.telefone))));
     liderSelect.value = tecnicos.some((t) => t.id === selected) ? selected : '';
   };
   fillLider(v('lider'));
@@ -204,82 +210,89 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     onRemove: p.onRemoveTecnico,
   };
 
-  // Eletricista 1 e 2: escolher um cadastrado preenche nome e matrícula (que continuam editáveis).
-  const sels: { n: 1 | 2; sel: HTMLSelectElement }[] = [];
-  const fillEletricistas = () => {
-    const lista = p.getEletricistas();
-    for (const { n, sel } of sels) {
-      // Marca quem já está nos campos (turno anterior), se for um cadastrado.
-      const nome = input(`nome${n}`).value.trim().toUpperCase();
-      const mat = input(`mat${n}`).value.trim().toUpperCase();
-      sel.replaceChildren(
-        h('option', { value: '' }, lista.length ? 'Escolher eletricista cadastrado…' : 'Nenhum eletricista cadastrado'),
-        ...lista.map((e) => h('option', { value: e.id }, e.matricula ? eletricistaLabel(e.nome, e.matricula) : e.nome)),
-      );
-      sel.value = lista.find((e) => e.nome === nome && e.matricula === mat)?.id ?? '';
-    }
-  };
+  // Eletricista 1 e 2: escolhidos na lista dos cadastrados ("NOME - MATRÍCULA"), como o técnico líder.
   const eletricistasCadastro: Cadastro<Eletricista> = {
     titulo: 'Eletricistas',
     item: 'eletricista',
     rotulo: 'eletricista',
-    extra: { id: 'eletricista-matricula', label: 'Matrícula', placeholder: 'Ex: 123456', inputmode: 'numeric' },
-    nomePlaceholder: 'Ex: JOÃO DA SILVA',
+    extra: { id: 'eletricista-matricula', label: 'Matrícula', placeholder: 'Ex: 123456', inputmode: 'numeric', obrigatorio: true },
+    nomePlaceholder: 'Nome completo',
     get: p.getEletricistas,
     extraOf: (e) => (e.matricula ? `Mat: ${e.matricula}` : ''),
     onAdd: p.onAddEletricista,
     onRemove: p.onRemoveEletricista,
   };
-  const escolher = (n: 1 | 2) => {
-    const sel = h('select', {
-      id: `eletricista${n}`,
-      class: 'field',
-      'aria-label': `Escolher eletricista ${n} cadastrado`,
-      onChange: () => {
-        const e = p.getEletricistas().find((x) => x.id === sel.value);
-        if (!e) return;
-        input(`nome${n}`).value = e.nome;
-        input(`mat${n}`).value = e.matricula;
-      },
+  /** Quem já estava no cabeçalho (turno anterior ou correção) e não está mais na lista: continua escolhível. */
+  const anterior = (n: 1 | 2) => ({ nome: v(`nome${n}`).trim(), matricula: v(`mat${n}`).trim() });
+  const ANTERIOR = 'anterior';
+  const eletSel = ([1, 2] as const).map((n) => h('select', { id: `eletricista${n}`, class: 'field' }));
+  let primeiraVez = true;
+  const fillEletricistas = () => {
+    const lista = p.getEletricistas();
+    ([1, 2] as const).forEach((n, i) => {
+      const sel = eletSel[i]!;
+      const atual = sel.value || null;
+      const ant = anterior(n);
+      const doCadastro = lista.find((e) => e.nome === ant.nome.toUpperCase() && e.matricula === ant.matricula.toUpperCase());
+      sel.replaceChildren(
+        h('option', { value: '' }, lista.length ? 'Escolha o eletricista' : 'Nenhum eletricista cadastrado'),
+        ...lista.map((e) => h('option', { value: e.id }, cadastroLabel(e.nome, e.matricula))),
+        ...(ant.nome && !doCadastro ? [h('option', { value: ANTERIOR }, `${cadastroLabel(ant.nome, ant.matricula)} (turno anterior)`)] : []),
+      );
+      // Na primeira vez, quem veio do turno anterior. Depois, mantém a escolha; se a pessoa escolhida foi
+      // excluída do cadastro, volta para "Escolha o eletricista".
+      const opcoes = [...sel.options].map((o) => o.value);
+      if (primeiraVez) sel.value = doCadastro?.id ?? (ant.nome ? ANTERIOR : '');
+      else sel.value = atual !== null && opcoes.includes(atual) ? atual : '';
     });
-    sels.push({ n, sel });
-    return h(
+    primeiraVez = false;
+  };
+  /** Nome e matrícula do eletricista escolhido na lista `n` (null se nenhum). */
+  const escolhido = (n: 1 | 2): { nome: string; matricula: string } | null => {
+    const val = eletSel[n - 1]!.value;
+    if (val === ANTERIOR) return anterior(n);
+    return p.getEletricistas().find((e) => e.id === val) ?? null;
+  };
+
+  // Solo ou dupla: solo esconde o Eletricista 2.
+  let dupla = !!v('nome2').trim();
+  const grupo2 = h('div');
+  const modoBtns = (['Solo', 'Dupla'] as const).map((m) =>
+    h('button', { type: 'button', 'data-modo': m, class: 'flex-1 py-2.5 rounded-xl border-2 font-extrabold text-sm transition-all', onClick: () => setDupla(m === 'Dupla') }, m),
+  );
+  const setDupla = (d: boolean) => {
+    dupla = d;
+    grupo2.classList.toggle('hidden', !d);
+    for (const b of modoBtns) {
+      const on = (b.dataset.modo === 'Dupla') === d;
+      b.setAttribute('aria-pressed', String(on));
+      for (const c of ['border-brand', 'bg-brand-600', 'text-white']) b.classList.toggle(c, on);
+      for (const c of ['border-fg/15', 'bg-fg/5', 'text-fg']) b.classList.toggle(c, !on);
+    }
+  };
+
+  const eletricistaField = (n: 1 | 2) =>
+    h(
       'div',
       null,
       h(
         'div',
         { class: 'flex items-center justify-between gap-2' },
-        h('label', { for: `eletricista${n}`, class: 'lbl' }, 'Cadastrado'),
+        h('label', { for: `eletricista${n}`, class: 'lbl' }, n === 1 ? 'Eletricista 1 *' : 'Eletricista 2 *'),
         n === 1 && manageLink('btn-eletricistas', 'Adicionar / excluir eletricistas', () => manageCadastro(eletricistasCadastro, fillEletricistas)),
       ),
-      sel,
+      eletSel[n - 1]!,
     );
-  };
+  grupo2.append(eletricistaField(2));
 
   form.append(
     group(
-      'Eletricista 1 (obrigatório)',
-      UserCheck,
-      null,
-      escolher(1),
-      h(
-        'div',
-        { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
-        field('nome1', 'Nome 1 *', { required: true, placeholder: 'Nome completo do eletricista 1', value: v('nome1') }, 'sm:col-span-2'),
-        field('mat1', 'Mat. 1 *', { required: true, placeholder: 'Ex: 123456', inputmode: 'numeric', value: v('mat1') }),
-      ),
-    ),
-    group(
-      'Eletricista 2',
+      'Eletricistas',
       Users,
-      'Opcional se solo',
-      escolher(2),
-      h(
-        'div',
-        { class: 'grid grid-cols-1 sm:grid-cols-3 gap-4' },
-        field('nome2', 'Nome 2', { placeholder: 'Nome completo do eletricista 2', value: v('nome2') }, 'sm:col-span-2'),
-        field('mat2', 'Mat. 2', { placeholder: 'Ex: 654321', inputmode: 'numeric', value: v('mat2') }),
-      ),
+      null,
+      h('div', { class: 'flex gap-3', role: 'group', 'aria-label': 'Solo ou dupla' }, modoBtns),
+      eletricistaField(1),
+      grupo2,
     ),
     group(
       'Equipe e viatura',
@@ -325,13 +338,32 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     ),
   );
 
-  fillEletricistas(); // depois de montar o form: lê os nomes já preenchidos
+  fillEletricistas();
+  setDupla(dupla);
 
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
-    const header = Object.fromEntries(HEADER_FIELDS.map((k) => [k, input(k).value.trim()])) as ShiftHeader;
-    if (!header.nome1 || !header.mat1 || !header.data || !header.horaInicio || !header.horaFim) {
-      showToast('Preencha Nome 1, Matrícula 1, Data e Horário (início e fim) para liberar o turno.', 'error');
+    const e1 = escolhido(1);
+    const e2 = dupla ? escolhido(2) : null;
+    const semMatricula = [e1, e2].find((e) => e && !e.matricula.trim());
+    const erro = !e1
+      ? 'Escolha o Eletricista 1 (cadastre em "Adicionar / excluir eletricistas").'
+      : dupla && !e2
+        ? 'Escolha o Eletricista 2, ou marque Solo.'
+        : e2 && e2.nome === e1.nome && e2.matricula === e1.matricula
+          ? 'Eletricista 1 e 2 não podem ser a mesma pessoa.'
+          : semMatricula
+            ? `${semMatricula.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`
+            : null;
+    if (erro) {
+      showToast(erro, 'error');
+      return;
+    }
+    const campo = (k: keyof ShiftHeader) => (input(k) as HTMLInputElement | null)?.value.trim() ?? '';
+    const header = Object.fromEntries(HEADER_FIELDS.map((k) => [k, campo(k)])) as ShiftHeader;
+    Object.assign(header, { nome1: e1!.nome, mat1: e1!.matricula, nome2: e2?.nome ?? '', mat2: e2?.matricula ?? '' });
+    if (!header.data || !header.horaInicio || !header.horaFim) {
+      showToast('Preencha Data e Horário (início e fim) para liberar o turno.', 'error');
       return;
     }
     p.onSubmit(header);
