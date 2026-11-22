@@ -3,7 +3,7 @@ import { SERVICE_LABEL, isVisible, questionsFor } from '../domain/catalog';
 import { CODE_FIELD, choiceAnswer, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
-import { BTN, BTN_PRIMARY_LG, h, icon } from './dom';
+import { BTN, BTN_CHOICE, BTN_PRIMARY_LG, h, icon } from './dom';
 
 export interface OSScreenProps {
   /** `new`: OS nova (rascunho salvo a cada alteração); `edit`: lápis de uma OS concluída. */
@@ -54,7 +54,7 @@ function choiceButtons(selected: Choice | undefined, onChoice: (c: Choice) => vo
         type: 'button',
         'aria-pressed': String(selected === choice),
         'data-choice': choice,
-        class: `py-3 text-base px-4 rounded-2xl border-2 font-extrabold transition-all flex items-center justify-center gap-2 ${selected === choice ? CHOICE_ON[choice] : CHOICE_OFF}`,
+        class: `${BTN_CHOICE} min-h-14 px-4 text-base ${selected === choice ? CHOICE_ON[choice] : CHOICE_OFF}`,
         onClick: () => onChoice(choice),
       },
       icon(node, 'w-6 h-6'),
@@ -188,8 +188,8 @@ export function osScreen(p: OSScreenProps): HTMLElement {
     h(
       'div',
       { class: 'card p-4 space-y-3' },
-      textField('os-number', NUMBER_LABEL[p.serviceType], state.osNumber, { inputmode: 'numeric', placeholder: 'Vazio = S/N' }, (v) => (state.osNumber = v)),
-      textField('os-code', 'Código do serviço', state.serviceCode, { inputmode: 'numeric', maxlength: '10', placeholder: 'Digite o código do serviço' }, (v) => (state.serviceCode = v), CODE_FIELD),
+      textField('os-number', NUMBER_LABEL[p.serviceType], state.osNumber, { inputmode: 'numeric', placeholder: 'Digite o número do serviço.' }, (v) => (state.osNumber = v)),
+      textField('os-code', 'Código do serviço', state.serviceCode, { inputmode: 'numeric', maxlength: '10', placeholder: 'Digite o código do serviço.' }, (v) => (state.serviceCode = v), CODE_FIELD),
     ),
     // A pergunta do número da OS é respondida no campo acima.
     questionsFor(p.serviceType).filter((q) => !q.prefillOS).map(questionBlock),

@@ -1,7 +1,7 @@
 import { ArrowRight, Download, FileDown, Share2, Sheet, Trash2, Truck, UserCog, Users } from 'lucide';
 import { formatDateBR, plural, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
-import { BTN, BTN_PRIMARY_LG, h, icon, marcarFaltando, onEnter } from './dom';
+import { BTN, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, btn, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
 
 export interface HeaderScreenProps {
@@ -72,15 +72,14 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
     p.sheets.map((sheet) =>
       h(
         'div',
-        { class: 'flex flex-wrap items-center justify-between gap-3 border-t border-fg/10 pt-3', 'data-testid': 'last-sheet' },
+        { class: 'space-y-2 border-t border-fg/10 pt-3', 'data-testid': 'last-sheet' },
         h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
-        h(
-          'div',
-          { class: 'flex flex-wrap gap-2' },
-          p.canShare && h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar'),
-          h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
-          h('button', { type: 'button', class: `${BTN.primary} flex items-center gap-1.5`, onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
-        ),
+        // Grade de colunas iguais; "Baixar PDF" (a principal) fica por último e, sobrando sozinho, ocupa a linha.
+        gradeBotoes([
+          ...(p.canShare ? [h('button', { type: 'button', class: BTN.neutral, onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar')] : []),
+          h('button', { type: 'button', class: BTN.neutral, onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
+          h('button', { type: 'button', class: BTN.primary, onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
+        ]),
       ),
     ),
   );
@@ -124,7 +123,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
                 'button',
                 {
                   type: 'button',
-                  class: 'p-2.5 rounded-xl border border-fg/10 text-danger-fg hover:bg-rose-500/10 shrink-0',
+                  class: `${btn('outline', 'icon')} text-danger-fg hover:bg-rose-500/10`,
                   'aria-label': `Excluir ${c.rotulo} ${t.nome}`,
                   onClick: () => {
                     c.onRemove(t.id);
@@ -132,7 +131,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
                     drawList();
                   },
                 },
-                icon(Trash2),
+                icon(Trash2, 'w-5 h-5'),
               ),
             ),
           )),
@@ -184,7 +183,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
 
 /** Link "Adicionar / excluir ..." ao lado de um rótulo. */
 function manageLink(id: string, text: string, onClick: () => void): HTMLElement {
-  return h('button', { type: 'button', id, class: 'text-xs font-bold text-brand-fg hover:underline flex items-center gap-1 mb-1.5', onClick }, icon(UserCog, 'w-3.5 h-3.5'), text);
+  return h('button', { type: 'button', id, class: `${BTN_LINK} -my-2`, onClick }, icon(UserCog, 'w-4 h-4 shrink-0'), text);
 }
 
 export function headerScreen(p: HeaderScreenProps): HTMLElement {
@@ -246,10 +245,11 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
         ...lista.map((e) => h('option', { value: e.id }, lista.filter((x) => x.nome === e.nome).length > 1 ? `${e.nome} (Mat: ${e.matricula || 'sem'})` : e.nome)),
         ...(ant.nome && !doCadastro ? [h('option', { value: ANTERIOR }, `${ant.nome} (turno anterior)`)] : []),
       );
-      // Na primeira vez, quem veio do turno anterior. Depois, mantém a escolha; se a pessoa escolhida foi
-      // excluída do cadastro, volta para "Escolha o eletricista".
+      // Na primeira vez, quem veio do turno anterior. Depois, mantém a escolha (o "turno anterior" que acabou de ser
+      // cadastrado passa a ser a opção do cadastro); se a pessoa escolhida foi excluída, volta para "Escolha o
+      // eletricista".
       const opcoes = [...sel.options].map((o) => o.value);
-      if (primeiraVez) sel.value = doCadastro?.id ?? (ant.nome ? ANTERIOR : '');
+      if (primeiraVez || (atual === ANTERIOR && doCadastro)) sel.value = doCadastro?.id ?? (ant.nome ? ANTERIOR : '');
       else sel.value = atual !== null && opcoes.includes(atual) ? atual : '';
       mostraMatricula(n);
     });
@@ -274,7 +274,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   let dupla = !!v('nome2').trim();
   const grupo2 = h('div');
   const modoBtns = (['Solo', 'Dupla'] as const).map((m) =>
-    h('button', { type: 'button', 'data-modo': m, class: 'flex-1 py-2.5 rounded-xl border-2 font-extrabold text-sm transition-all', onClick: () => setDupla(m === 'Dupla') }, m),
+    h('button', { type: 'button', 'data-modo': m, class: `${BTN_CHOICE} flex-1 min-h-12 text-sm`, onClick: () => setDupla(m === 'Dupla') }, m),
   );
   const setDupla = (d: boolean) => {
     dupla = d;
@@ -356,7 +356,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     h(
       'div',
       { class: 'pt-2 flex flex-col sm:flex-row gap-3' },
-      init && h('button', { type: 'button', class: `${BTN.neutral} py-4 sm:w-1/3`, onClick: p.onCancelEdit }, 'Cancelar'),
+      init && h('button', { type: 'button', class: `${btn('neutral', 'lg')} sm:w-1/3`, onClick: p.onCancelEdit }, 'Cancelar'),
       h('button', { type: 'submit', class: `flex-1 ${BTN_PRIMARY_LG}` }, init ? 'Salvar cabeçalho' : 'Iniciar turno e liberar OSs', icon(ArrowRight, 'w-5 h-5')),
     ),
   );

@@ -3,7 +3,7 @@ import { SERVICE_LABEL } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
 import { answerRows } from '../domain/ordem';
-import { h, icon } from './dom';
+import { btn, h, icon } from './dom';
 
 export interface DashboardProps {
   header: ShiftHeader;
@@ -38,7 +38,7 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
   const time = new Date(os.registradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const label = osLabel(os.osNumber);
   const action = (title: string, cls: string, node: Parameters<typeof icon>[0], onClick: () => void) =>
-    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: `p-3 rounded-xl bg-fg/5 border border-fg/10 transition-colors ${cls}`, onClick }, icon(node));
+    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: `${btn('outline', 'icon')} ${cls}`, onClick }, icon(node, 'w-5 h-5'));
 
   return h(
     'li',
@@ -103,7 +103,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
           'div',
           { class: 'flex items-center gap-2' },
           h('span', { class: 'text-xs bg-fg/10 px-3 py-1 rounded-full font-semibold text-fg' }, `${formatDateBR(header.data)} | ${formatHorario(header)}`),
-          h('button', { type: 'button', class: 'text-xs font-bold bg-fg/10 hover:bg-fg/15 text-fg px-3 py-1 rounded-full flex items-center gap-1', onClick: p.onEditHeader }, icon(Pencil, 'w-3 h-3'), 'Corrigir'),
+          h('button', { type: 'button', class: btn('neutral', 'sm'), onClick: p.onEditHeader }, icon(Pencil, 'w-3.5 h-3.5'), 'Corrigir'),
         ),
       ),
       h(
@@ -122,7 +122,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     // Nova OS: um "+" por tipo; cada um abre a tela da OS em branco com as perguntas daquele tipo.
     h(
       'div',
-      { class: 'flex justify-center gap-10' },
+      { class: 'grid grid-cols-2 gap-4 max-w-xs mx-auto' },
       (['COMERCIAL', 'OCORRENCIA'] as const).map((type) =>
         h(
           'button',
@@ -130,7 +130,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
             type: 'button',
             id: `btn-new-${type.toLowerCase()}`,
             'aria-label': `Nova OS ${SERVICE_LABEL[type]}`,
-            class: 'flex flex-col items-center gap-2 group',
+            class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1',
             onClick: () => p.onNewOS(type),
           },
           h(
@@ -158,8 +158,8 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       { class: 'pt-2 pb-8' },
       h(
         'button',
-        { type: 'button', id: 'btn-finish', class: 'w-full bg-accent-600 hover:bg-accent-700 text-white font-extrabold py-4 px-6 rounded-2xl shadow-xl shadow-accent/20 transition-all flex items-center justify-center gap-3 text-base active:scale-[0.99]', onClick: p.onFinish },
-        icon(FileDown, 'w-6 h-6'),
+        { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} w-full shadow-lg shadow-accent/20`, onClick: p.onFinish },
+        icon(FileDown, 'w-5 h-5'),
         'Finalizar turno e gerar PDF',
       ),
       h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Gera o Espelho de Campo. O turno só é encerrado depois que você confirmar que tem o PDF em mãos.'),

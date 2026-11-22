@@ -408,6 +408,23 @@ test('eletricista do turno anterior fora do cadastro aparece marcado e sem matr�
   await expect(page.locator('#matricula1')).toHaveClass(/faltando/);
 });
 
+test('cadastrar o eletricista do turno anterior mantém ele escolhido (agora pelo cadastro)', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return;
+    const h = { nome1: 'ZÉ ANTIGO', mat1: '777', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' };
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: h, tecnicos: [], eletricistas: [] }));
+  });
+  await page.goto('/');
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('ZÉ ANTIGO (turno anterior)');
+  await page.locator('#btn-eletricistas').click();
+  await page.locator('#eletricista-nome').fill('zé antigo');
+  await page.locator('#eletricista-matricula').fill('777');
+  await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('ZÉ ANTIGO');
+  await expect(page.locator('#matricula1')).toHaveValue('777');
+});
+
 test('aviso "Salvo em Downloads" com nome de arquivo comprido não vaza para fora do aviso', async ({ page }) => {
   const nome = 'CARLOS_ALBERTO_NUNES_DIEGO_MARTINS_COSTA_21-11-2026_30_servicos (1).pdf';
   // APK simulado: o Android salvou com outro nome (" (1)"), e o aviso mostra o nome que ficou em Downloads.
@@ -554,6 +571,31 @@ test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) =
   await page.locator('#screen-os').getByRole('button', { name: 'Cancelar' }).click();
   await page.getByRole('button', { name: 'Descartar OS' }).click();
   await expect(page.getByTestId('os-item')).toHaveCount(0);
+});
+
+test('voltar do Android na correção do cabeçalho cancela a correção (não fecha o app)', async ({ page }) => {
+  await iniciarTurno(page);
+  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByLabel('Equipe', { exact: true }).fill('OUTRA');
+  await page.goBack();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.getByTestId('header-info')).toContainText('PVH-01');
+  await expect.poll(() => page.evaluate(() => history.state?.ferracineBackTrap ?? false)).toBe(false);
+});
+
+test('salvar a OS e abrir outra na hora: a nova continua aberta (o voltar atrasado da anterior não a cancela)', async ({ page }) => {
+  await iniciarTurno(page);
+  await novaOS(page, 'comercial', '28', '1');
+  await marcar(page, 'novoMedidor', 'Não');
+  await page.locator('#btn-os-save').click();
+  await page.locator('#btn-new-ocorrencia').click();
+  await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.locator('#screen-os[data-mode="new"]')).toBeVisible();
+  // E o voltar do sistema continua sendo o Cancelar da OS nova (em branco: volta direto).
+  await page.goBack();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.getByTestId('os-item')).toHaveCount(1);
 });
 
 test('corrigir o cabeçalho mantém a folha', async ({ page }) => {

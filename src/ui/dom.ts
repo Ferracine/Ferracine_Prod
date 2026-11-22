@@ -109,14 +109,55 @@ export const CALLOUT = {
   danger: 'bg-rose-500/10 border border-rose-500/30 p-3 rounded-xl text-xs text-danger-fg font-medium',
 } as const;
 
-/** Botões: ciano do logo para ações principais, laranja do logo para encerrar/gerar. */
+/**
+ * Padrão dos botões: mesmo raio (rounded-xl), mesmo espaçamento em todas as cores e área de toque mínima de 44 px
+ * (luva, sol, celular numa mão só). A cor diz o papel: ciano do logo = ação principal, laranja = encerrar/gerar,
+ * vermelho = excluir/descartar, cinza = o resto.
+ */
+const BTN_BASE = 'inline-flex items-center justify-center gap-2 rounded-xl leading-tight text-center transition-colors active:scale-[0.98] disabled:opacity-60';
+const BTN_TAMANHO = {
+  lg: 'min-h-14 px-6 py-3 text-base font-extrabold', // 56 px: ação principal da tela (ícone w-5)
+  md: 'min-h-12 px-4 py-2 text-sm font-bold', // 48 px: janelas, histórico, Cancelar, Atualizar
+  sm: 'min-h-11 px-3 py-1.5 text-xs font-bold', // 44 px: ação pequena dentro de um cartão
+  icon: 'size-11 shrink-0', // 44 x 44, só ícone (ícone w-5)
+} as const;
+const BTN_TOM = {
+  primary: 'bg-brand-600 hover:bg-brand-700 text-white',
+  neutral: 'bg-fg/10 hover:bg-fg/15 text-fg',
+  danger: 'bg-rose-600 hover:bg-rose-700 text-white',
+  accent: 'bg-accent-600 hover:bg-accent-700 text-white',
+  outline: 'bg-fg/5 border border-fg/10 hover:bg-fg/10', // cor do texto/ícone fica com quem usa
+  ghost: 'text-muted hover:bg-fg/10 hover:text-fg',
+} as const;
+export type BtnTom = keyof typeof BTN_TOM;
+
+export function btn(tom: BtnTom, tamanho: keyof typeof BTN_TAMANHO = 'md'): string {
+  return `${BTN_BASE} ${BTN_TAMANHO[tamanho]} ${BTN_TOM[tom]}`;
+}
+
+/** Botões de tamanho médio (janelas, histórico). */
 export const BTN = {
-  primary: 'px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm',
-  neutral: 'px-4 py-2.5 bg-fg/10 hover:bg-fg/15 text-fg font-bold rounded-xl text-sm',
-  danger: 'px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-sm',
-  accent: 'px-5 py-2.5 bg-accent-600 hover:bg-accent-700 text-white font-extrabold rounded-xl text-sm flex items-center gap-2',
+  primary: btn('primary'),
+  neutral: btn('neutral'),
+  danger: btn('danger'),
+  accent: btn('accent'),
 } as const;
 
-/** Botão grande de ação principal. */
-export const BTN_PRIMARY_LG =
-  'bg-brand-600 hover:bg-brand-700 text-white font-extrabold py-4 px-6 rounded-xl shadow-lg shadow-brand/20 transition-all flex items-center justify-center gap-2 text-base active:scale-[0.99]';
+/** Botão grande de ação principal (Iniciar turno, Salvar OS). */
+export const BTN_PRIMARY_LG = `${btn('primary', 'lg')} shadow-lg shadow-brand/20`;
+
+/** Link de ação ("Adicionar / excluir ...", "Procurar atualização"): texto pequeno, mas com 44 px de toque. */
+export const BTN_LINK = 'inline-flex items-center gap-1.5 min-h-11 text-xs font-bold text-brand-fg hover:underline whitespace-nowrap';
+
+/** Escolha entre opções (SIM/NÃO, Solo/Dupla): cor de fundo e borda vêm de quem usa, conforme o estado. */
+export const BTN_CHOICE = 'flex items-center justify-center gap-2 rounded-xl border-2 font-extrabold transition-all';
+
+/** Botões lado a lado em colunas iguais; o que sobra numa linha (quantidade ímpar) ou é largo ocupa a linha toda. */
+export function gradeBotoes(botoes: HTMLElement[], largos: ReadonlySet<HTMLElement> = new Set()): HTMLElement {
+  const meios = botoes.filter((b) => !largos.has(b));
+  for (const b of botoes) {
+    b.classList.add('w-full');
+    if (largos.has(b) || (meios.length % 2 === 1 && b === meios.at(-1))) b.classList.add('col-span-2');
+  }
+  return h('div', { class: 'grid grid-cols-2 gap-3' }, botoes);
+}

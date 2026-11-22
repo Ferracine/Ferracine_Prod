@@ -1,7 +1,7 @@
 import { CloudDownload, LoaderCircle, X } from 'lucide';
 import { LATEST_RELEASE_API, pickUpdate, type UpdateInfo } from './domain/update';
 import { androidBridge, UPDATE_EVENT, type UpdateStatus } from './platform';
-import { BTN, byId, h, icon } from './ui/dom';
+import { BTN, BTN_LINK, btn, byId, h, icon } from './ui/dom';
 import { showToast } from './ui/feedback';
 
 /**
@@ -35,6 +35,8 @@ function markChecked(): void {
 
 /** A API respondeu com erro (ex.: limite de 60 consultas/h por IP): espera RETORNO_MS antes de tentar de novo. */
 class ApiError extends Error {}
+/** Resposta que não é a da API (Wi-Fi com página de login, proxy): há rede, mas o GitHub não foi alcançado. */
+class RespostaEstranha extends Error {}
 
 const API_ERROR_KEY = 'ferracine_prod:update-erro';
 
@@ -63,7 +65,10 @@ async function fetchUpdate(): Promise<UpdateInfo | null> {
   try {
     const res = await fetch(LATEST_RELEASE_API, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store', signal: ctrl.signal });
     if (!res.ok) throw new ApiError(`HTTP ${res.status}`);
-    return pickUpdate(await res.json(), __APP_VERSION__);
+    const json: unknown = await res.json().catch(() => {
+      throw new RespostaEstranha('resposta não é JSON');
+    });
+    return pickUpdate(json, __APP_VERSION__);
   } finally {
     clearTimeout(timer);
   }
@@ -83,7 +88,7 @@ export function initUpdates(): void {
 
   const banner = byId('update-banner');
   const footerEl = footer.closest('footer')!;
-  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: 'underline font-semibold text-brand-fg inline-flex items-center gap-1', onClick: () => void check('manual') });
+  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: `${BTN_LINK} underline -my-3`, onClick: () => void check('manual') });
   /** "Procurar atualização" ↔ carregando (ícone girando, desativado) enquanto a consulta do toque não volta. */
   const setChecking = (busy: boolean) => {
     checkBtn.disabled = busy;
@@ -121,7 +126,7 @@ export function initUpdates(): void {
         icon(busy ? LoaderCircle : CloudDownload, `w-6 h-6 shrink-0 text-brand-fg${busy ? ' animate-spin' : ''}`),
         h('p', { class: 'flex-1 text-sm font-semibold text-fg', 'data-testid': 'update-text' }, text),
         busy ? null : h('button', { type: 'button', id: 'btn-update', class: BTN.primary, onClick: () => install(info) }, 'Atualizar'),
-        h('button', { type: 'button', class: 'p-2 rounded-xl text-muted hover:bg-fg/10', 'aria-label': 'Agora não', title: 'Agora não', onClick: close }, icon(X, 'w-5 h-5')),
+        h('button', { type: 'button', class: btn('ghost', 'icon'), 'aria-label': 'Agora não', title: 'Agora não', onClick: close }, icon(X, 'w-5 h-5')),
       ),
     );
     banner.classList.remove('hidden');
@@ -185,7 +190,11 @@ export function initUpdates(): void {
       if (e instanceof ApiError) marcaRecusa(true); // GitHub recusou (limite de consultas): não insiste por 1 h
       if (manual) {
         showToast(
-          e instanceof ApiError ? 'O GitHub não respondeu agora. Tente de novo mais tarde.' : 'Sem internet agora. A atualização é procurada sozinha quando houver sinal.',
+          e instanceof ApiError
+            ? 'O GitHub não respondeu agora. Tente de novo mais tarde.'
+            : e instanceof RespostaEstranha
+              ? 'Esta rede não deixou consultar o GitHub (Wi-Fi com login?). Tente de novo mais tarde.'
+              : 'Sem internet agora. A atualização é procurada sozinha quando houver sinal.',
           'warning',
         );
       }

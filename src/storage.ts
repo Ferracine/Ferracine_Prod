@@ -49,17 +49,31 @@ function readJson(store: KeyValueStore, key: string): unknown {
   }
 }
 
+/** OS ou rascunho com tipo conhecido e respostas; o resto (gravação cortada, edição à mão) é descartado. */
+function isValidOS(o: unknown): o is OrdemServico {
+  if (!o || typeof o !== 'object') return false;
+  const { serviceType, answers } = o as Partial<OrdemServico>;
+  return (serviceType === 'COMERCIAL' || serviceType === 'OCORRENCIA') && !!answers && typeof answers === 'object';
+}
+
+function normalizeOrdens(raw: unknown): OrdemServico[] {
+  return Array.isArray(raw) ? raw.filter(isValidOS).map(normalizeOS) : [];
+}
+
 /**
  * Rascunho salvo pelo antigo assistente (até a 1.3.0): o número respondido em "Qual número da Ordem de serviço?"
- * ficava só na resposta. A tela da OS esconde essa pergunta e usa o campo do topo, então o número vai para ele.
+ * ficava só na resposta. A tela da OS esconde essa pergunta e usa o campo do topo, então o número vai para ele, e a
+ * resposta sai do rascunho (senão, a cada abertura, voltaria por cima do número corrigido no campo).
  */
 function normalizeDraft(raw: OSDraft | null | undefined): OSDraft | null {
-  if (!raw) return null;
+  if (!isValidOS(raw)) return null;
   const draft = { ...raw, answers: migrateMeters(raw.serviceType, raw.answers) };
   const q = questionsFor(draft.serviceType).find((x) => x.prefillOS);
   const ans = q ? draft.answers[q.id] : undefined;
-  const answered = ans?.kind === 'text' ? ans.value.trim() : '';
-  return answered ? { ...draft, osNumber: answered } : draft;
+  if (!q || !ans) return draft;
+  const { [q.id]: _migrada, ...answers } = draft.answers;
+  const answered = ans.kind === 'text' ? ans.value.trim() : '';
+  return { ...draft, answers, osNumber: answered || draft.osNumber };
 }
 
 /** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
@@ -71,8 +85,7 @@ export function pushSheet(sheets: readonly ClosedSheet[], sheet: ClosedSheet): C
 function normalizeSheet(s: ClosedSheet | null | undefined): ClosedSheet[] {
   const header = normalizeHeader(s?.header);
   if (!s || !header) return [];
-  const ordens = Array.isArray(s.ordens) ? s.ordens.filter((o) => o && typeof o === 'object' && o.answers) : [];
-  return [{ ...s, header, ordens: ordens.map(normalizeOS), tecnicos: normalizeTecnicos(s.tecnicos) }];
+  return [{ ...s, header, ordens: normalizeOrdens(s.ordens), tecnicos: normalizeTecnicos(s.tecnicos) }];
 }
 
 /** Lê o estado salvo; dado ausente ou corrompido vira estado vazio. */
@@ -86,7 +99,7 @@ export function loadData(store: KeyValueStore): AppData {
     return {
       version: 3,
       header,
-      ordens: current.ordens.map(normalizeOS),
+      ordens: normalizeOrdens(current.ordens),
       draft: normalizeDraft(current.draft),
       sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
       lastHeader,

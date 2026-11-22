@@ -179,7 +179,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         sheets: data.sheets,
         canShare: shareSupported,
         onSubmit: submitHeader,
-        onCancelEdit: () => { editingHeader = false; render(); },
+        onCancelEdit: cancelHeaderEdit,
         onDownloadSheet: (sheet) => void deliverSheet(sheet, 'download'),
         onShareSheet: (sheet) => void deliverSheet(sheet, 'share'),
         onPlanilhaSheet: (sheet) => void deliverSheet(sheet, 'planilha'),
@@ -374,18 +374,28 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     );
   }
 
-  // Botão/gesto "voltar" do Android: na tela da OS (nova ou edição) ele faz o mesmo que o Cancelar da tela
-  // (em vez de fechar o app). Uma entrada extra no histórico "segura" o voltar enquanto essas telas estão abertas.
-  // Depois de recarregar, a entrada da sessão anterior ainda é a atual: reaproveita em vez de empilhar outra.
+  function cancelHeaderEdit(): void {
+    editingHeader = false;
+    render();
+  }
+
+  // Botão/gesto "voltar" do Android: na tela da OS (nova ou edição) e na correção do cabeçalho ele faz o mesmo que o
+  // Cancelar da tela (em vez de fechar o app). Uma entrada extra no histórico "segura" o voltar enquanto essas telas
+  // estão abertas. Depois de recarregar, a entrada da sessão anterior ainda é a atual: reaproveita em vez de empilhar.
   let backTrap = (history.state as { ferracineBackTrap?: boolean } | null)?.ferracineBackTrap === true;
-  const trapsBack = (screen: Screen) => screen === 'new' || screen === 'edit';
+  // history.back() é assíncrono: o popstate dele chega depois. Enquanto não chega, não empilha outra entrada (abrir
+  // outra OS logo depois de salvar faria esse popstate atrasado "cancelar" a OS nova).
+  let backPendente = 0;
+  const trapsBack = (screen: Screen) => screen === 'new' || screen === 'edit' || (screen === 'header' && editingHeader);
 
   function syncBackButton(screen: Screen): void {
+    if (backPendente > 0) return; // o popstate pendente chama de novo
     if (trapsBack(screen) && !backTrap) {
       history.pushState({ ferracineBackTrap: true }, '');
       backTrap = true;
     } else if (!trapsBack(screen) && backTrap) {
       backTrap = false;
+      backPendente++;
       history.back(); // desfaz a entrada extra ao sair pelos botões da tela (o popstate é ignorado abaixo)
     }
   }
@@ -399,10 +409,17 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   };
 
   window.addEventListener('popstate', () => {
+    if (backPendente > 0) {
+      backPendente--;
+      syncBackButton(currentScreen()); // se já abriu outra tela que segura o voltar, empilha agora
+      return;
+    }
     if (!backTrap) return;
     backTrap = false;
+    const screen = currentScreen();
     if (isModalOpen()) closeModal();
-    else if (currentScreen() === 'edit') cancelEdit();
+    else if (screen === 'edit') cancelEdit();
+    else if (screen === 'header') cancelHeaderEdit();
     else cancelNew();
     syncBackButton(currentScreen()); // ainda na tela: segura o próximo voltar
   });
@@ -430,7 +447,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         h('div', { class: CALLOUT.danger }, `${plural(semNumero, 'OS está', 'OSs estão')} sem número (S/N). Use o lápis na lista para preencher antes de gerar, se quiser.`),
       h('div', { class: CALLOUT.warning }, 'O turno só é encerrado quando você tocar em "Encerrar turno", depois de ter o PDF em mãos.'),
     );
-    confirmModal('Finalizar turno e gerar PDF', body, { label: h('span', { class: 'flex items-center gap-2' }, icon(FileDown), 'Gerar PDF'), variant: 'accent' }, () => void generatePdf());
+    confirmModal('Finalizar turno e gerar PDF', body, { label: h('span', { class: 'inline-flex items-center gap-2' }, icon(FileDown, 'w-5 h-5'), 'Gerar PDF'), variant: 'accent' }, () => void generatePdf());
   }
 
   async function generatePdf(): Promise<void> {
@@ -456,7 +473,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       { label: 'Baixar PDF', variant: 'neutral', autofocus: true, onClick: () => void downloadFile(pdf) },
       { label: 'Abrir PDF', variant: 'neutral', onClick: () => void openFile(pdf) },
       { label: 'Planilha (Excel)', variant: 'neutral', onClick: () => void deliverSheet(sheet, 'planilha') },
-      { label: 'Encerrar turno', variant: 'accent', onClick: () => { closeModal(); closeShift(sheet); } },
+      { label: 'Encerrar turno', variant: 'accent', largo: true, onClick: () => { closeModal(); closeShift(sheet); } },
     ];
     if (shareSupported) actions.unshift({ label: 'Compartilhar', variant: 'primary', autofocus: true, onClick: () => void shareFile(pdf) });
 

@@ -93,6 +93,10 @@ describe('OS nova (tela da OS)', () => {
     const trocado = ordem.createOS({ ...d, serviceCode: '709', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora);
     expect(trocado).toMatchObject({ ok: false, field: ordem.CODE_FIELD });
     if (!trocado.ok) expect(trocado.error).toContain('COMERCIAL');
+    // Zero à esquerda ou espaço no meio não passam pela trava: "0 709" é o 709.
+    expect(ordem.createOS({ ...d, serviceCode: '0 709', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora)).toMatchObject({ ok: false, field: ordem.CODE_FIELD });
+    const zero = ordem.createOS({ ...d, serviceCode: '0508', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora);
+    expect(zero.ok && zero.os.serviceCode).toBe('508');
   });
 
   it('"Sim, qual?": NÃO descarta o complemento; SIM mantém o que já foi digitado', () => {
@@ -155,10 +159,12 @@ describe('OS nova (tela da OS)', () => {
   it('answerRows descreve cada pergunta para o app', () => {
     const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Chuva' } });
     const rows = ordem.answerRows(os);
-    expect(rows).toHaveLength(14);
+    // 14 perguntas menos a do número da OS (fica no topo da tela; S/N não conta como "não respondida").
+    expect(rows).toHaveLength(13);
+    expect(rows.some((r) => r.question === 'Qual número da Ordem de serviço?')).toBe(false);
     expect(rows[0]).toEqual({ question: 'Tentou callback?', display: 'Não informado', skipped: true, isDitais: false });
-    expect(rows[7]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
-    expect(rows[13]?.display).toBe('Sim — Chuva');
+    expect(rows[6]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
+    expect(rows[12]?.display).toBe('Sim — Chuva');
   });
 });
 

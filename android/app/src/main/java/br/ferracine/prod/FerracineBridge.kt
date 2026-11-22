@@ -62,10 +62,16 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error("sem acesso a Downloads")
-            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("sem acesso a Downloads")
-            values.clear()
-            values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
+            try {
+                resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: error("sem acesso a Downloads")
+                values.clear()
+                values.put(MediaStore.Downloads.IS_PENDING, 0)
+                resolver.update(uri, values, null, null)
+            } catch (e: Exception) {
+                // Sem isso fica um item pendente invisível em Downloads, e o próximo arquivo ganharia " (1)" no nome.
+                resolver.delete(uri, null, null)
+                throw e
+            }
             // Com um arquivo de mesmo nome, o MediaStore salva como "nome (1).pdf": lê o nome que ficou.
             return resolver.query(uri, arrayOf(MediaStore.Downloads.DISPLAY_NAME), null, null, null)?.use { c ->
                 if (c.moveToFirst()) c.getString(0) else null

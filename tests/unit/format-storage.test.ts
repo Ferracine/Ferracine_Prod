@@ -75,9 +75,22 @@ describe('armazenamento', () => {
 
   it('rascunho do antigo assistente: o número respondido na pergunta do número vai para o campo do topo', () => {
     const antigo = { ...emptyData(), draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', index: 4, answers: { os: { kind: 'text', value: ' 123 ' } } } };
-    expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(antigo) })).draft?.osNumber).toBe('123');
+    const migrado = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(antigo) })).draft;
+    expect(migrado?.osNumber).toBe('123');
+    // A resposta antiga sai do rascunho: o número corrigido depois no campo do topo não volta para "123" ao reabrir.
+    expect(migrado?.answers.os).toBeUndefined();
+    const corrigido = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), draft: { ...migrado, osNumber: '456' } }) }));
+    expect(corrigido.draft?.osNumber).toBe('456');
     const semResposta = { ...emptyData(), draft: { osNumber: '9', serviceType: 'COMERCIAL', serviceCode: '28', answers: {} } };
     expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(semResposta) })).draft?.osNumber).toBe('9');
+  });
+
+  it('OS ou rascunho estragado (gravação cortada, edição à mão) é descartado em vez de travar o app', () => {
+    const boa = { id: 'b', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '28', registradaEm: 'x', answers: {} };
+    const salvo = { ...emptyData(), ordens: [null, 'x', { ...boa, serviceType: 'OUTRO' }, { ...boa, answers: null }, boa], draft: { osNumber: '', serviceType: 'X', serviceCode: '', answers: {} } };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
+    expect(loaded.ordens.map((o) => o.id)).toEqual(['b']);
+    expect(loaded.draft).toBeNull();
   });
 
   it('ocorrência salva na 1.4.1 (SIM/NÃO + número) ou 1.4.2 (só o número): vira o campo do número; NÃO fica em branco', () => {

@@ -99,6 +99,12 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
   `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Avisos rápidos (toasts): `bg-brand-700`,
   `bg-ok`, `bg-warn`, `bg-err` com texto branco, sem borda, centralizados e acima das janelas (`z-[60]`). Comercial = ciano, Ocorrência = laranja.
+- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
+  tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
+  `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
+  Solo/Dupla. Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou `largo` ocupa a linha). Nas
+  janelas, até 2 ações ficam empilhadas na largura toda; mais que 2 vão para a grade. Não escreva classes de botão
+  soltas.
 - Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`) é o
   favicon, o ícone do PWA e o do APK. No `icon.png` a prancheta (sem o lápis) fica no centro; o lápis sobra para a
   direita. O ícone adaptativo usa a figura a 58% para caber no círculo seguro (tela de abertura do Android 12+).

@@ -47,7 +47,8 @@ export type EditResult = { ok: true; os: OrdemServico } | RuleError;
  * Devolve o rascunho pronto para `finalize` (número e código aparados) ou o erro.
  */
 function checked(type: ServiceType, edit: OSEdit, infoLegada?: string): { ok: true; draft: OSDraft } | RuleError {
-  const serviceCode = edit.serviceCode.trim().toUpperCase();
+  // Sem espaços nem zero à esquerda: "0508" é o 508 (senão passaria pela trava do código do outro tipo abaixo).
+  const serviceCode = edit.serviceCode.replace(/\s+/g, '').toUpperCase().replace(/^0+(?=\d)/, '');
   if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.', field: CODE_FIELD };
   // Código da lista do outro tipo: a OS ficaria com as perguntas erradas (ex.: ocorrência sem a pergunta dos DITAIS).
   const outro: ServiceType = type === 'COMERCIAL' ? 'OCORRENCIA' : 'COMERCIAL';
@@ -141,7 +142,8 @@ function describeAnswer(ans: Answer | undefined): string | null {
 
 export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers' | 'infoLegada'>): AnswerRow[] {
   // Só as perguntas que aparecem com estas respostas ("X de Y respondidas" conta as visíveis).
-  const rows = visibleQuestions(os.serviceType, os.answers).map((q) => {
+  // A pergunta do número da OS (`prefillOS`) não entra: a tela não mostra, o número fica no topo (S/N quando vazio).
+  const rows = visibleQuestions(os.serviceType, os.answers).filter((q) => !q.prefillOS).map((q) => {
     const display = describeAnswer(os.answers[q.id]);
     return {
       question: q.text,

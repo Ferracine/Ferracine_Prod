@@ -1,5 +1,5 @@
 import { X } from 'lucide';
-import { BTN, byId, h, icon } from './dom';
+import { btn, type BtnTom, byId, gradeBotoes, h, icon } from './dom';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
@@ -33,8 +33,10 @@ export function showToast(message: string, type: ToastType = 'info'): void {
 
 export interface ModalAction {
   label: string | Node;
-  variant: keyof typeof BTN;
+  variant: Exclude<BtnTom, 'outline' | 'ghost'>;
   onClick: () => void;
+  /** Ocupa a linha inteira na grade de botões (ex.: "Encerrar turno"). */
+  largo?: boolean;
   /** Recebe o foco ao abrir. Sem nenhum marcado, o foco vai para o último botão (a ação de confirmar). */
   autofocus?: boolean;
 }
@@ -44,15 +46,20 @@ let lastFocus: Element | null = null;
 export function openModal(title: string, body: Node, actions: ModalAction[]): void {
   lastFocus = document.activeElement;
   const modal = byId('modal');
-  const close = h('button', { type: 'button', class: 'text-muted hover:text-fg p-1 rounded-lg', 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
-  const buttons = actions.map((a) => h('button', { type: 'button', class: BTN[a.variant], onClick: a.onClick }, a.label));
+  const close = h('button', { type: 'button', class: `${btn('ghost', 'icon')} -my-2 -mr-2`, 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
+  const buttons = actions.map((a) => h('button', { type: 'button', class: btn(a.variant), onClick: a.onClick }, a.label));
+  // Até 2 ações: uma embaixo da outra na largura toda (rótulos como "Continuar preenchendo" não cabem lado a lado no
+  // celular); a de confirmar fica embaixo, perto do polegar. Mais que 2: grade de 2 colunas iguais.
+  const largos = new Set(buttons.filter((_, i) => actions[i]!.largo));
+  for (const b of buttons) b.classList.add('w-full');
+  const rodape = buttons.length > 2 ? gradeBotoes(buttons, largos) : h('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-3' }, buttons);
   modal.replaceChildren(
     h(
       'div',
       { class: 'bg-card rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-fg/10', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' },
       h('div', { class: 'px-6 py-4 flex justify-between items-center gap-3 border-b border-fg/10' }, h('h3', { id: 'modal-title', class: 'font-bold text-lg text-fg' }, title), close),
       h('div', { class: 'p-6 max-h-[70vh] overflow-y-auto text-sm text-fg space-y-3' }, body),
-      h('div', { class: 'bg-fg/5 px-6 py-4 flex flex-wrap justify-end gap-3 border-t border-fg/10' }, buttons),
+      h('div', { class: 'bg-fg/5 px-6 py-4 border-t border-fg/10' }, rodape),
     ),
   );
   modal.classList.remove('hidden');
