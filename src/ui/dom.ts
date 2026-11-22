@@ -77,6 +77,23 @@ export function byId<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
+/**
+ * Campo que falta preencher: fica com a borda vermelha (`.faltando`, styles.css) até a pessoa mexer nele (digitar,
+ * escolher ou tocar). Serve para campo (`.field`) e para o cartão de uma pergunta (`.card`).
+ */
+export function marcarFaltando(el: Element | null | undefined): void {
+  if (!el || el.classList.contains('faltando')) return;
+  el.classList.add('faltando');
+  // Campo: só sai do vermelho quando muda de valor (abrir o relógio ou a lista e cancelar não conta). Cartão de
+  // pergunta: também ao tocar em SIM/NÃO dentro dele.
+  const eventos = el.matches('.card') ? ['input', 'change', 'click'] : ['input', 'change'];
+  const limpa = () => {
+    el.classList.remove('faltando');
+    for (const ev of eventos) el.removeEventListener(ev, limpa);
+  };
+  for (const ev of eventos) el.addEventListener(ev, limpa);
+}
+
 /** Handler de `onKeydown` que executa `action` ao apertar Enter (tecla "Próximo"/"OK" do teclado do celular). */
 export function onEnter(action: () => void): Handler {
   return (ev) => {

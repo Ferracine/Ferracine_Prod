@@ -1,12 +1,12 @@
 import { FileDown } from 'lucide';
 import { SERVICE_LABEL } from './domain/catalog';
-import { osLabel, pdfFileName, plural } from './domain/format';
+import { osLabel, plural, sheetFileName } from './domain/format';
 import * as ordem from './domain/ordem';
 import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
 import { loadData, pushSheet, saveData, type KeyValueStore } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
-import { CALLOUT, byId, h, icon } from './ui/dom';
+import { CALLOUT, byId, h, icon, marcarFaltando } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
 import { headerScreen } from './ui/header-screen';
 import { osScreen } from './ui/os-screen';
@@ -14,8 +14,9 @@ import { osScreen } from './ui/os-screen';
 /** `new` = OS nova em preenchimento (rascunho salvo); `edit` = lápis de uma OS concluída. Mesma tela da OS. */
 type Screen = 'header' | 'dashboard' | 'new' | 'edit';
 type PdfModule = typeof import('./pdf');
-/** PDF serializado uma vez; baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o mesmo base64). */
-type Pdf = { blob: Blob; fileName: string; base64?: string };
+/** Arquivo pronto (PDF ou planilha): baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o base64). */
+type Arquivo = { blob: Blob; fileName: string; mime: string; base64?: string };
+const PDF_MIME = 'application/pdf';
 
 function newId(): string {
   // randomUUID só existe em contexto seguro (https/localhost); no teste pela rede local cai no fallback.
@@ -44,34 +45,47 @@ function loadPdfModule(): Promise<PdfModule> {
 }
 
 /** PDF já montado de cada folha (a do turno e as do histórico): alternar entre elas não remonta o jsPDF. */
-const pdfMemo = new WeakMap<ClosedSheet, Pdf>();
+const pdfMemo = new WeakMap<ClosedSheet, Arquivo>();
 
-function buildPdf(mod: PdfModule, sheet: ClosedSheet): Pdf {
+function buildPdf(mod: PdfModule, sheet: ClosedSheet): Arquivo {
   const memo = pdfMemo.get(sheet);
   if (memo) return memo;
   const doc = mod.buildSheetPdf(sheet.header, sheet.ordens, sheet.tecnicos);
-  const pdf = { blob: doc.output('blob'), fileName: pdfFileName(sheet.header, sheet.ordens.length) };
+  const pdf = { blob: doc.output('blob'), fileName: sheetFileName(sheet.header, sheet.ordens.length, 'pdf'), mime: PDF_MIME };
   pdfMemo.set(sheet, pdf);
   return pdf;
 }
 
-async function sheetPdf(sheet: ClosedSheet): Promise<Pdf> {
+async function sheetPdf(sheet: ClosedSheet): Promise<Arquivo> {
   return buildPdf(pdfModule ?? (await loadPdfModule()), sheet);
 }
 
-/** No APK, entrega o PDF ao código nativo; devolve true se a ponte tratou o pedido. */
-async function viaAndroid(action: 'savePdf' | 'openPdf' | 'sharePdf', pdf: Pdf): Promise<boolean> {
+/** Planilha (.xlsx) de cada folha, montada uma vez (o gerador é carregado só quando pedido). */
+const xlsxMemo = new WeakMap<ClosedSheet, Arquivo>();
+
+async function sheetXlsx(sheet: ClosedSheet): Promise<Arquivo> {
+  const memo = xlsxMemo.get(sheet);
+  if (memo) return memo;
+  const { buildSheetXlsx, XLSX_MIME } = await import('./planilha');
+  const bytes = buildSheetXlsx(sheet.header, sheet.ordens, sheet.tecnicos);
+  const arquivo = { blob: new Blob([bytes], { type: XLSX_MIME }), fileName: sheetFileName(sheet.header, sheet.ordens.length, 'xlsx'), mime: XLSX_MIME };
+  xlsxMemo.set(sheet, arquivo);
+  return arquivo;
+}
+
+/** No APK, entrega o arquivo ao código nativo; devolve true se a ponte tratou o pedido. */
+async function viaAndroid(action: 'saveFile' | 'openFile' | 'shareFile', arquivo: Arquivo): Promise<boolean> {
   if (!androidBridge) return false;
-  pdf.base64 ??= await blobToBase64(pdf.blob);
-  const r = androidBridge[action](pdf.base64, pdf.fileName);
-  // savePdf: "salvo:<nome que ficou em Downloads>"; os outros: "" quando dá certo. Senão, a mensagem de erro.
-  if (r.startsWith(SAVED_PREFIX)) showToast(`PDF salvo em Downloads: ${r.slice(SAVED_PREFIX.length)}`, 'success');
+  arquivo.base64 ??= await blobToBase64(arquivo.blob);
+  const r = androidBridge[action](arquivo.base64, arquivo.fileName, arquivo.mime);
+  // saveFile: "salvo:<nome que ficou em Downloads>"; os outros: "" quando dá certo. Senão, a mensagem de erro.
+  if (r.startsWith(SAVED_PREFIX)) showToast(`Salvo em Downloads: ${r.slice(SAVED_PREFIX.length)}`, 'success');
   else if (r) showToast(r, 'error');
   return true;
 }
 
-async function downloadPdf(pdf: Pdf): Promise<void> {
-  if (await viaAndroid('savePdf', pdf)) return;
+async function downloadFile(pdf: Arquivo): Promise<void> {
+  if (await viaAndroid('saveFile', pdf)) return;
   const url = URL.createObjectURL(pdf.blob);
   const a = h('a', { href: url, download: pdf.fileName, class: 'hidden' });
   document.body.append(a);
@@ -80,8 +94,8 @@ async function downloadPdf(pdf: Pdf): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
-async function openPdf(pdf: Pdf): Promise<void> {
-  if (await viaAndroid('openPdf', pdf)) return;
+async function openFile(pdf: Arquivo): Promise<void> {
+  if (await viaAndroid('openFile', pdf)) return;
   const url = URL.createObjectURL(pdf.blob);
   if (!window.open(url, '_blank')) {
     showToast('O navegador bloqueou a abertura. Use "Baixar PDF" ou "Compartilhar".', 'warning');
@@ -89,10 +103,10 @@ async function openPdf(pdf: Pdf): Promise<void> {
   setTimeout(() => URL.revokeObjectURL(url), 120_000);
 }
 
-async function sharePdf(pdf: Pdf): Promise<void> {
-  if (await viaAndroid('sharePdf', pdf)) return;
+async function shareFile(pdf: Arquivo): Promise<void> {
+  if (await viaAndroid('shareFile', pdf)) return;
   try {
-    const file = new File([pdf.blob], pdf.fileName, { type: 'application/pdf' });
+    const file = new File([pdf.blob], pdf.fileName, { type: pdf.mime });
     await navigator.share({ files: [file], title: pdf.fileName });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') return; // usuário fechou o compartilhamento
@@ -168,6 +182,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         onCancelEdit: () => { editingHeader = false; render(); },
         onDownloadSheet: (sheet) => void deliverSheet(sheet, 'download'),
         onShareSheet: (sheet) => void deliverSheet(sheet, 'share'),
+        onPlanilhaSheet: (sheet) => void deliverSheet(sheet, 'planilha'),
       });
     } else if (screen === 'edit') {
       const current = editing!;
@@ -296,6 +311,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   function showRuleError(result: ordem.RuleError): void {
     showToast(result.error, 'warning');
     const field = document.querySelector(`[data-field="${result.field}"]`);
+    // Pergunta: o cartão inteiro fica vermelho; código (ou outro campo solto): a caixa do campo.
+    marcarFaltando(field?.matches('.card') ? field : (field?.querySelector('.field') ?? field));
     field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     field?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
   }
@@ -421,7 +438,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (generating || !data.header) return;
     generating = true;
     const sheet: ClosedSheet = { header: data.header, ordens: data.ordens, fechadaEm: new Date().toISOString(), tecnicos: data.tecnicos };
-    let pdf: Pdf;
+    let pdf: Arquivo;
     try {
       pdf = await sheetPdf(sheet);
     } catch (error) {
@@ -432,15 +449,16 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       generating = false;
     }
 
-    void downloadPdf(pdf);
+    void downloadFile(pdf);
 
     // Foco inicial em Compartilhar/Baixar, nunca no "Encerrar turno".
     const actions: ModalAction[] = [
-      { label: 'Baixar PDF', variant: 'neutral', autofocus: true, onClick: () => void downloadPdf(pdf) },
-      { label: 'Abrir PDF', variant: 'neutral', onClick: () => void openPdf(pdf) },
+      { label: 'Baixar PDF', variant: 'neutral', autofocus: true, onClick: () => void downloadFile(pdf) },
+      { label: 'Abrir PDF', variant: 'neutral', onClick: () => void openFile(pdf) },
+      { label: 'Planilha (Excel)', variant: 'neutral', onClick: () => void deliverSheet(sheet, 'planilha') },
       { label: 'Encerrar turno', variant: 'accent', onClick: () => { closeModal(); closeShift(sheet); } },
     ];
-    if (shareSupported) actions.unshift({ label: 'Compartilhar', variant: 'primary', autofocus: true, onClick: () => void sharePdf(pdf) });
+    if (shareSupported) actions.unshift({ label: 'Compartilhar', variant: 'primary', autofocus: true, onClick: () => void shareFile(pdf) });
 
     openModal(
       'PDF gerado',
@@ -474,17 +492,22 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** Folhas sendo entregues agora: toque duplo na mesma entrega uma vez só; as outras folhas seguem livres. */
   const delivering = new Set<ClosedSheet>();
 
-  async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'share'): Promise<void> {
+  /** Baixa ou compartilha o PDF de uma folha, ou baixa a planilha (Excel) dela. */
+  async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'share' | 'planilha'): Promise<void> {
     if (delivering.has(sheet)) return;
     delivering.add(sheet);
     try {
+      if (mode === 'planilha') {
+        await downloadFile(await sheetXlsx(sheet));
+        return;
+      }
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
       const pdf = pdfModule ? buildPdf(pdfModule, sheet) : await sheetPdf(sheet);
-      if (mode === 'download') await downloadPdf(pdf);
-      else await sharePdf(pdf);
+      if (mode === 'download') await downloadFile(pdf);
+      else await shareFile(pdf);
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      showToast('Não foi possível gerar o PDF.', 'error');
+      console.error('Erro ao gerar o arquivo:', error);
+      showToast(mode === 'planilha' ? 'Não foi possível gerar a planilha.' : 'Não foi possível gerar o PDF.', 'error');
     } finally {
       delivering.delete(sheet);
     }

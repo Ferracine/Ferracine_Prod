@@ -72,7 +72,12 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   Toda mutação passa por `update()`, que persiste e re-renderiza. Na tela da OS, uma entrada extra no `history` faz
   o voltar do Android agir como o Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
-  `navigator.share`: o PDF vai em base64 para `FerracineBridge.kt`. No navegador a ponte não existe.
+  `navigator.share`: o arquivo (PDF ou planilha) vai em base64 com o tipo (`mime`) para `FerracineBridge.kt`
+  (`saveFile`/`openFile`/`shareFile`). No navegador a ponte não existe.
+- `src/planilha.ts`: `.xlsx` montado à mão (Office Open XML mínimo + `zipSync` do fflate, que já vinha com o jsPDF),
+  com as linhas de `espelhoRows`; números de OS/medidor/leitura como texto (zeros à esquerda). Carregado sob demanda.
+- Campo que falta: `marcarFaltando(el)` (dom.ts) põe `.faltando` (borda vermelha, styles.css) até a pessoa mexer;
+  usado no cabeçalho, no cadastro e na OS (`showRuleError`).
 - Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; a cada abertura e,
   ao voltar para o app, se a última consulta foi há mais de 1 h; se o GitHub recusou por limite, espera 1 h), `src/domain/update.ts` decide (tag `vX.Y.Z` maior
   que `__APP_VERSION__` + asset `FerracineProd-X.Y.Z.apk` de `.../releases/download/`) e mostra o aviso
@@ -81,8 +86,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `cache/update/`, confere pacote e versionCode maiores, pede "Instalar apps desconhecidos" (Android 8+, retoma no
   `onResume`) e abre o instalador; o andamento volta pelo evento `ferracine-update`. `__APP_VERSION__` vem do
   `package.json` (define do vite.config.ts), a mesma versão do APK. Só no APK: no navegador o service worker atualiza.
-- Cabeçalho (`header-screen.ts`): Eletricista 1 e 2 são listas dos cadastrados ("NOME - MATRÍCULA"), como o técnico
-  líder; a janela de cadastro (`manageCadastro`) é a mesma para técnicos e eletricistas. Solo esconde o Eletricista 2.
+- Cabeçalho (`header-screen.ts`): Eletricista 1 e 2 são listas dos cadastrados (só o nome; a matrícula aparece no
+  campo só leitura ao lado, `#matricula1/2`; nome repetido mostra a matrícula na opção), como o técnico líder; a janela de cadastro (`manageCadastro`) é a mesma para técnicos e eletricistas. Solo esconde o Eletricista 2.
   Quem estava no cabeçalho e não está mais no cadastro aparece como opção "anterior" (não se perde na correção).
   O `ShiftHeader` continua guardando nome/matrícula (o PDF não muda).
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Todo `input`/`textarea`
@@ -110,7 +115,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   REQUEST_INSTALL_PACKAGES). Borda a borda em todas as versões
   (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
   WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
-  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider.
+  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider, qualquer tipo.
 - `design/`: referências que o dono mandou (foto do PDF com os dados à mão cobertos por tarja preta e o modelo). Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:

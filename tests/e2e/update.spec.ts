@@ -8,9 +8,9 @@ async function comoApk(page: Page) {
   await page.addInitScript(() => {
     const w = window as unknown as Record<string, unknown>;
     w.FerracineAndroid = {
-      savePdf: () => '',
-      openPdf: () => '',
-      sharePdf: () => '',
+      saveFile: () => '',
+      openFile: () => '',
+      shareFile: () => '',
       setSystemBars: () => undefined,
       installUpdate: (url: string) => {
         w.__update = url;

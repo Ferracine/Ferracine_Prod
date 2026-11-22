@@ -98,6 +98,15 @@
     border-color: var(--color-brand);
     box-shadow: 0 0 0 3px rgb(15 171 204 / 0.2);
   }
+  /* Falta preencher (marcarFaltando, dom.ts): vermelho até a pessoa mexer no campo. */
+  .field.faltando,
+  .field.faltando:focus {
+    border-color: var(--color-err);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-err) 30%, transparent);
+  }
+  .card.faltando {
+    box-shadow: 0 0 0 2px var(--color-err);
+  }
 
   .lbl {
     display: block;

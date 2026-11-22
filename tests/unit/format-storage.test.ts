@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { espelhoRows } from '../../src/domain/espelho';
-import { eletricistaLabel, formatDateBR, formatHorario, osLabel, pdfFileName, todayISO } from '../../src/domain/format';
+import { formatDateBR, formatHorario, osLabel, sheetFileName, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
 import { emptyData, type KeyValueStore, loadData, pushSheet, saveData, STORAGE_KEY } from '../../src/storage';
 import { baseHeader as header } from './fixtures';
@@ -21,10 +21,8 @@ describe('formatação', () => {
     expect(todayISO(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
   });
 
-  it('monta horário e eletricista', () => {
+  it('monta o horário', () => {
     expect(formatHorario(header)).toBe('07:00 às 17:00');
-    expect(eletricistaLabel('JOÃO', '123456')).toBe('JOÃO (Mat: 123456)');
-    expect(eletricistaLabel('ANA', '')).toBe('ANA (Mat: -)');
   });
 
   it('mostra S/N para OS sem número', () => {
@@ -33,10 +31,10 @@ describe('formatação', () => {
   });
 
   it('nomeia o PDF com os nomes da equipe e a quantidade de serviços', () => {
-    expect(pdfFileName(header, 1)).toBe('Joao_da_Silva_20-11-2026_1_servico.pdf');
-    expect(pdfFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3)).toBe('Joao_da_Silva_Angelo_Souza_20-11-2026_3_servicos.pdf');
-    expect(pdfFileName({ ...header, nome1: '###' }, 0)).toBe('Equipe_20-11-2026_0_servicos.pdf');
-    expect(pdfFileName({ ...header, data: '' }, 2)).toBe('Joao_da_Silva_2_servicos.pdf');
+    expect(sheetFileName(header, 1, 'pdf')).toBe('Joao_da_Silva_20-11-2026_1_servico.pdf');
+    expect(sheetFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3, 'pdf')).toBe('Joao_da_Silva_Angelo_Souza_20-11-2026_3_servicos.pdf');
+    expect(sheetFileName({ ...header, nome1: '###' }, 0, 'pdf')).toBe('Equipe_20-11-2026_0_servicos.pdf');
+    expect(sheetFileName({ ...header, data: '' }, 2, 'pdf')).toBe('Joao_da_Silva_2_servicos.pdf');
   });
 });
 

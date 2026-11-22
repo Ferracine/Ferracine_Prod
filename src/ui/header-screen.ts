@@ -1,7 +1,7 @@
-import { ArrowRight, Download, FileDown, Share2, Trash2, Truck, UserCog, Users } from 'lucide';
+import { ArrowRight, Download, FileDown, Share2, Sheet, Trash2, Truck, UserCog, Users } from 'lucide';
 import { formatDateBR, plural, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
-import { BTN, BTN_PRIMARY_LG, h, icon, onEnter } from './dom';
+import { BTN, BTN_PRIMARY_LG, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
 
 export interface HeaderScreenProps {
@@ -24,6 +24,8 @@ export interface HeaderScreenProps {
   onCancelEdit: () => void;
   onDownloadSheet: (sheet: ClosedSheet) => void;
   onShareSheet: (sheet: ClosedSheet) => void;
+  /** Baixa a planilha (Excel) da folha. */
+  onPlanilhaSheet: (sheet: ClosedSheet) => void;
 }
 
 function field(id: keyof ShiftHeader, label: string, attrs: Record<string, string | boolean>, extraCls = '') {
@@ -74,8 +76,9 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
         h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
         h(
           'div',
-          { class: 'flex gap-2' },
+          { class: 'flex flex-wrap gap-2' },
           p.canShare && h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar'),
+          h('button', { type: 'button', class: `${BTN.neutral} flex items-center gap-1.5`, onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
           h('button', { type: 'button', class: `${BTN.primary} flex items-center gap-1.5`, onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
         ),
       ),
@@ -83,7 +86,7 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
   );
 }
 
-/** Opção das listas de cadastrados: "NOME - TELEFONE" (técnico) ou "NOME - MATRÍCULA" (eletricista). */
+/** Opção da lista de técnicos: "NOME - TELEFONE". */
 function cadastroLabel(nome: string, extra: string): string {
   return extra ? `${nome} - ${extra}` : nome;
 }
@@ -139,11 +142,13 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
   const add = () => {
     if (!nome.value.trim()) {
       showToast(`Digite o nome do ${c.rotulo}.`, 'warning');
+      marcarFaltando(nome);
       nome.focus();
       return;
     }
     if (c.extra.obrigatorio && !extra.value.trim()) {
       showToast(`Digite a ${c.extra.label.toLowerCase()} do ${c.rotulo}.`, 'warning');
+      marcarFaltando(extra);
       extra.focus();
       return;
     }
@@ -210,7 +215,8 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     onRemove: p.onRemoveTecnico,
   };
 
-  // Eletricista 1 e 2: escolhidos na lista dos cadastrados ("NOME - MATRÍCULA"), como o técnico líder.
+  // Eletricista 1 e 2: escolhidos na lista dos cadastrados (só o nome; a matrícula aparece no campo ao lado), como o
+  // técnico líder.
   const eletricistasCadastro: Cadastro<Eletricista> = {
     titulo: 'Eletricistas',
     item: 'eletricista',
@@ -225,7 +231,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   /** Quem já estava no cabeçalho (turno anterior ou correção) e não está mais na lista: continua escolhível. */
   const anterior = (n: 1 | 2) => ({ nome: v(`nome${n}`).trim(), matricula: v(`mat${n}`).trim() });
   const ANTERIOR = 'anterior';
-  const eletSel = ([1, 2] as const).map((n) => h('select', { id: `eletricista${n}`, class: 'field' }));
+  const eletSel = ([1, 2] as const).map((n) => h('select', { id: `eletricista${n}`, class: 'field', onChange: () => mostraMatricula(n) }));
   let primeiraVez = true;
   const fillEletricistas = () => {
     const lista = p.getEletricistas();
@@ -236,16 +242,26 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       const doCadastro = lista.find((e) => e.nome === ant.nome.toUpperCase() && e.matricula === ant.matricula.toUpperCase());
       sel.replaceChildren(
         h('option', { value: '' }, lista.length ? 'Escolha o eletricista' : 'Nenhum eletricista cadastrado'),
-        ...lista.map((e) => h('option', { value: e.id }, cadastroLabel(e.nome, e.matricula))),
-        ...(ant.nome && !doCadastro ? [h('option', { value: ANTERIOR }, `${cadastroLabel(ant.nome, ant.matricula)} (turno anterior)`)] : []),
+        // Nome repetido no cadastro: mostra a matrícula junto para dar para saber qual é qual.
+        ...lista.map((e) => h('option', { value: e.id }, lista.filter((x) => x.nome === e.nome).length > 1 ? `${e.nome} (Mat: ${e.matricula || 'sem'})` : e.nome)),
+        ...(ant.nome && !doCadastro ? [h('option', { value: ANTERIOR }, `${ant.nome} (turno anterior)`)] : []),
       );
       // Na primeira vez, quem veio do turno anterior. Depois, mantém a escolha; se a pessoa escolhida foi
       // excluída do cadastro, volta para "Escolha o eletricista".
       const opcoes = [...sel.options].map((o) => o.value);
       if (primeiraVez) sel.value = doCadastro?.id ?? (ant.nome ? ANTERIOR : '');
       else sel.value = atual !== null && opcoes.includes(atual) ? atual : '';
+      mostraMatricula(n);
     });
     primeiraVez = false;
+  };
+  /** Campo "Matrícula" ao lado da lista: só leitura, mostra a do eletricista escolhido. */
+  const matSaida = ([1, 2] as const).map((n) =>
+    h('input', { id: `matricula${n}`, class: 'field', readonly: true, tabindex: '-1', placeholder: '—', 'aria-label': `Matrícula do eletricista ${n}` }),
+  );
+  const mostraMatricula = (n: 1 | 2) => {
+    matSaida[n - 1]!.value = escolhido(n)?.matricula ?? '';
+    matSaida[n - 1]!.classList.remove('faltando');
   };
   /** Nome e matrícula do eletricista escolhido na lista `n` (null se nenhum). */
   const escolhido = (n: 1 | 2): { nome: string; matricula: string } | null => {
@@ -281,7 +297,12 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
         h('label', { for: `eletricista${n}`, class: 'lbl' }, n === 1 ? 'Eletricista 1 *' : 'Eletricista 2 *'),
         n === 1 && manageLink('btn-eletricistas', 'Adicionar / excluir eletricistas', () => manageCadastro(eletricistasCadastro, fillEletricistas)),
       ),
-      eletSel[n - 1]!,
+      h(
+        'div',
+        { class: 'grid grid-cols-3 gap-3' },
+        h('div', { class: 'col-span-2' }, eletSel[n - 1]!),
+        h('div', null, matSaida[n - 1]!),
+      ),
     );
   grupo2.append(eletricistaField(2));
 
@@ -345,27 +366,25 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     ev.preventDefault();
     const e1 = escolhido(1);
     const e2 = dupla ? escolhido(2) : null;
-    const semMatricula = [e1, e2].find((e) => e && !e.matricula.trim());
-    const erro = !e1
-      ? 'Escolha o Eletricista 1 (cadastre em "Adicionar / excluir eletricistas").'
-      : dupla && !e2
-        ? 'Escolha o Eletricista 2, ou marque Solo.'
-        : e2 && e2.nome === e1.nome && e2.matricula === e1.matricula
-          ? 'Eletricista 1 e 2 não podem ser a mesma pessoa.'
-          : semMatricula
-            ? `${semMatricula.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`
-            : null;
-    if (erro) {
-      showToast(erro, 'error');
+    const campo = (k: keyof ShiftHeader) => (input(k) as HTMLInputElement | null)?.value.trim() ?? '';
+    // Tudo o que falta fica vermelho de uma vez; o aviso fala do primeiro problema.
+    const faltas: [Element, string][] = [];
+    if (!e1) faltas.push([eletSel[0]!, 'Escolha o Eletricista 1 (cadastre em "Adicionar / excluir eletricistas").']);
+    else if (!e1.matricula.trim()) faltas.push([matSaida[0]!, `${e1.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`]);
+    if (dupla && !e2) faltas.push([eletSel[1]!, 'Escolha o Eletricista 2, ou marque Solo.']);
+    else if (e1 && e2 && e2.nome === e1.nome && e2.matricula === e1.matricula) faltas.push([eletSel[1]!, 'Eletricista 1 e 2 não podem ser a mesma pessoa.']);
+    else if (e2 && !e2.matricula.trim()) faltas.push([matSaida[1]!, `${e2.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`]);
+    for (const k of ['data', 'horaInicio', 'horaFim'] as const) {
+      if (!campo(k)) faltas.push([input(k), 'Preencha Data e Horário (início e fim) para liberar o turno.']);
+    }
+    if (faltas.length) {
+      for (const [el] of faltas) marcarFaltando(el);
+      showToast(faltas[0]![1], 'error');
+      faltas[0]![0].scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    const campo = (k: keyof ShiftHeader) => (input(k) as HTMLInputElement | null)?.value.trim() ?? '';
     const header = Object.fromEntries(HEADER_FIELDS.map((k) => [k, campo(k)])) as ShiftHeader;
     Object.assign(header, { nome1: e1!.nome, mat1: e1!.matricula, nome2: e2?.nome ?? '', mat2: e2?.matricula ?? '' });
-    if (!header.data || !header.horaInicio || !header.horaFim) {
-      showToast('Preencha Data e Horário (início e fim) para liberar o turno.', 'error');
-      return;
-    }
     p.onSubmit(header);
   });
 

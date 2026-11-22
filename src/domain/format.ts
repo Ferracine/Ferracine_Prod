@@ -20,11 +20,6 @@ export function orDash(value: string): string {
   return value.trim() || '-';
 }
 
-/** "NOME (Mat: 123)" do cabeçalho do turno (matrícula vazia = "-"). */
-export function eletricistaLabel(nome: string, mat: string): string {
-  return `${nome} (Mat: ${orDash(mat)})`;
-}
-
 export function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -44,12 +39,12 @@ function slug(text: string): string {
 }
 
 /**
- * Nomes da equipe + data do turno + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_20-11-2026_3_servicos.pdf".
+ * Nomes da equipe + data do turno + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_20-11-2026_3_servicos.pdf" (ou .xlsx).
  * A data separa as folhas de dias diferentes da mesma equipe (histórico, Downloads, WhatsApp).
  */
-export function pdfFileName(h: ShiftHeader, qtd: number): string {
+export function sheetFileName(h: ShiftHeader, qtd: number, ext: 'pdf' | 'xlsx'): string {
   const names = [slug(h.nome1), slug(h.nome2)].filter(Boolean);
   if (names.length === 0) names.push('Equipe');
   const data = formatDateBR(h.data).replaceAll('/', '-');
-  return `${names.join('_')}${data ? `_${data}` : ''}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.pdf`;
+  return `${names.join('_')}${data ? `_${data}` : ''}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.${ext}`;
 }

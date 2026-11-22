@@ -12,11 +12,16 @@
         android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- Android 11+: saber se há um leitor de PDF para "Abrir PDF". -->
+    <!-- Android 11+: saber se há um app para abrir o PDF ("Abrir PDF") ou a planilha. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:mimeType="application/pdf" />
+        </intent>
+        <!-- Abrir a planilha (.xlsx) no app de planilhas, se houver. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" />
         </intent>
     </queries>
 

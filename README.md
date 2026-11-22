@@ -15,7 +15,7 @@ houver, só serve para o app se atualizar.
 ## Como funciona
 
 1. **Cabeçalho do turno**: **Solo** ou **Dupla**, Eletricista 1 (e 2 na dupla) escolhidos na lista dos cadastrados
-   ("NOME - MATRÍCULA"), equipe, viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
+   (a matrícula aparece no campo ao lado), equipe, viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
@@ -39,8 +39,12 @@ houver, só serve para o app se atualizar.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
    respostas; a lixeira exclui. Número de OS repetido pede confirmação.
 5. **Finalizar turno**: gera o PDF e salva na hora (no APK, na pasta Downloads). A janela "PDF gerado" oferece
-   Compartilhar, Baixar e Abrir; o turno só é encerrado ao tocar em **Encerrar turno**. As **4 últimas folhas
-   encerradas** ficam na tela inicial para baixar ou compartilhar o PDF de novo (a 5ª mais antiga sai).
+   Compartilhar, Baixar, Abrir e **Planilha (Excel)** (`.xlsx` com o mesmo conteúdo do espelho, uma linha por OS); o
+   turno só é encerrado ao tocar em **Encerrar turno**. As **4 últimas folhas encerradas** ficam na tela inicial para
+   baixar ou compartilhar o PDF e baixar a planilha de novo (a 5ª mais antiga sai).
+
+Campo obrigatório que falta (eletricista, horário, código da OS, DITAIS, complemento do SIM, dados do cadastro) fica
+com a **caixa vermelha** até ser preenchido.
 
 A OS em preenchimento é salva a cada toque: fechar o app no meio não perde as respostas.
 
@@ -102,7 +106,8 @@ design/       referências do dono do app: modelo e foto do PDF (dados à mão c
 src/domain/   regras puras: catálogo de códigos e perguntas, regras da OS, linhas do espelho, formatação
 src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
-src/platform.ts ponte com o APK (salvar/abrir/compartilhar o PDF)
+src/planilha.ts planilha .xlsx do espelho (Office Open XML + zip do fflate)
+src/platform.ts ponte com o APK (salvar/abrir/compartilhar PDF e planilha)
 src/ui/       telas (cabeçalho, painel, tela da OS), toast e modal
 src/app.ts    controlador: estado, persistência e navegação entre telas
 android/      app Android (WebView + ponte do PDF)

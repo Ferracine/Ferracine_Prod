@@ -24,7 +24,8 @@ async function cadastrarEletricistas(page: Page, ...pessoas: [string, string][])
 /** Cadastra e escolhe o Eletricista 1 (turno solo). */
 async function escolherEletricista1(page: Page, nome: string, mat: string) {
   await cadastrarEletricistas(page, [nome, mat]);
-  await page.locator('#eletricista1').selectOption({ label: `${nome.toUpperCase()} - ${mat}` });
+  await page.locator('#eletricista1').selectOption({ label: nome.toUpperCase() });
+  await expect(page.locator('#matricula1')).toHaveValue(mat);
 }
 
 async function iniciarTurno(page: Page) {
@@ -58,7 +59,8 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await cadastrarTecnico(page, 'TEC. ANA LIMA', '69 99999-0000');
   await page.getByLabel('Técnico líder responsável').selectOption({ label: 'TEC. ANA LIMA - 69 99999-0000' });
   await iniciarTurno(page);
-  await expect(page.getByTestId('header-info')).toContainText('JOÃO DA SILVA (Mat: 123456)');
+  await expect(page.getByTestId('header-info')).toContainText('JOÃO DA SILVA');
+  await expect(page.getByTestId('header-info')).toContainText('123456');
   await expect(page.getByText('© Ferracine Prod')).toBeVisible();
 
   // Comercial sem número (S/N): a tela da OS traz as 12 perguntas de uma vez.
@@ -104,7 +106,8 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
   await expect(page.locator('#screen-header')).toBeVisible();
-  await expect(page.locator('#eletricista1 option:checked')).toHaveText('JOÃO DA SILVA - 123456');
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('JOÃO DA SILVA');
+  await expect(page.locator('#matricula1')).toHaveValue('123456');
   await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('PVH-01');
   await expect(page.getByLabel('Início *')).toHaveValue('07:00');
   const hoje = await page.evaluate(() => {
@@ -343,7 +346,7 @@ test('medidores da comercial: o da UC sempre; o novo só com "Foi instalado novo
   await expect(respostas).not.toContainText('N62123');
 });
 
-test('eletricistas: cadastro igual ao dos técnicos, lista "NOME - MATRÍCULA" e Solo/Dupla', async ({ page }) => {
+test('eletricistas: cadastro igual ao dos técnicos, lista com o nome, matrícula ao lado e Solo/Dupla', async ({ page }) => {
   await page.goto('/');
   // Sem dupla no turno anterior: começa em Solo, com o Eletricista 2 escondido.
   await expect(page.locator('[data-modo="Solo"]')).toHaveAttribute('aria-pressed', 'true');
@@ -356,8 +359,10 @@ test('eletricistas: cadastro igual ao dos técnicos, lista "NOME - MATRÍCULA" e
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
 
   await cadastrarEletricistas(page, ['Ana Lima', '111'], ['Bia Souza', '222'], ['Caio Rocha', '333']);
-  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolha o eletricista', 'ANA LIMA - 111', 'BIA SOUZA - 222', 'CAIO ROCHA - 333']);
-  await page.locator('#eletricista1').selectOption({ label: 'ANA LIMA - 111' });
+  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolha o eletricista', 'ANA LIMA', 'BIA SOUZA', 'CAIO ROCHA']);
+  await page.locator('#eletricista1').selectOption({ label: 'ANA LIMA' });
+  // Matrícula em campo separado, ao lado do nome.
+  await expect(page.locator('#matricula1')).toHaveValue('111');
   await page.locator('[data-modo="Dupla"]').click();
   await expect(page.locator('#eletricista2')).toBeVisible();
   await page.getByLabel('Início *').fill('07:00');
@@ -365,21 +370,22 @@ test('eletricistas: cadastro igual ao dos técnicos, lista "NOME - MATRÍCULA" e
   // Dupla sem o segundo, ou a mesma pessoa duas vezes: não inicia.
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await expect(page.getByRole('alert')).toContainText('Escolha o Eletricista 2');
-  await page.locator('#eletricista2').selectOption({ label: 'ANA LIMA - 111' });
+  await expect(page.locator('#eletricista2')).toHaveClass(/faltando/); // caixa vermelha
+  await page.locator('#eletricista2').selectOption({ label: 'ANA LIMA' });
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await expect(page.getByRole('alert').last()).toContainText('mesma pessoa');
-  await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA - 222' });
+  await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA' });
+  await expect(page.locator('#eletricista2')).not.toHaveClass(/faltando/);
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
-  await expect(page.getByTestId('header-info')).toContainText('ANA LIMA (Mat: 111)');
-  await expect(page.getByTestId('header-info')).toContainText('BIA SOUZA (Mat: 222)');
+  await expect(page.getByTestId('header-info').locator('dd')).toHaveText(['ANA LIMA', '111', 'BIA SOUZA', '222', '-', '-', '-']);
 
   // Corrigir: volta em Dupla com os dois escolhidos; Solo tira o Eletricista 2.
   await page.getByRole('button', { name: 'Corrigir' }).click();
   await expect(page.locator('[data-modo="Dupla"]')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#eletricista2 option:checked')).toHaveText('BIA SOUZA - 222');
+  await expect(page.locator('#eletricista2 option:checked')).toHaveText('BIA SOUZA');
   await page.locator('[data-modo="Solo"]').click();
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
-  await expect(page.getByTestId('header-info').locator('dt')).toHaveText(['Eletricista 1', 'Equipe', 'Viatura', 'Bodycam']);
+  await expect(page.getByTestId('header-info').locator('dt')).toHaveText(['Eletricista 1', 'Matrícula', 'Equipe', 'Viatura', 'Bodycam']);
 
   // Excluir do cadastro quem está escolhido: a lista volta para "Escolha o eletricista" (não fica escolhido escondido).
   await page.getByRole('button', { name: 'Corrigir' }).click();
@@ -399,16 +405,17 @@ test('eletricista do turno anterior fora do cadastro aparece marcado e sem matr�
   await expect(page.locator('#eletricista1 option:checked')).toHaveText('ZÉ ANTIGO (turno anterior)');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await expect(page.getByRole('alert')).toContainText('está sem matrícula');
+  await expect(page.locator('#matricula1')).toHaveClass(/faltando/);
 });
 
-test('aviso "PDF salvo" com nome de arquivo comprido não vaza para fora do aviso', async ({ page }) => {
+test('aviso "Salvo em Downloads" com nome de arquivo comprido não vaza para fora do aviso', async ({ page }) => {
   const nome = 'CARLOS_ALBERTO_NUNES_DIEGO_MARTINS_COSTA_21-11-2026_30_servicos (1).pdf';
   // APK simulado: o Android salvou com outro nome (" (1)"), e o aviso mostra o nome que ficou em Downloads.
   await page.addInitScript((salvo) => {
     (window as unknown as Record<string, unknown>).FerracineAndroid = {
-      savePdf: () => `salvo:${salvo}`,
-      openPdf: () => '',
-      sharePdf: () => '',
+      saveFile: () => `salvo:${salvo}`,
+      openFile: () => '',
+      shareFile: () => '',
       setSystemBars: () => undefined,
       installUpdate: () => '',
     };
@@ -432,15 +439,16 @@ test('teclado em maiúsculas: campos abrem com caps e o texto digitado vira mai�
 test('cabeçalho do turno: uma informação por linha (eletricistas separados)', async ({ page }) => {
   await page.goto('/');
   await cadastrarEletricistas(page, ['Ana', '1'], ['Bia', '2']);
-  await page.locator('#eletricista1').selectOption({ label: 'ANA - 1' });
+  await page.locator('#eletricista1').selectOption({ label: 'ANA' });
   await page.locator('[data-modo="Dupla"]').click();
-  await page.locator('#eletricista2').selectOption({ label: 'BIA - 2' });
+  await page.locator('#eletricista2').selectOption({ label: 'BIA' });
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   const linhas = page.getByTestId('header-info').locator('dt');
-  await expect(linhas).toHaveText(['Eletricista 1', 'Eletricista 2', 'Equipe', 'Viatura', 'Bodycam']);
-  await expect(page.getByTestId('header-info').locator('dd').nth(1)).toHaveText('BIA (Mat: 2)');
+  await expect(linhas).toHaveText(['Eletricista 1', 'Matrícula', 'Eletricista 2', 'Matrícula', 'Equipe', 'Viatura', 'Bodycam']);
+  await expect(page.getByTestId('header-info').locator('dd').nth(2)).toHaveText('BIA');
+  await expect(page.getByTestId('header-info').locator('dd').nth(3)).toHaveText('2');
   // Gravado em maiúsculas mesmo que o valor tenha entrado sem passar pela digitação (ex.: turno anterior).
   await page.getByRole('button', { name: 'Corrigir' }).click();
   await page.getByLabel('Equipe', { exact: true }).evaluate((el) => ((el as HTMLInputElement).value = 'pvh-02'));
@@ -474,6 +482,50 @@ test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeir
   expect((await download).suggestedFilename()).toBe('TURNO_3_20-11-2026_0_servicos.pdf');
   // A hora do encerramento separa folhas do mesmo dia.
   await expect(folhas.first()).toContainText(/\d{2}:\d{2}/);
+});
+
+test('falta preencher: a caixa fica vermelha (código, DITAIS, cadastro e cabeçalho) e volta ao normal ao mexer', async ({ page }) => {
+  await page.goto('/');
+  // Cabeçalho: sem eletricista e sem horário.
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  for (const id of ['#eletricista1', '#horaInicio', '#horaFim']) await expect(page.locator(id)).toHaveClass(/faltando/);
+  await page.getByLabel('Início *').fill('07:00');
+  await expect(page.locator('#horaInicio')).not.toHaveClass(/faltando/);
+  // Cadastro de eletricista sem matrícula.
+  await page.locator('#btn-eletricistas').click();
+  await page.locator('#eletricista-nome').fill('ANA');
+  await page.getByRole('button', { name: 'Adicionar eletricista' }).click();
+  await expect(page.locator('#eletricista-matricula')).toHaveClass(/faltando/);
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+
+  // OS: sem código e sem DITAIS.
+  await iniciarTurno(page);
+  await page.locator('#btn-new-ocorrencia').click();
+  await salvar(page);
+  await expect(page.locator('#os-code')).toHaveClass(/faltando/);
+  await page.locator('#os-code').fill('508');
+  await expect(page.locator('#os-code')).not.toHaveClass(/faltando/);
+  await salvar(page);
+  await expect(page.locator('[data-question="ditais"]')).toHaveClass(/faltando/);
+  await marcar(page, 'ditais', 'Não');
+  await expect(page.locator('[data-question="ditais"]')).not.toHaveClass(/faltando/);
+});
+
+test('planilha (Excel): baixa pela janela do PDF e pelo histórico das folhas', async ({ page }) => {
+  await iniciarTurno(page);
+  await novaOS(page, 'comercial', '709', '111');
+  await salvar(page);
+  await page.locator('#btn-finish').click();
+  await page.getByRole('button', { name: /Gerar PDF/ }).click();
+  await expect(page.getByRole('dialog')).toContainText('PDF gerado');
+  const hoje = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
+  const planilha = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Planilha (Excel)' }).click();
+  expect((await planilha).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hoje}_1_servico.xlsx`);
+  await page.getByRole('button', { name: 'Encerrar turno' }).click();
+  const doHistorico = page.waitForEvent('download');
+  await page.getByTestId('last-sheet').first().getByRole('button', { name: 'Planilha' }).click();
+  expect((await doHistorico).suggestedFilename()).toMatch(/\.xlsx$/);
 });
 
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
@@ -511,7 +563,7 @@ test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
   await page.getByRole('button', { name: 'Corrigir' }).click();
   await escolherEletricista1(page, 'João Souza', '123456');
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
-  await expect(page.getByTestId('header-info')).toContainText('JOÃO SOUZA (Mat: 123456)');
+  await expect(page.getByTestId('header-info')).toContainText('JOÃO SOUZA');
   await expect(page.getByTestId('os-item')).toHaveCount(1);
 });
 

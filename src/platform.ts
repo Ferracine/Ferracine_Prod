@@ -1,14 +1,14 @@
 /**
  * Ponte com o APK (android/: WebView + FerracineBridge.kt). No navegador/PWA ela não existe e o app usa as APIs web.
- * Na WebView, baixar um blob, abrir em nova aba e navigator.share não funcionam: o PDF vai em base64 para o
- * código nativo, que salva em Downloads, abre no leitor de PDF ou chama o compartilhamento do Android.
- * Cada método devolve "" em caso de sucesso ou a mensagem de erro (savePdf: "salvo:<nome>" no sucesso).
+ * Na WebView, baixar um blob, abrir em nova aba e navigator.share não funcionam: o arquivo (PDF ou planilha) vai
+ * em base64 para o código nativo, que salva em Downloads, abre no app certo ou chama o compartilhamento do Android.
+ * Cada método devolve "" em caso de sucesso ou a mensagem de erro (saveFile: "salvo:<nome>" no sucesso).
  */
 interface AndroidBridge {
   /** Sucesso: "salvo:<nome com que ficou em Downloads>" (o Android pode acrescentar " (1)"); erro: a mensagem. */
-  savePdf(base64: string, fileName: string): string;
-  openPdf(base64: string, fileName: string): string;
-  sharePdf(base64: string, fileName: string): string;
+  saveFile(base64: string, fileName: string, mime: string): string;
+  openFile(base64: string, fileName: string, mime: string): string;
+  shareFile(base64: string, fileName: string, mime: string): string;
   /** Cor de fundo do tema (#rrggbb) e modo, para as barras de status e de navegação acompanharem o app. */
   setSystemBars(color: string, dark: boolean): void;
   /**
@@ -38,7 +38,7 @@ declare global {
 
 export const androidBridge: AndroidBridge | undefined = window.FerracineAndroid;
 
-/** Prefixo da resposta de sucesso de `savePdf` (FerracineBridge.kt, SAVED). */
+/** Prefixo da resposta de sucesso de `saveFile` (FerracineBridge.kt, SAVED). */
 export const SAVED_PREFIX = 'salvo:';
 
 export async function blobToBase64(blob: Blob): Promise<string> {

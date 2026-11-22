@@ -1,6 +1,6 @@
 import { ClipboardList, Eye, FileDown, Pencil, Plus, Trash2 } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
-import { eletricistaLabel, formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
+import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
 import { answerRows } from '../domain/ordem';
 import { h, icon } from './dom';
@@ -81,8 +81,9 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
   const bodycams = [header.bodycam1, header.bodycam2].map((b) => b.trim()).filter(Boolean).join(' / ');
   // Uma informação por linha, rótulo à esquerda e valor à direita (o eletricista 2 só se houver dupla).
   const linhas: [string, string][] = [
-    ['Eletricista 1', eletricistaLabel(header.nome1, header.mat1)],
-    ...(header.nome2.trim() ? [['Eletricista 2', eletricistaLabel(header.nome2, header.mat2)] as [string, string]] : []),
+    ['Eletricista 1', header.nome1],
+    ['Matrícula', orDash(header.mat1)],
+    ...(header.nome2.trim() ? ([['Eletricista 2', header.nome2], ['Matrícula', orDash(header.mat2)]] as [string, string][]) : []),
     ['Equipe', orDash(header.equipe)],
     ['Viatura', orDash(header.viatura)],
     ['Bodycam', orDash(bodycams)],
