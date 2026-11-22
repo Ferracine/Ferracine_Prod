@@ -4,6 +4,7 @@ import { DOWNLOAD_PREFIX, isNewer, pickUpdate } from '../../src/domain/update';
 describe('isNewer', () => {
   it('compara major, minor e patch como números (não como texto)', () => {
     expect(isNewer('v1.3.0', '1.2.1')).toBe(true);
+    expect(isNewer('v1.4.10', '1.4.9')).toBe(true); // número, não texto ("10" < "9" como texto)
     expect(isNewer('1.2.10', '1.2.9')).toBe(true);
     expect(isNewer('2.0.0', '1.99.99')).toBe(true);
     expect(isNewer('v1.2.1', '1.2.1')).toBe(false);

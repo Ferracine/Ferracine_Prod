@@ -57,13 +57,16 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
-  eletricistas começam com a dupla dos últimos cabeçalhos). `loadData` monta cada objeto só com os campos atuais
-  (OS sem id é descartada; texto ausente vira ''), converte o que veio das versões 1.1.0 a 1.4.8 (`lastSheet`,
-  eletricistas, número do rascunho do assistente, `migrateAnswers`: medidores da 1.4.1–1.4.4 e a cópia escondida do
-  número em `answers.os`) e **grava já no formato atual** ao abrir; dado ilegível não é sobrescrito. Essas
-  conversões podem sair do código quando todos os aparelhos já tiverem aberto a 1.4.9 ou mais nova. Campo novo em
-  OS, rascunho ou folha: acrescente também em `normalizeOS`/`normalizeDraft`/`normalizeSheet`, senão a primeira
-  abertura descarta o campo (e grava sem ele). O protótipo v2
+  eletricistas começam com a dupla dos últimos cabeçalhos). `loadData`: lê, roda as conversões de versões antigas
+  sobre o JSON cru (bloco `// --- Conversões de versões antigas` no fim do arquivo: `lastSheet`, eletricistas,
+  número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4 e a cópia escondida do número
+  em `answers.os`), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
+  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.9 ou mais
+  nova. Esquemas (`Esquema<T>` + `montar`): um leitor por campo de cada tipo (`DADOS`, `OS`, `RASCUNHO`, `FOLHA`,
+  `TECNICO`, `ELETRICISTA`, `CABECALHO`); campo novo no tipo, mesmo opcional, sem leitor **não compila** (se
+  compilasse, a primeira abertura o apagaria). Leitor devolve `INVALIDO` para descartar o item (OS sem id, tipo
+  desconhecido, técnico com campo que não é texto). A ordem dos campos no esquema é a mesma com que o app grava
+  (senão regravaria a cada abertura; há teste). O protótipo v2
   (antes da 1.1.0, nunca virou APK) não é migrado e a chave `ferracine_prod:v2` é apagada ao abrir. Campo novo no
   cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`

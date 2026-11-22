@@ -3,7 +3,8 @@ import { espelhoRows } from '../../src/domain/espelho';
 import { formatDateBR, formatHorario, osLabel, sheetFileName, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
 import { emptyData, type KeyValueStore, loadData, pushSheet, saveData, STORAGE_KEY } from '../../src/storage';
-import { baseHeader as header } from './fixtures';
+import { startDraft } from '../../src/domain/ordem';
+import { baseHeader as header, finishedOS } from './fixtures';
 
 function memoryStore(initial: Record<string, string> = {}): KeyValueStore & { items: Map<string, string> } {
   const items = new Map(Object.entries(initial));
@@ -106,10 +107,52 @@ describe('armazenamento', () => {
     expect(JSON.parse(store.items.get(STORAGE_KEY)!)).toEqual(loaded);
     expect(store.items.has('ferracine_prod:v2')).toBe(false);
     // Já no formato atual: abrir de novo não regrava.
-    const gravado = store.items.get(STORAGE_KEY);
-    store.setItem = () => { throw new Error('não devia gravar'); };
+    let gravacoes = 0;
+    store.setItem = () => void gravacoes++;
     expect(loadData(store)).toEqual(loaded);
-    expect(store.items.get(STORAGE_KEY)).toBe(gravado);
+    expect(gravacoes).toBe(0);
+  });
+
+  it('técnicos, eletricistas e cabeçalho: item com campo que não é texto sai; campo extra sai; campo novo do cabeçalho vem vazio', () => {
+    const salvo = {
+      ...emptyData(),
+      tecnicos: [{ id: 't1', nome: 'TEC. ANA', telefone: '1', extra: 'x' }, { id: 't2', nome: 'TEC. BIA', telefone: 2 }, null],
+      eletricistas: [{ id: 'e1', nome: 'ANA', matricula: '' }, { id: 'e2', nome: 'BIA' }],
+      header: { nome1: 'ANA', data: '2026-11-20', bodycam2: 7 },
+      lastHeader: 'estragado',
+    };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
+    expect(loaded.tecnicos).toEqual([{ id: 't1', nome: 'TEC. ANA', telefone: '1' }]);
+    expect(loaded.eletricistas).toEqual([{ id: 'e1', nome: 'ANA', matricula: '' }]);
+    expect(loaded.header).toMatchObject({ nome1: 'ANA', data: '2026-11-20', equipe: '', bodycam2: '', lider: '' });
+    expect(Object.keys(loaded.header!)).toHaveLength(12);
+    expect(loaded.lastHeader).toBeNull();
+  });
+
+  it('dado gravado pelo próprio app já está no formato atual: abrir não regrava (mesma ordem de campos)', () => {
+    const os = finishedOS('1', 'COMERCIAL', '28', {}, 'id-1');
+    const data: AppData = {
+      ...emptyData(),
+      header,
+      ordens: [os],
+      draft: { ...startDraft('OCORRENCIA'), serviceCode: '508' },
+      sheets: [{ header, ordens: [os], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos: [{ id: 't', nome: 'TEC', telefone: '1' }] }],
+      lastHeader: header,
+      eletricistas: [{ id: 'e', nome: 'ANA', matricula: '1' }],
+    };
+    const store = memoryStore();
+    saveData(store, data);
+    let gravacoes = 0;
+    store.setItem = () => void gravacoes++;
+    expect(loadData(store)).toEqual(data);
+    expect(gravacoes).toBe(0);
+  });
+
+  it('conversões antigas valem também nas OSs das folhas do histórico', () => {
+    const antiga = { id: 'o', osNumber: '1', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: { medidorInst: { kind: 'text', value: 'D60' }, os: { kind: 'text', value: '1' } } };
+    const salvo = { version: 3, header: null, ordens: [], draft: null, lastHeader: null, lastSheet: { header, ordens: [antiga], fechadaEm: 'x', tecnicos: [] } };
+    const [folha] = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) })).sheets;
+    expect(folha?.ordens[0]?.answers).toEqual({ medidorInstNum: { kind: 'text', value: 'D60' } });
   });
 
   it('armazenamento ilegível não é sobrescrito ao abrir', () => {

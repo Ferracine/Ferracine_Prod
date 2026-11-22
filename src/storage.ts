@@ -9,107 +9,104 @@ export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 const texto = (v: unknown): string => (typeof v === 'string' ? v : '');
 
+// --- Leitura tipada dos dados salvos -------------------------------------
+
+/** Valor que um leitor devolve quando o campo não serve: o item inteiro (OS, técnico, folha...) é descartado. */
+export const INVALIDO = Symbol('inválido');
+
+/** Lê um campo salvo e devolve o valor no formato atual (ou INVALIDO). */
+export type Leitor<V> = (v: unknown) => V | typeof INVALIDO;
+
+/**
+ * Um leitor para cada campo do tipo, inclusive os opcionais, e nenhum a mais. Campo novo no tipo sem leitor aqui não
+ * compila: se compilasse, seria descartado calado na primeira abertura (o app grava no formato atual ao abrir).
+ */
+export type Esquema<T> = { [K in keyof Required<T>]: Leitor<T[K]> };
+
+/** Monta o objeto só com os campos do esquema; campo opcional lido como `undefined` fica de fora. */
+export function montar<T>(esquema: Esquema<T>, raw: unknown): T | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const out: Partial<Record<keyof T, unknown>> = {};
+  for (const k of Object.keys(esquema) as (keyof T)[]) {
+    const v = esquema[k]((raw as Partial<Record<keyof T, unknown>>)[k]);
+    if (v === INVALIDO) return undefined;
+    if (v !== undefined) out[k] = v;
+  }
+  return out as T;
+}
+
+/** Lista salva: cada item montado pelo esquema; o que não serve sai. */
+function lista<T>(esquema: Esquema<T>, raw: unknown): T[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    const v = montar(esquema, item);
+    return v === undefined ? [] : [v];
+  });
+}
+
+/** Texto obrigatório (pode ser vazio); outro tipo invalida o item. */
+const textoExato: Leitor<string> = (v) => (typeof v === 'string' ? v : INVALIDO);
+
+/** Cabeçalho: todos os campos de HEADER_FIELDS (a fonte do tipo), texto ausente vira vazio. */
+const CABECALHO = Object.fromEntries(HEADER_FIELDS.map((k) => [k, texto])) as Esquema<ShiftHeader>;
+const TECNICO: Esquema<Tecnico> = { id: textoExato, nome: textoExato, telefone: textoExato };
+const ELETRICISTA: Esquema<Eletricista> = { id: textoExato, nome: textoExato, matricula: textoExato };
+
 export function emptyData(): AppData {
   return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [] };
 }
 
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
-function normalizeHeader(raw: Partial<ShiftHeader> | null | undefined): ShiftHeader | null {
-  if (!raw) return null;
-  return Object.fromEntries(HEADER_FIELDS.map((k) => [k, texto(raw[k])])) as ShiftHeader;
+function normalizeHeader(raw: unknown): ShiftHeader | null {
+  return montar(CABECALHO, raw) ?? null;
 }
 
-function normalizeTecnicos(raw: unknown): Tecnico[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((t): t is Tecnico => !!t && typeof t.id === 'string' && typeof t.nome === 'string' && typeof t.telefone === 'string');
-}
+const tipoServico: Leitor<ServiceType> = (v) => (v === 'COMERCIAL' || v === 'OCORRENCIA' ? v : INVALIDO);
+const respostas: Leitor<Record<string, Answer>> = (v) => (v && typeof v === 'object' ? (v as Record<string, Answer>) : INVALIDO);
 
-/**
- * Eletricistas cadastrados. Sem a lista (até a 1.4.4), o cadastro começa com quem estava nos últimos cabeçalhos, para
- * a dupla de sempre já aparecer para escolher.
- */
-function normalizeEletricistas(raw: unknown, ...headers: (ShiftHeader | null)[]): Eletricista[] {
-  if (Array.isArray(raw)) {
-    return raw.filter((e): e is Eletricista => !!e && typeof e.id === 'string' && typeof e.nome === 'string' && typeof e.matricula === 'string');
-  }
-  const out: Eletricista[] = [];
-  for (const h of headers) {
-    if (!h) continue;
-    for (const [nome, matricula] of [[h.nome1, h.mat1], [h.nome2, h.mat2]] as const) {
-      const n = nome.trim().toUpperCase();
-      if (n && !out.some((e) => e.nome === n)) out.push({ id: `ele-migrado-${out.length + 1}`, nome: n, matricula: matricula.trim().toUpperCase() });
-    }
-  }
-  return out;
-}
-
-type ComRespostas = Record<string, unknown> & { serviceType: ServiceType; answers: Record<string, Answer> };
-
-/** Tipo conhecido e respostas; o resto (gravação cortada, edição à mão) é descartado em vez de travar a tela. */
-function temRespostas(o: unknown): o is ComRespostas {
-  if (!o || typeof o !== 'object') return false;
-  const { serviceType, answers } = o as Partial<OrdemServico>;
-  return (serviceType === 'COMERCIAL' || serviceType === 'OCORRENCIA') && !!answers && typeof answers === 'object';
-}
+/** OS nova em preenchimento: sem tipo conhecido ou sem respostas, é descartada (em vez de travar a tela da OS). */
+const RASCUNHO: Esquema<OSDraft> = { osNumber: texto, serviceType: tipoServico, serviceCode: texto, answers: respostas };
 
 /**
- * OS lida do aparelho, só com os campos atuais (campos de versões antigas ficam para trás; texto ausente vira '').
- * Sem id não dá para editar nem excluir: sai.
+ * OS registrada: os campos do rascunho + id (sem ele não dá para editar nem excluir: a OS sai) e horário. A ordem dos
+ * campos dos esquemas é a mesma com que o app grava (`finalize`, `startDraft`...): diferente, o JSON mudaria e o app
+ * regravaria tudo a cada abertura (há teste para isso).
  */
-function normalizeOS(o: unknown): OrdemServico[] {
-  if (!temRespostas(o) || !texto(o.id)) return [];
-  return [
-    {
-      id: texto(o.id),
-      osNumber: texto(o.osNumber),
-      serviceType: o.serviceType,
-      serviceCode: texto(o.serviceCode),
-      answers: migrateAnswers(o.serviceType, o.answers),
-      registradaEm: texto(o.registradaEm),
-    },
-  ];
-}
+const OS: Esquema<OrdemServico> = { id: (v) => texto(v) || INVALIDO, ...RASCUNHO, registradaEm: texto };
 
-function normalizeOrdens(raw: unknown): OrdemServico[] {
-  return Array.isArray(raw) ? raw.flatMap(normalizeOS) : [];
-}
+/** Folha encerrada: sem cabeçalho válido é descartada (não dá para gerar o PDF). */
+const FOLHA: Esquema<ClosedSheet> = {
+  header: (v) => normalizeHeader(v) ?? INVALIDO,
+  ordens: (v) => lista(OS, v),
+  fechadaEm: texto,
+  tecnicos: (v) => lista(TECNICO, v),
+};
 
-/**
- * Rascunho da OS nova, só com os campos atuais (o `index` do antigo assistente fica para trás). No assistente (até a
- * 1.3.0) o número ficava só na resposta `os`: vai para o campo do topo.
- */
-function normalizeDraft(raw: unknown): OSDraft | null {
-  if (!temRespostas(raw)) return null;
-  const doAssistente = raw.answers.os?.kind === 'text' ? raw.answers.os.value.trim() : '';
-  return {
-    osNumber: doAssistente || texto(raw.osNumber),
-    serviceType: raw.serviceType,
-    serviceCode: texto(raw.serviceCode),
-    answers: migrateAnswers(raw.serviceType, raw.answers),
-  };
-}
+/** Tudo o que o app guarda. Sem versão 3 ou sem a lista de OSs, o dado não é deste app: começa vazio. */
+const DADOS: Esquema<AppData> = {
+  version: (v) => (v === 3 ? 3 : INVALIDO),
+  header: normalizeHeader,
+  ordens: (v) => (Array.isArray(v) ? lista(OS, v) : INVALIDO),
+  draft: (v) => montar(RASCUNHO, v) ?? null,
+  sheets: (v) => lista(FOLHA, v).slice(0, SHEETS_KEPT),
+  lastHeader: normalizeHeader,
+  tecnicos: (v) => lista(TECNICO, v),
+  eletricistas: (v) => lista(ELETRICISTA, v),
+};
 
 /** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
 export function pushSheet(sheets: readonly ClosedSheet[], sheet: ClosedSheet): ClosedSheet[] {
   return [sheet, ...sheets].slice(0, SHEETS_KEPT);
 }
 
-/** Folha guardada no formato atual; sem cabeçalho válido, é descartada (não dá para gerar o PDF). */
-function normalizeSheet(raw: unknown): ClosedSheet[] {
-  const s = raw as Partial<ClosedSheet> | null | undefined;
-  const header = normalizeHeader(s?.header);
-  if (!s || !header) return [];
-  return [{ header, ordens: normalizeOrdens(s.ordens), fechadaEm: texto(s.fechadaEm), tecnicos: normalizeTecnicos(s.tecnicos) }];
-}
-
 /**
- * Lê o estado salvo; dado ausente ou corrompido vira estado vazio. Dado de versão anterior é convertido e gravado já
- * no formato atual (sem esperar a pessoa mexer em algo): depois que todos os aparelhos abrirem esta versão, as
- * conversões de `lastSheet`, eletricistas, rascunho do assistente e `migrateAnswers` podem sair do código.
+ * Lê o estado salvo; dado ausente ou corrompido vira estado vazio. Primeiro as conversões de versões antigas (sobre
+ * o JSON cru), depois os esquemas acima montam cada objeto só com os campos atuais. Se o resultado difere do que
+ * estava gravado, grava já no formato atual.
  */
 export function loadData(store: KeyValueStore): AppData {
   let raw: string | null = null;
-  let current: (Partial<AppData> & { lastSheet?: ClosedSheet | null }) | null = null;
+  let current: unknown = null;
   try {
     raw = store.getItem(STORAGE_KEY);
     current = raw === null ? null : JSON.parse(raw);
@@ -121,21 +118,9 @@ export function loadData(store: KeyValueStore): AppData {
   } catch {
     // sem acesso ao armazenamento: tenta de novo na próxima abertura
   }
-  if (current?.version !== 3 || !Array.isArray(current.ordens)) return emptyData();
-  // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
-  const sheets = Array.isArray(current.sheets) ? current.sheets : current.lastSheet ? [current.lastSheet] : [];
-  const header = normalizeHeader(current.header);
-  const lastHeader = normalizeHeader(current.lastHeader);
-  const data: AppData = {
-    version: 3,
-    header,
-    ordens: normalizeOrdens(current.ordens),
-    draft: normalizeDraft(current.draft),
-    sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
-    lastHeader,
-    tecnicos: normalizeTecnicos(current.tecnicos),
-    eletricistas: normalizeEletricistas(current.eletricistas, header, lastHeader),
-  };
+  if (!current || typeof current !== 'object') return emptyData();
+  const data = montar(DADOS, converterDados(current as Record<string, unknown>));
+  if (!data) return emptyData();
   // Cota cheia/modo privado: saveData falha calado e o app segue com os dados convertidos (grava no próximo update()).
   if (JSON.stringify(data) !== raw) saveData(store, data);
   return data;
@@ -149,6 +134,55 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
   } catch {
     return false;
   }
+}
+
+// --- Conversões de versões antigas (1.1.0 a 1.4.8) -----------------------
+// Rodam antes dos esquemas, sobre o JSON cru. A 1.4.9 grava no formato atual ao abrir: quando todos os aparelhos já
+// tiverem aberto a 1.4.9 ou mais nova, este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de
+// `converterDados` em `loadData`.
+
+function converterDados(d: Record<string, unknown>): Record<string, unknown> {
+  // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
+  const sheets = Array.isArray(d.sheets) ? d.sheets : d.lastSheet ? [d.lastSheet] : [];
+  return {
+    ...d,
+    ordens: Array.isArray(d.ordens) ? d.ordens.map(converterOS) : d.ordens,
+    draft: converterRascunho(d.draft),
+    sheets: sheets.map((s: unknown) => (s && typeof s === 'object' && Array.isArray((s as ClosedSheet).ordens) ? { ...s, ordens: (s as ClosedSheet).ordens.map(converterOS) } : s)),
+    eletricistas: Array.isArray(d.eletricistas) ? d.eletricistas : eletricistasDosCabecalhos(normalizeHeader(d.header), normalizeHeader(d.lastHeader)),
+  };
+}
+
+/** OS ou rascunho: respostas das versões antigas no formato atual (`migrateAnswers`). */
+function converterOS(raw: unknown): unknown {
+  const o = raw as Partial<OrdemServico> | null;
+  const type = tipoServico(o?.serviceType);
+  const answers = respostas(o?.answers);
+  if (type === INVALIDO || answers === INVALIDO) return raw; // o esquema descarta
+  return { ...o, answers: migrateAnswers(type, answers) };
+}
+
+/** Rascunho do assistente (até a 1.3.0): o número da OS ficava só na resposta `os`; vai para o campo do topo. */
+function converterRascunho(raw: unknown): unknown {
+  const ans = (raw as { answers?: Record<string, Answer> } | null)?.answers?.os;
+  const doAssistente = ans?.kind === 'text' ? ans.value.trim() : '';
+  return converterOS(doAssistente ? { ...(raw as object), osNumber: doAssistente } : raw);
+}
+
+/**
+ * Sem a lista de eletricistas (até a 1.4.4), o cadastro começa com quem estava nos últimos cabeçalhos, para a dupla de
+ * sempre já aparecer para escolher.
+ */
+function eletricistasDosCabecalhos(...headers: (ShiftHeader | null)[]): Eletricista[] {
+  const out: Eletricista[] = [];
+  for (const h of headers) {
+    if (!h) continue;
+    for (const [nome, matricula] of [[h.nome1, h.mat1], [h.nome2, h.mat2]] as const) {
+      const n = nome.trim().toUpperCase();
+      if (n && !out.some((e) => e.nome === n)) out.push({ id: `ele-migrado-${out.length + 1}`, nome: n, matricula: matricula.trim().toUpperCase() });
+    }
+  }
+  return out;
 }
 
 /**
