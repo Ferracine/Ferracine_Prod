@@ -124,7 +124,7 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
     @JavascriptInterface
     fun installUpdate(url: String, size: Double): String = updater.start(url, size.toLong())
 
-    /** Grava em cache/pdf e devolve um content:// do FileProvider (res/xml/file_paths.xml). */
+    /** Grava o arquivo (PDF ou planilha) em cache/pdf e devolve um content:// do FileProvider (res/xml/file_paths.xml). */
     private fun cachedFile(base64: String, name: String): Uri {
         val dir = File(activity.cacheDir, "pdf").apply { mkdirs() }
         val file = File(dir, name).apply { writeBytes(decode(base64)) }

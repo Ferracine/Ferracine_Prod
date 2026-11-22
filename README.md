@@ -27,7 +27,7 @@ houver, só serve para o app se atualizar.
      recuados, o número e a leitura do medidor novo), KM final, horário final, dificuldade na execução. No Espelho
      de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
      o da UC para MEDIDOR RETIRADO.
-   - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 14 perguntas: callback, número da OS, hora inicial,
+   - **Ocorrência** (508 / 509 / 503 / 531 / 324 / 533), 13 perguntas: callback, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do
      medidor instalado, hora final, dificuldade.
@@ -102,7 +102,7 @@ nova não instala por cima da antiga. O `android/local.properties` aponta o SDK 
 ## Estrutura
 
 ```
-design/       referências do dono do app: modelo e foto do PDF (dados à mão cobertos)
+design/       referência do dono do app: foto do PDF em papel (dados à mão cobertos)
 src/domain/   regras puras: catálogo de códigos e perguntas, regras da OS, linhas do espelho, formatação
 src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
@@ -110,7 +110,7 @@ src/planilha.ts planilha .xlsx do espelho (Office Open XML + zip do fflate)
 src/platform.ts ponte com o APK (salvar/abrir/compartilhar PDF e planilha)
 src/ui/       telas (cabeçalho, painel, tela da OS), toast e modal
 src/app.ts    controlador: estado, persistência e navegação entre telas
-android/      app Android (WebView + ponte do PDF)
+android/      app Android (WebView + ponte de arquivos: PDF e planilha)
 tests/unit/   Vitest   ·   tests/e2e/  Playwright
 ```
 
@@ -142,5 +142,5 @@ rodapé. Sem internet nada muda. No navegador/PWA quem atualiza é o service wor
 A primeira versão foi um `index.html` único gerado com o Gemini (preservado no primeiro commit deste repositório).
 O layout seguiu um modelo enviado pelo dono e o PDF segue a folha de papel do Espelho de Campo. Sobre essa base, o app
 acrescenta: funcionamento offline (PWA e APK), salvamento da OS em andamento, edição completa de OS, correção do
-cabeçalho, preenchimento automático do turno, técnicos cadastráveis, reenvio do último PDF e proteção contra
+cabeçalho, preenchimento automático do turno, técnicos cadastráveis, histórico das 4 últimas folhas (PDF e planilha) e proteção contra
 injeção de HTML.

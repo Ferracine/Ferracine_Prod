@@ -3,7 +3,7 @@ import { SERVICE_LABEL, isVisible, questionsFor } from '../domain/catalog';
 import { CODE_FIELD, choiceAnswer, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
-import { BTN, BTN_CHOICE, BTN_PRIMARY_LG, h, icon } from './dom';
+import { btn, BTN_CHOICE, BTN_PRIMARY_LG, h, icon } from './dom';
 
 export interface OSScreenProps {
   /** `new`: OS nova (rascunho salvo a cada alteração); `edit`: lápis de uma OS concluída. */
@@ -183,7 +183,7 @@ export function osScreen(p: OSScreenProps): HTMLElement {
         ),
         h('p', { class: 'text-xs text-muted mt-1' }, isNew ? 'Informe o número (opcional) e o código, preencha o que souber e toque em "Salvar OS".' : 'Altere o que precisar e toque em "Salvar alterações".'),
       ),
-      h('button', { type: 'button', class: `${BTN.neutral} shrink-0`, onClick: p.onCancel }, 'Cancelar'),
+      h('button', { type: 'button', class: `${btn('neutral')} shrink-0`, onClick: p.onCancel }, 'Cancelar'),
     ),
     h(
       'div',
@@ -191,8 +191,7 @@ export function osScreen(p: OSScreenProps): HTMLElement {
       textField('os-number', NUMBER_LABEL[p.serviceType], state.osNumber, { inputmode: 'numeric', placeholder: 'Digite o número do serviço.' }, (v) => (state.osNumber = v)),
       textField('os-code', 'Código do serviço', state.serviceCode, { inputmode: 'numeric', maxlength: '10', placeholder: 'Digite o código do serviço.' }, (v) => (state.serviceCode = v), CODE_FIELD),
     ),
-    // A pergunta do número da OS é respondida no campo acima.
-    questionsFor(p.serviceType).filter((q) => !q.prefillOS).map(questionBlock),
+    questionsFor(p.serviceType).map(questionBlock),
     h(
       'button',
       { type: 'button', id: 'btn-os-save', class: `w-full ${BTN_PRIMARY_LG}`, onClick: () => p.onSave(current()) },

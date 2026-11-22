@@ -46,7 +46,7 @@ export type EditResult = { ok: true; os: OrdemServico } | RuleError;
  * Regras comuns à OS nova e à edição: código obrigatório, DITAIS obrigatória, complemento do SIM.
  * Devolve o rascunho pronto para `finalize` (número e código aparados) ou o erro.
  */
-function checked(type: ServiceType, edit: OSEdit, infoLegada?: string): { ok: true; draft: OSDraft } | RuleError {
+function checked(type: ServiceType, edit: OSEdit): { ok: true; draft: OSDraft } | RuleError {
   // Sem espaços nem zero à esquerda: "0508" é o 508 (senão passaria pela trava do código do outro tipo abaixo).
   const serviceCode = edit.serviceCode.replace(/\s+/g, '').toUpperCase().replace(/^0+(?=\d)/, '');
   if (!serviceCode) return { ok: false, error: 'Informe o código do serviço.', field: CODE_FIELD };
@@ -62,19 +62,19 @@ function checked(type: ServiceType, edit: OSEdit, infoLegada?: string): { ok: tr
   }
   return {
     ok: true,
-    draft: { osNumber: edit.osNumber.trim(), serviceType: type, serviceCode, answers: edit.answers, ...(infoLegada ? { infoLegada } : {}) },
+    draft: { osNumber: edit.osNumber.trim(), serviceType: type, serviceCode, answers: edit.answers },
   };
 }
 
 /** "Salvar OS" da OS nova: valida e devolve a OS registrada agora. */
 export function createOS(draft: OSDraft, id: string, now: Date): EditResult {
-  const r = checked(draft.serviceType, draft, draft.infoLegada);
+  const r = checked(draft.serviceType, draft);
   return r.ok ? { ok: true, os: finalize(r.draft, id, now) } : r;
 }
 
 /** Lápis da lista: aplica número, código e respostas de uma vez, mantendo id e horário de registro. */
 export function applyEdit(os: OrdemServico, edit: OSEdit): EditResult {
-  const r = checked(os.serviceType, edit, os.infoLegada);
+  const r = checked(os.serviceType, edit);
   return r.ok ? { ok: true, os: finalize(r.draft, os.id, new Date(os.registradaEm)) } : r;
 }
 
@@ -98,16 +98,12 @@ function ruleError(q: Question, ans: Answer | undefined): string | null {
   return null;
 }
 
-/**
- * OS pronta para a folha: respostas normalizadas e o número do campo do topo gravado também na pergunta do número
- * (`prefillOS`, "Qual número da Ordem de serviço?" da ocorrência), que a tela não mostra.
- */
+/** OS pronta para a folha: respostas normalizadas (vazias ou escondidas viram "pulada"). */
 export function finalize(draft: OSDraft, id: string, now: Date): OrdemServico {
   const answers: Record<string, Answer> = {};
   for (const q of questionsFor(draft.serviceType)) {
-    if (q.prefillOS) answers[q.id] = draft.osNumber ? { kind: 'text', value: draft.osNumber } : { kind: 'skipped' };
-    // Escondida (ex.: leitura do medidor retirado com "Foi retirado medidor?" = NÃO): o que foi digitado antes não vale.
-    else answers[q.id] = isVisible(q, draft.answers) ? normalizeAnswer(q, draft.answers[q.id]) : { kind: 'skipped' };
+    // Escondida (ex.: número do medidor novo com "Foi instalado novo medidor?" = NÃO): o que foi digitado antes não vale.
+    answers[q.id] = isVisible(q, draft.answers) ? normalizeAnswer(q, draft.answers[q.id]) : { kind: 'skipped' };
   }
   return {
     id,
@@ -116,8 +112,6 @@ export function finalize(draft: OSDraft, id: string, now: Date): OrdemServico {
     serviceCode: draft.serviceCode,
     answers,
     registradaEm: now.toISOString(),
-    // Respostas da versão antiga (migração) acompanham a OS em qualquer edição.
-    ...(draft.infoLegada ? { infoLegada: draft.infoLegada } : {}),
   };
 }
 
@@ -140,10 +134,9 @@ function describeAnswer(ans: Answer | undefined): string | null {
   return ans.choice === 'Sim' && ans.detail ? `Sim — ${ans.detail}` : ans.choice;
 }
 
-export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers' | 'infoLegada'>): AnswerRow[] {
+export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers'>): AnswerRow[] {
   // Só as perguntas que aparecem com estas respostas ("X de Y respondidas" conta as visíveis).
-  // A pergunta do número da OS (`prefillOS`) não entra: a tela não mostra, o número fica no topo (S/N quando vazio).
-  const rows = visibleQuestions(os.serviceType, os.answers).filter((q) => !q.prefillOS).map((q) => {
+  return visibleQuestions(os.serviceType, os.answers).map((q) => {
     const display = describeAnswer(os.answers[q.id]);
     return {
       question: q.text,
@@ -152,6 +145,4 @@ export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers' | 'i
       isDitais: !!q.isDitais,
     };
   });
-  if (os.infoLegada) rows.push({ question: 'Respostas da versão anterior do app', display: os.infoLegada, skipped: false, isDitais: false });
-  return rows;
 }

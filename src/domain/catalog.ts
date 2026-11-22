@@ -32,7 +32,6 @@ const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do med
 
 const OCORRENCIA: readonly Question[] = [
   { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
-  { id: 'os', text: 'Qual número da Ordem de serviço?', type: 'text', placeholder: 'Número da OS', input: 'numeric', prefillOS: true },
   { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' },
   { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' },
   { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o tipo de serviço...', short: 'Tipo' },

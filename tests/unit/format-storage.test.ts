@@ -11,6 +11,7 @@ function memoryStore(initial: Record<string, string> = {}): KeyValueStore & { it
     items,
     getItem: (k: string) => items.get(k) ?? null,
     setItem: (k: string, v: string) => void items.set(k, v),
+    removeItem: (k: string) => void items.delete(k),
   };
 }
 
@@ -50,6 +51,7 @@ describe('armazenamento', () => {
     const broken: KeyValueStore = {
       getItem() { throw new Error('SecurityError'); },
       setItem() { throw new Error('QuotaExceededError'); },
+      removeItem() { throw new Error('SecurityError'); },
     };
     expect(loadData(broken)).toEqual(emptyData());
     expect(saveData(broken, emptyData())).toBe(false);
@@ -85,12 +87,35 @@ describe('armazenamento', () => {
     expect(loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(semResposta) })).draft?.osNumber).toBe('9');
   });
 
-  it('OS ou rascunho estragado (gravação cortada, edição à mão) é descartado em vez de travar o app', () => {
+  it('OS ou rascunho estragado (gravação cortada, edição à mão) é descartado ou completado em vez de travar o app', () => {
     const boa = { id: 'b', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '28', registradaEm: 'x', answers: {} };
-    const salvo = { ...emptyData(), ordens: [null, 'x', { ...boa, serviceType: 'OUTRO' }, { ...boa, answers: null }, boa], draft: { osNumber: '', serviceType: 'X', serviceCode: '', answers: {} } };
+    const salvo = { ...emptyData(), ordens: [null, 'x', { ...boa, serviceType: 'OUTRO' }, { ...boa, answers: null }, { ...boa, id: undefined }, boa], draft: { osNumber: '', serviceType: 'X', serviceCode: '', answers: {} } };
     const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify(salvo) }));
     expect(loaded.ordens.map((o) => o.id)).toEqual(['b']);
     expect(loaded.draft).toBeNull();
+    // Rascunho sem número e sem código (só tipo e respostas): campos vazios, a tela da OS abre e salva normalmente.
+    const semTexto = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), draft: { serviceType: 'COMERCIAL', answers: {} } }) }));
+    expect(semTexto.draft).toEqual({ osNumber: '', serviceType: 'COMERCIAL', serviceCode: '', answers: {} });
+  });
+
+  it('dado de versão anterior é gravado no formato atual já ao abrir; a chave do protótipo (v2) é apagada', () => {
+    const os = { id: 'o', osNumber: '7', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: { os: { kind: 'text', value: '7' } }, infoLegada: 'velho' };
+    const store = memoryStore({ [STORAGE_KEY]: JSON.stringify({ version: 3, header: null, ordens: [os], draft: null, lastSheet: null, lastHeader: null }), 'ferracine_prod:v2': '{"x":1}' });
+    const loaded = loadData(store);
+    expect(loaded.ordens[0]).toEqual({ id: 'o', osNumber: '7', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x', answers: {} });
+    expect(JSON.parse(store.items.get(STORAGE_KEY)!)).toEqual(loaded);
+    expect(store.items.has('ferracine_prod:v2')).toBe(false);
+    // Já no formato atual: abrir de novo não regrava.
+    const gravado = store.items.get(STORAGE_KEY);
+    store.setItem = () => { throw new Error('não devia gravar'); };
+    expect(loadData(store)).toEqual(loaded);
+    expect(store.items.get(STORAGE_KEY)).toBe(gravado);
+  });
+
+  it('armazenamento ilegível não é sobrescrito ao abrir', () => {
+    const store = memoryStore({ [STORAGE_KEY]: '{quebrado' });
+    expect(loadData(store)).toEqual(emptyData());
+    expect(store.items.get(STORAGE_KEY)).toBe('{quebrado');
   });
 
   it('ocorrência salva na 1.4.1 (SIM/NÃO + número) ou 1.4.2 (só o número): vira o campo do número; NÃO fica em branco', () => {

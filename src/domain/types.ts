@@ -22,11 +22,9 @@ export interface Question {
   required?: boolean;
   /** Pergunta de segurança dos DITAIS: obrigatória e destacada no PDF. */
   isDitais?: boolean;
-  /** Pergunta do número da OS: começa com o número do painel e, respondida, define o número. */
-  prefillOS?: boolean;
   /** Coluna própria no Espelho de Campo (fixa, ou conforme as respostas: ex. medidor atual vira "retirado" na troca). */
   espelho?: EspelhoColumn | ((answers: Record<string, Answer>) => EspelhoColumn);
-  /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho` e que não são o número da OS). */
+  /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho`). */
   short?: string;
   /**
    * Só aparece (e só vale) quando a condição é verdadeira, conforme as outras respostas; escondida, a resposta não
@@ -61,8 +59,6 @@ export interface OrdemServico {
   answers: Record<string, Answer>;
   /** ISO 8601 do momento em que a OS foi concluída. */
   registradaEm: string;
-  /** Respostas de perguntas que saíram do catálogo (OSs migradas da v2), já como texto para INFO ADICIONAL. */
-  infoLegada?: string;
 }
 
 /** OS nova em preenchimento (tela da OS). Persistida a cada alteração para sobreviver ao fechamento do app. */
@@ -71,7 +67,6 @@ export interface OSDraft {
   serviceType: ServiceType;
   serviceCode: string;
   answers: Record<string, Answer>;
-  infoLegada?: string;
 }
 
 /** Eletricista cadastrado no aparelho: escolhido no cabeçalho, preenche nome e matrícula. */

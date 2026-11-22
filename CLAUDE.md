@@ -43,8 +43,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/domain/` é puro (sem DOM, sem storage) e é onde estão as regras:
   - `catalog.ts`: códigos por tipo e a lista exata de perguntas, na ordem definida pelo dono. Ids descritivos e
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
-    coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. `prefillOS` marca a pergunta do número
-    da OS.
+    coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. O número da OS não é pergunta: fica
+    em `osNumber` (campo do topo da tela; vazio = S/N).
   - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor novo da comercial só com
     "Foi instalado novo medidor?" = SIM). `espelho` pode ser função das respostas: na troca, o medidor da UC vai para
     MEDIDOR RETIRADO e o novo para MEDIDOR INSTALADO. Escondida não vale:
@@ -52,14 +52,19 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     de controle que não vai para INFO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
   - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
     (lápis) passam pelas mesmas regras (código, DITAIS, complemento do SIM). `finalize` normaliza respostas vazias
-    para `skipped` e grava o número do topo na pergunta `prefillOS` (que a tela não mostra). `isUnchanged` decide se Cancelar confirma.
+    (e escondidas) para `skipped`. `isUnchanged` decide se Cancelar confirma.
   - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
-  eletricistas começam com a dupla dos últimos cabeçalhos). Ao carregar, `migrateMeters` converte os medidores das
-  versões 1.4.1 a 1.4.4; dados de antes da 1.3.0 (primeiro APK com atualização automática, inclusive o protótipo v2)
-  não são mais migrados. `infoLegada` (texto de respostas antigas) ainda é exibido se existir. Campo novo no
+  eletricistas começam com a dupla dos últimos cabeçalhos). `loadData` monta cada objeto só com os campos atuais
+  (OS sem id é descartada; texto ausente vira ''), converte o que veio das versões 1.1.0 a 1.4.8 (`lastSheet`,
+  eletricistas, número do rascunho do assistente, `migrateAnswers`: medidores da 1.4.1–1.4.4 e a cópia escondida do
+  número em `answers.os`) e **grava já no formato atual** ao abrir; dado ilegível não é sobrescrito. Essas
+  conversões podem sair do código quando todos os aparelhos já tiverem aberto a 1.4.9 ou mais nova. Campo novo em
+  OS, rascunho ou folha: acrescente também em `normalizeOS`/`normalizeDraft`/`normalizeSheet`, senão a primeira
+  abertura descarta o campo (e grava sem ele). O protótipo v2
+  (antes da 1.1.0, nunca virou APK) não é migrado e a chave `ferracine_prod:v2` é apagada ao abrir. Campo novo no
   cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`
   no lugar de `lastSheet`) fica na v3 com detecção na carga: subir a versão faria um APK antigo descartar tudo.
@@ -99,7 +104,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
   `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Avisos rápidos (toasts): `bg-brand-700`,
   `bg-ok`, `bg-warn`, `bg-err` com texto branco, sem borda, centralizados e acima das janelas (`z-[60]`). Comercial = ciano, Ocorrência = laranja.
-- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
+- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
   Solo/Dupla. Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou `largo` ocupa a linha). Nas
@@ -121,8 +126,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   REQUEST_INSTALL_PACKAGES). Borda a borda em todas as versões
   (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
   WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
-  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider, qualquer tipo.
-- `design/`: referências que o dono mandou (foto do PDF com os dados à mão cobertos por tarja preta e o modelo). Não coloque arquivos em `dist/`: o build apaga a pasta.
+  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider; só PDF e planilha (`TIPOS`/`extOf` recusam outro tipo).
+- `design/`: referência que o dono mandou (foto do PDF em papel, com os dados à mão cobertos por tarja preta). Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
 - A pergunta dos DITAIS (`ditais`) é a única obrigatória (OS nova e edição).

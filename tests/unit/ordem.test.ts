@@ -8,7 +8,6 @@ describe('catálogo', () => {
   it('ocorrência segue a ordem definida pelo dono do app', () => {
     expect(questionsFor('OCORRENCIA').map((q) => q.text)).toEqual([
       'Tentou callback?',
-      'Qual número da Ordem de serviço?',
       'Deseja informar a hora inicial?',
       'Deseja informar o KM inicial?',
       'Qual tipo de serviço?',
@@ -73,11 +72,11 @@ describe('OS nova (tela da OS)', () => {
     expect(sn.ok && sn.os.osNumber).toBe('');
   });
 
-  it('ocorrência: o número do topo vai para a pergunta do número', () => {
+  it('ocorrência: o número fica só no campo do topo (sem cópia escondida nas respostas)', () => {
     const d = { ...ordem.startDraft('OCORRENCIA'), serviceCode: '508' };
     const r = ordem.createOS({ ...d, osNumber: '4455', answers: { ditais: { kind: 'choice', choice: 'Não' } } }, 'x', agora);
     expect(r.ok && r.os.osNumber).toBe('4455');
-    expect(r.ok && r.os.answers.os).toEqual({ kind: 'text', value: '4455' });
+    expect(r.ok && 'os' in r.os.answers).toBe(false);
   });
 
   it('mesmas regras da edição: DITAIS obrigatória, complemento do SIM e código', () => {
@@ -159,9 +158,8 @@ describe('OS nova (tela da OS)', () => {
   it('answerRows descreve cada pergunta para o app', () => {
     const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Chuva' } });
     const rows = ordem.answerRows(os);
-    // 14 perguntas menos a do número da OS (fica no topo da tela; S/N não conta como "não respondida").
+    // O número da OS fica no topo da tela (S/N não conta como "não respondida").
     expect(rows).toHaveLength(13);
-    expect(rows.some((r) => r.question === 'Qual número da Ordem de serviço?')).toBe(false);
     expect(rows[0]).toEqual({ question: 'Tentou callback?', display: 'Não informado', skipped: true, isDitais: false });
     expect(rows[6]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
     expect(rows[12]?.display).toBe('Sim — Chuva');
@@ -176,25 +174,15 @@ describe('edição completa de OS (lápis)', () => {
     const r = ordem.applyEdit(os, { osNumber: ' 101 ', serviceCode: ' 509 ', answers: { ...os.answers, tipo: { kind: 'text', value: 'Religação' }, kmIni: { kind: 'text', value: '45210' } } });
     if (!r.ok) throw new Error(r.error);
     expect(r.os).toMatchObject({ id: 'id-9', osNumber: '101', serviceCode: '509', registradaEm: os.registradaEm });
-    expect(r.os.answers.os).toEqual({ kind: 'text', value: '101' });
     expect(r.os.answers.tipo).toEqual({ kind: 'text', value: 'Religação' });
     expect(r.os.answers.kmIni).toEqual({ kind: 'text', value: '45210' });
   });
 
-  it('mantém as respostas da versão antiga (infoLegada) e as mostra em "Ver respostas"', () => {
-    const os = { ...base(), infoLegada: 'Medidor instalado: M-1' };
-    const r = ordem.applyEdit(os, { osNumber: '100', serviceCode: '508', answers: os.answers });
-    if (!r.ok) throw new Error(r.error);
-    expect(r.os.infoLegada).toBe('Medidor instalado: M-1');
-    expect(ordem.answerRows(r.os).at(-1)).toMatchObject({ display: 'Medidor instalado: M-1' });
-  });
-
-  it('número vazio vira S/N e a pergunta do número fica pulada', () => {
+  it('número vazio vira S/N', () => {
     const os = base();
     const r = ordem.applyEdit(os, { osNumber: '  ', serviceCode: '508', answers: os.answers });
     if (!r.ok) throw new Error(r.error);
     expect(r.os.osNumber).toBe('');
-    expect(r.os.answers.os).toEqual({ kind: 'skipped' });
   });
 
   it('aplica as regras: código obrigatório, DITAIS obrigatória e complemento do SIM', () => {

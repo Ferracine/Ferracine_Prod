@@ -1,9 +1,13 @@
-import { escolha, questionsFor } from './domain/catalog';
+import { escolha } from './domain/catalog';
 import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type Eletricista, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
+/** Chave do protótipo (antes da 1.1.0): não é lida; é apagada ao abrir para não guardar nomes e matrículas à toa. */
+const LEGACY_KEY = 'ferracine_prod:v2';
 
-export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
+export type KeyValueStore = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+const texto = (v: unknown): string => (typeof v === 'string' ? v : '');
 
 export function emptyData(): AppData {
   return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [] };
@@ -12,7 +16,7 @@ export function emptyData(): AppData {
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
 function normalizeHeader(raw: Partial<ShiftHeader> | null | undefined): ShiftHeader | null {
   if (!raw) return null;
-  return Object.fromEntries(HEADER_FIELDS.map((k) => [k, typeof raw[k] === 'string' ? raw[k] : ''])) as ShiftHeader;
+  return Object.fromEntries(HEADER_FIELDS.map((k) => [k, texto(raw[k])])) as ShiftHeader;
 }
 
 function normalizeTecnicos(raw: unknown): Tecnico[] {
@@ -39,41 +43,50 @@ function normalizeEletricistas(raw: unknown, ...headers: (ShiftHeader | null)[])
   return out;
 }
 
-/** `undefined` = chave ausente; `null` = ilegível (corrompida ou armazenamento indisponível). */
-function readJson(store: KeyValueStore, key: string): unknown {
-  try {
-    const raw = store.getItem(key);
-    return raw === null ? undefined : JSON.parse(raw);
-  } catch {
-    return null;
-  }
-}
+type ComRespostas = Record<string, unknown> & { serviceType: ServiceType; answers: Record<string, Answer> };
 
-/** OS ou rascunho com tipo conhecido e respostas; o resto (gravação cortada, edição à mão) é descartado. */
-function isValidOS(o: unknown): o is OrdemServico {
+/** Tipo conhecido e respostas; o resto (gravação cortada, edição à mão) é descartado em vez de travar a tela. */
+function temRespostas(o: unknown): o is ComRespostas {
   if (!o || typeof o !== 'object') return false;
   const { serviceType, answers } = o as Partial<OrdemServico>;
   return (serviceType === 'COMERCIAL' || serviceType === 'OCORRENCIA') && !!answers && typeof answers === 'object';
 }
 
+/**
+ * OS lida do aparelho, só com os campos atuais (campos de versões antigas ficam para trás; texto ausente vira '').
+ * Sem id não dá para editar nem excluir: sai.
+ */
+function normalizeOS(o: unknown): OrdemServico[] {
+  if (!temRespostas(o) || !texto(o.id)) return [];
+  return [
+    {
+      id: texto(o.id),
+      osNumber: texto(o.osNumber),
+      serviceType: o.serviceType,
+      serviceCode: texto(o.serviceCode),
+      answers: migrateAnswers(o.serviceType, o.answers),
+      registradaEm: texto(o.registradaEm),
+    },
+  ];
+}
+
 function normalizeOrdens(raw: unknown): OrdemServico[] {
-  return Array.isArray(raw) ? raw.filter(isValidOS).map(normalizeOS) : [];
+  return Array.isArray(raw) ? raw.flatMap(normalizeOS) : [];
 }
 
 /**
- * Rascunho salvo pelo antigo assistente (até a 1.3.0): o número respondido em "Qual número da Ordem de serviço?"
- * ficava só na resposta. A tela da OS esconde essa pergunta e usa o campo do topo, então o número vai para ele, e a
- * resposta sai do rascunho (senão, a cada abertura, voltaria por cima do número corrigido no campo).
+ * Rascunho da OS nova, só com os campos atuais (o `index` do antigo assistente fica para trás). No assistente (até a
+ * 1.3.0) o número ficava só na resposta `os`: vai para o campo do topo.
  */
-function normalizeDraft(raw: OSDraft | null | undefined): OSDraft | null {
-  if (!isValidOS(raw)) return null;
-  const draft = { ...raw, answers: migrateMeters(raw.serviceType, raw.answers) };
-  const q = questionsFor(draft.serviceType).find((x) => x.prefillOS);
-  const ans = q ? draft.answers[q.id] : undefined;
-  if (!q || !ans) return draft;
-  const { [q.id]: _migrada, ...answers } = draft.answers;
-  const answered = ans.kind === 'text' ? ans.value.trim() : '';
-  return { ...draft, answers, osNumber: answered || draft.osNumber };
+function normalizeDraft(raw: unknown): OSDraft | null {
+  if (!temRespostas(raw)) return null;
+  const doAssistente = raw.answers.os?.kind === 'text' ? raw.answers.os.value.trim() : '';
+  return {
+    osNumber: doAssistente || texto(raw.osNumber),
+    serviceType: raw.serviceType,
+    serviceCode: texto(raw.serviceCode),
+    answers: migrateAnswers(raw.serviceType, raw.answers),
+  };
 }
 
 /** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
@@ -82,32 +95,50 @@ export function pushSheet(sheets: readonly ClosedSheet[], sheet: ClosedSheet): C
 }
 
 /** Folha guardada no formato atual; sem cabeçalho válido, é descartada (não dá para gerar o PDF). */
-function normalizeSheet(s: ClosedSheet | null | undefined): ClosedSheet[] {
+function normalizeSheet(raw: unknown): ClosedSheet[] {
+  const s = raw as Partial<ClosedSheet> | null | undefined;
   const header = normalizeHeader(s?.header);
   if (!s || !header) return [];
-  return [{ ...s, header, ordens: normalizeOrdens(s.ordens), tecnicos: normalizeTecnicos(s.tecnicos) }];
+  return [{ header, ordens: normalizeOrdens(s.ordens), fechadaEm: texto(s.fechadaEm), tecnicos: normalizeTecnicos(s.tecnicos) }];
 }
 
-/** Lê o estado salvo; dado ausente ou corrompido vira estado vazio. */
+/**
+ * Lê o estado salvo; dado ausente ou corrompido vira estado vazio. Dado de versão anterior é convertido e gravado já
+ * no formato atual (sem esperar a pessoa mexer em algo): depois que todos os aparelhos abrirem esta versão, as
+ * conversões de `lastSheet`, eletricistas, rascunho do assistente e `migrateAnswers` podem sair do código.
+ */
 export function loadData(store: KeyValueStore): AppData {
-  // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
-  const current = readJson(store, STORAGE_KEY) as (Partial<AppData> & { lastSheet?: ClosedSheet | null }) | null | undefined;
-  if (current?.version === 3 && Array.isArray(current.ordens)) {
-    const sheets = Array.isArray(current.sheets) ? current.sheets : current.lastSheet ? [current.lastSheet] : [];
-    const header = normalizeHeader(current.header);
-    const lastHeader = normalizeHeader(current.lastHeader);
-    return {
-      version: 3,
-      header,
-      ordens: normalizeOrdens(current.ordens),
-      draft: normalizeDraft(current.draft),
-      sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
-      lastHeader,
-      tecnicos: normalizeTecnicos(current.tecnicos),
-      eletricistas: normalizeEletricistas(current.eletricistas, header, lastHeader),
-    };
+  let raw: string | null = null;
+  let current: (Partial<AppData> & { lastSheet?: ClosedSheet | null }) | null = null;
+  try {
+    raw = store.getItem(STORAGE_KEY);
+    current = raw === null ? null : JSON.parse(raw);
+  } catch {
+    return emptyData(); // ilegível: não grava por cima (pode ser o armazenamento que falhou, não o dado)
   }
-  return emptyData();
+  try {
+    store.removeItem(LEGACY_KEY);
+  } catch {
+    // sem acesso ao armazenamento: tenta de novo na próxima abertura
+  }
+  if (current?.version !== 3 || !Array.isArray(current.ordens)) return emptyData();
+  // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
+  const sheets = Array.isArray(current.sheets) ? current.sheets : current.lastSheet ? [current.lastSheet] : [];
+  const header = normalizeHeader(current.header);
+  const lastHeader = normalizeHeader(current.lastHeader);
+  const data: AppData = {
+    version: 3,
+    header,
+    ordens: normalizeOrdens(current.ordens),
+    draft: normalizeDraft(current.draft),
+    sheets: sheets.flatMap(normalizeSheet).slice(0, SHEETS_KEPT),
+    lastHeader,
+    tecnicos: normalizeTecnicos(current.tecnicos),
+    eletricistas: normalizeEletricistas(current.eletricistas, header, lastHeader),
+  };
+  // Cota cheia/modo privado: saveData falha calado e o app segue com os dados convertidos (grava no próximo update()).
+  if (JSON.stringify(data) !== raw) saveData(store, data);
+  return data;
 }
 
 /** Grava o estado. Retorna false se o navegador recusar (cota cheia, modo privado). */
@@ -121,14 +152,16 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
 }
 
 /**
- * Medidores das versões anteriores no formato atual.
+ * Respostas das versões anteriores no formato atual.
+ * - `os`: cópia do número da OS que a 1.4.8 e anteriores gravavam numa pergunta escondida; o número fica no campo
+ *   `osNumber`.
  * - Comercial até a 1.4.4 (ver abaixo): vira medidor da UC (`medidorInstNum`/`leituraInst`) + "Foi instalado novo
  *   medidor?" (`novoMedidor`, `novoMedidorNum`/`novoLeitura`), com o mesmo Espelho de Campo de antes.
  * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
  *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
  */
-function migrateMeters(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
-  const out = { ...answers };
+function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
+  const { os: _copiaDoNumero, ...out } = answers;
   const numero = (ans: Answer | undefined): Answer | undefined => {
     if (ans?.kind === 'text') return ans;
     const n = ans?.kind === 'choice' && ans.choice === 'Sim' ? (ans.detail ?? '').trim() : '';
@@ -178,9 +211,4 @@ function migrateMeters(type: ServiceType, answers: Record<string, Answer>): Reco
     if (inst === 'Não') out.novoMedidor = { kind: 'choice', choice: 'Não' };
   }
   return out;
-}
-
-/** OS lida do aparelho: medidores das versões anteriores no formato atual. */
-function normalizeOS(os: OrdemServico): OrdemServico {
-  return { ...os, answers: migrateMeters(os.serviceType, os.answers) };
 }

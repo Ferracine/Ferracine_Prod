@@ -135,14 +135,6 @@ export function btn(tom: BtnTom, tamanho: keyof typeof BTN_TAMANHO = 'md'): stri
   return `${BTN_BASE} ${BTN_TAMANHO[tamanho]} ${BTN_TOM[tom]}`;
 }
 
-/** Botões de tamanho médio (janelas, histórico). */
-export const BTN = {
-  primary: btn('primary'),
-  neutral: btn('neutral'),
-  danger: btn('danger'),
-  accent: btn('accent'),
-} as const;
-
 /** Botão grande de ação principal (Iniciar turno, Salvar OS). */
 export const BTN_PRIMARY_LG = `${btn('primary', 'lg')} shadow-lg shadow-brand/20`;
 

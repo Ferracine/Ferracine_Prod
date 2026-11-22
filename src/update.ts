@@ -1,7 +1,7 @@
 import { CloudDownload, LoaderCircle, X } from 'lucide';
 import { LATEST_RELEASE_API, pickUpdate, type UpdateInfo } from './domain/update';
 import { androidBridge, UPDATE_EVENT, type UpdateStatus } from './platform';
-import { BTN, BTN_LINK, btn, byId, h, icon } from './ui/dom';
+import { btn, BTN_LINK, byId, h, icon } from './ui/dom';
 import { showToast } from './ui/feedback';
 
 /**
@@ -125,7 +125,7 @@ export function initUpdates(): void {
         { class: 'bg-card border border-brand/40 rounded-2xl p-4 flex items-center gap-3 shadow-lg' },
         icon(busy ? LoaderCircle : CloudDownload, `w-6 h-6 shrink-0 text-brand-fg${busy ? ' animate-spin' : ''}`),
         h('p', { class: 'flex-1 text-sm font-semibold text-fg', 'data-testid': 'update-text' }, text),
-        busy ? null : h('button', { type: 'button', id: 'btn-update', class: BTN.primary, onClick: () => install(info) }, 'Atualizar'),
+        busy ? null : h('button', { type: 'button', id: 'btn-update', class: btn('primary'), onClick: () => install(info) }, 'Atualizar'),
         h('button', { type: 'button', class: btn('ghost', 'icon'), 'aria-label': 'Agora não', title: 'Agora não', onClick: close }, icon(X, 'w-5 h-5')),
       ),
     );

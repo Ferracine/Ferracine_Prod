@@ -1,7 +1,7 @@
 import { ArrowRight, Download, FileDown, Share2, Sheet, Trash2, Truck, UserCog, Users } from 'lucide';
 import { formatDateBR, plural, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
-import { BTN, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, btn, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
+import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
 
 export interface HeaderScreenProps {
@@ -37,16 +37,11 @@ function field(id: keyof ShiftHeader, label: string, attrs: Record<string, strin
   );
 }
 
-function group(title: string, node: Parameters<typeof icon>[0], hint: string | null, ...children: HTMLElement[]) {
+function group(title: string, node: Parameters<typeof icon>[0], ...children: HTMLElement[]) {
   return h(
     'div',
     { class: 'bg-fg/[0.03] p-4 rounded-xl border border-fg/10 space-y-4' },
-    h(
-      'div',
-      { class: 'flex items-center justify-between gap-2' },
-      h('div', { class: 'flex items-center gap-2 text-brand-fg font-bold text-sm' }, icon(node), title),
-      hint && h('span', { class: 'text-xs text-subtle font-medium' }, hint),
-    ),
+    h('div', { class: 'flex items-center gap-2 text-brand-fg font-bold text-sm' }, icon(node), title),
     ...children,
   );
 }
@@ -76,9 +71,9 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
         h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
         // Grade de colunas iguais; "Baixar PDF" (a principal) fica por último e, sobrando sozinho, ocupa a linha.
         gradeBotoes([
-          ...(p.canShare ? [h('button', { type: 'button', class: BTN.neutral, onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar')] : []),
-          h('button', { type: 'button', class: BTN.neutral, onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
-          h('button', { type: 'button', class: BTN.primary, onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
+          ...(p.canShare ? [h('button', { type: 'button', class: btn('neutral'), onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar')] : []),
+          h('button', { type: 'button', class: btn('neutral'), onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
+          h('button', { type: 'button', class: btn('primary'), onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
         ]),
       ),
     ),
@@ -174,7 +169,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
         h('p', { class: 'lbl' }, `Cadastrar ${c.rotulo}`),
         h('div', null, h('label', { for: `${c.item}-nome`, class: 'lbl' }, 'Nome'), nome),
         h('div', null, h('label', { for: c.extra.id, class: 'lbl' }, c.extra.label), extra),
-        h('button', { type: 'button', class: `${BTN.primary} w-full`, onClick: add }, `Adicionar ${c.rotulo}`),
+        h('button', { type: 'button', class: `${btn('primary')} w-full`, onClick: add }, `Adicionar ${c.rotulo}`),
       ),
     ),
     [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }],
@@ -307,7 +302,6 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     group(
       'Eletricistas',
       Users,
-      null,
       h('div', { class: 'flex gap-3', role: 'group', 'aria-label': 'Solo ou dupla' }, modoBtns),
       eletricistaField(1),
       grupo2,
@@ -320,7 +314,6 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     group(
       'Equipe e viatura',
       Truck,
-      null,
       h(
         'div',
         { class: 'grid grid-cols-2 gap-4' },

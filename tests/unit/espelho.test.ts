@@ -6,7 +6,7 @@ import { finishedOS } from './fixtures';
 describe('linhas do Espelho de Campo', () => {
   it('toda pergunta sem coluna própria tem rótulo curto para INFO ADICIONAL', () => {
     for (const type of ['COMERCIAL', 'OCORRENCIA'] as const) {
-      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.prefillOS && !q.semInfo && !q.short);
+      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.semInfo && !q.short);
       expect(semRotulo.map((q) => q.id)).toEqual([]);
     }
   });
@@ -74,12 +74,7 @@ describe('linhas do Espelho de Campo', () => {
     expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor');
   });
 
-  it('respostas antigas preservadas na migração vão para INFO ADICIONAL', () => {
-    const os = { ...finishedOS('5', 'OCORRENCIA', '508', { callback: { kind: 'choice', choice: 'Sim' } }), infoLegada: 'Medidor instalado: M-1' };
-    expect(espelhoRows([os])[0]?.info).toBe('Callback: Sim; Medidor instalado: M-1');
-  });
-
-  it('perguntas puladas e o número da OS não entram em INFO ADICIONAL', () => {
+  it('perguntas puladas não entram em INFO ADICIONAL', () => {
     const [row] = espelhoRows([finishedOS('123', 'OCORRENCIA', '503')]);
     expect(row?.info).toBe('');
     expect(row?.os).toBe('123');

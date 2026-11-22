@@ -26,13 +26,11 @@ function espelhoRow(os: OrdemServico, item: number): EspelhoRow {
   const info: string[] = [];
   for (const q of visibleQuestions(os.serviceType, os.answers)) {
     const v = answerValue(q, os.answers[q.id]);
-    if (!v || q.prefillOS) continue; // o número da OS já tem coluna própria
+    if (!v) continue;
     if (q.espelho) cols[typeof q.espelho === 'function' ? q.espelho(os.answers) : q.espelho] = v;
     else if (q.semInfo) continue; // pergunta de controle (ex.: "Foi instalado novo medidor?"): as colunas já dizem
     else info.push(`${q.short ?? q.text}: ${v}`);
   }
-  // Respostas de perguntas que saíram do catálogo (OSs registradas antes da atualização).
-  if (os.infoLegada) info.push(os.infoLegada);
   return { item, os: osLabel(os.osNumber), codigo: os.serviceCode, ...cols, info: info.join('; ') };
 }
 

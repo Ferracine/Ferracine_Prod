@@ -8,7 +8,7 @@ import { byId, forceUppercase } from './ui/dom';
 import { initUpdates } from './update';
 
 forceUppercase();
-initTheme(byId<HTMLButtonElement>('theme-toggle'));
+initTheme(byId('theme-toggle'));
 startApp(byId('app'), window.localStorage);
 initUpdates();
 

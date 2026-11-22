@@ -1,6 +1,6 @@
 import { Moon, Sun } from 'lucide';
 import { androidBridge } from './platform';
-import { icon } from './ui/dom';
+import { btn, h, icon } from './ui/dom';
 
 /**
  * Tema claro/escuro. O script no <head> do index.html aplica data-theme antes da primeira pintura (mesma chave e
@@ -36,7 +36,10 @@ function apply(theme: Theme, button: HTMLButtonElement): void {
   button.replaceChildren(icon(theme === 'dark' ? Sun : Moon, 'w-5 h-5'));
 }
 
-export function initTheme(button: HTMLButtonElement): void {
+/** Monta o botão de tema no lugar reservado no index.html (`#theme-toggle`, que já guarda o espaço dele). */
+export function initTheme(slot: HTMLElement): void {
+  const button = h('button', { type: 'button', id: slot.id, class: `${btn('outline', 'icon')} text-fg` });
+  slot.replaceWith(button);
   apply(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light', button);
 
   button.addEventListener('click', () => {

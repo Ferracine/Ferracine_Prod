@@ -32,6 +32,16 @@ const PLUS_COLORS: Record<ServiceType, string> = {
   OCORRENCIA: 'bg-accent-600 hover:bg-accent-700 shadow-accent/30',
 };
 
+/** "+" de nova OS: círculo colorido do tipo com o rótulo embaixo; a coluna inteira é a área de toque. */
+function botaoNovaOS(type: ServiceType, onClick: () => void): HTMLElement {
+  return h(
+    'button',
+    { type: 'button', id: `btn-new-${type.toLowerCase()}`, 'aria-label': `Nova OS ${SERVICE_LABEL[type]}`, class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1', onClick },
+    h('span', { class: `size-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` }, icon(Plus, 'w-8 h-8')),
+    h('span', { class: 'text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
+  );
+}
+
 function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement {
   const rows = answerRows(os);
   const answered = rows.filter((r) => !r.skipped).length;
@@ -123,24 +133,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
     h(
       'div',
       { class: 'grid grid-cols-2 gap-4 max-w-xs mx-auto' },
-      (['COMERCIAL', 'OCORRENCIA'] as const).map((type) =>
-        h(
-          'button',
-          {
-            type: 'button',
-            id: `btn-new-${type.toLowerCase()}`,
-            'aria-label': `Nova OS ${SERVICE_LABEL[type]}`,
-            class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1',
-            onClick: () => p.onNewOS(type),
-          },
-          h(
-            'span',
-            { class: `w-16 h-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` },
-            icon(Plus, 'w-8 h-8'),
-          ),
-          h('span', { class: 'text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
-        ),
-      ),
+      (['COMERCIAL', 'OCORRENCIA'] as const).map((type) => botaoNovaOS(type, () => p.onNewOS(type))),
     ),
     h(
       'div',
