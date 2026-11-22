@@ -287,21 +287,18 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     }
   };
 
+  // Nome na largura toda (nomes longos cabem no celular) e a matrícula na linha de baixo, em campo próprio.
   const eletricistaField = (n: 1 | 2) =>
     h(
       'div',
-      null,
+      { class: 'space-y-2' },
+      h('label', { for: `eletricista${n}`, class: 'lbl' }, n === 1 ? 'Eletricista 1 *' : 'Eletricista 2 *'),
+      eletSel[n - 1]!,
       h(
         'div',
-        { class: 'flex items-center justify-between gap-2' },
-        h('label', { for: `eletricista${n}`, class: 'lbl' }, n === 1 ? 'Eletricista 1 *' : 'Eletricista 2 *'),
-        n === 1 && manageLink('btn-eletricistas', 'Adicionar / excluir eletricistas', () => manageCadastro(eletricistasCadastro, fillEletricistas)),
-      ),
-      h(
-        'div',
-        { class: 'grid grid-cols-3 gap-3' },
-        h('div', { class: 'col-span-2' }, eletSel[n - 1]!),
-        h('div', null, matSaida[n - 1]!),
+        { class: 'flex items-center gap-3' },
+        h('label', { for: `matricula${n}`, class: 'lbl mb-0 shrink-0 w-24' }, 'Matrícula'),
+        h('div', { class: 'flex-1' }, matSaida[n - 1]!),
       ),
     );
   grupo2.append(eletricistaField(2));
@@ -314,6 +311,11 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h('div', { class: 'flex gap-3', role: 'group', 'aria-label': 'Solo ou dupla' }, modoBtns),
       eletricistaField(1),
       grupo2,
+      h(
+        'div',
+        { class: 'flex justify-end' },
+        manageLink('btn-eletricistas', 'Adicionar / excluir eletricistas', () => manageCadastro(eletricistasCadastro, fillEletricistas)),
+      ),
     ),
     group(
       'Equipe e viatura',
