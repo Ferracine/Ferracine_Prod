@@ -10,12 +10,14 @@
     <link rel="icon" href="/pwa-64x64.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <script>
-      // Tema antes da primeira pintura (evita piscar). Mesma chave e regra de src/theme.ts.
+      // Estilo (Moderno/Retrô 98) e claro/escuro antes da primeira pintura (evita piscar). Mesmas chaves e regras de
+      // src/theme.ts.
       (function () {
-        var t;
-        try { t = localStorage.getItem('ferracine_prod:theme'); } catch (e) {}
+        var t, e;
+        try { t = localStorage.getItem('ferracine_prod:theme'); e = localStorage.getItem('ferracine_prod:estilo'); } catch (x) {}
         if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.dataset.theme = t;
+        document.documentElement.dataset.estilo = e === 'retro' ? 'retro' : 'moderno';
       })();
     </script>
   </head>
@@ -24,7 +26,7 @@
     <div id="toast-container" class="fixed top-4 inset-x-0 z-[60] mx-auto max-w-sm flex flex-col gap-2 px-4 pointer-events-none"></div>
     <div id="modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4"></div>
 
-    <header class="sticky top-0 z-30 bg-card/95 border-b border-fg/10">
+    <header class="barra-app sticky top-0 z-30 bg-card/95 border-b border-fg/10">
       <div class="max-w-3xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3 min-w-0">
           <img src="/src/assets/energisa.svg" alt="Grupo Energisa" class="h-9 w-auto shrink-0" />
@@ -35,6 +37,7 @@
             <span class="w-2 h-2 rounded-full bg-brand animate-pulse"></span>
             <span id="badge-status" aria-live="polite"></span>
           </div>
+          <span id="estilo-toggle" class="size-11 shrink-0"></span>
           <span id="theme-toggle" class="size-11 shrink-0"></span>
         </div>
       </div>

@@ -102,7 +102,13 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
-- Tema claro/escuro (`src/theme.ts` + script no `<head>` do index.html, mesma chave `ferracine_prod:theme`).
+- Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
+  `data-estilo` = Tema 1 `moderno` (padrão) ou Tema 2 `retro` (Retrô 98), chave `ferracine_prod:estilo`; e
+  **claro/escuro** `data-theme`, chave `ferracine_prod:theme` (sem escolha, segue o celular). Dois botões no topo. O
+  Retrô 98 fica no fim de `styles.css`, **fora de `@layer`** (vence as utilidades do Tailwind): redefine as cores,
+  zera `--radius-*`, troca `--font-sans` e dá relevo pelos ganchos `.btn`/`.btn-<tom>` (de `btn()`), `.card`,
+  `.field`, `.escolha`, `.janela`/`.janela-titulo` e `.barra-app`. Tela nova usando esses ganchos já sai nos dois
+  estilos. O PDF e a planilha não mudam com o tema.
   Cores em `src/styles.css`, do logo: `brand` = ciano `#0fabcc`, `accent` = laranja `#f36f23` (`-600/-700` para
   botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
   `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Avisos rápidos (toasts): `bg-brand-700`,

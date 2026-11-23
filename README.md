@@ -63,8 +63,11 @@ produção total e os técnicos saem na última. Embaixo de toda folha: data, eq
 
 ### Aparência
 
-Tema claro e escuro (botão no topo; sem escolha, segue o celular), com as cores do logo: ciano para Comercial e
-ações principais, laranja para Ocorrência e encerramento. O logo do Grupo Energisa aparece no topo do app e no
+Dois temas, cada um com variante clara e escura (dois botões no topo; sem escolha, o claro/escuro segue o celular):
+- **Tema 1 – Moderno** (padrão): cantos arredondados, com as cores do logo: ciano para Comercial e ações
+  principais, laranja para Ocorrência e encerramento.
+- **Tema 2 – Retrô 98**: visual de janela dos anos 90, com área de trabalho verde-azulada, superfícies cinza,
+  cantos retos, botões e campos em relevo e barra de título azul nas janelas. O logo do Grupo Energisa aparece no topo do app e no
 PDF; a prancheta é o ícone do app (aba do navegador, PWA e APK).
 
 ## Desenvolvimento

@@ -586,6 +586,35 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
   await expect(html).toHaveAttribute('data-theme', trocado);
 });
 
+test('Tema 1 (Moderno) e Tema 2 (Retrô 98): troca, fica salvo e combina com claro/escuro', async ({ page }) => {
+  await page.goto('/');
+  const html = page.locator('html');
+  const card = page.locator('#screen-header .card').first();
+  // Padrão: Tema 1, cantos arredondados.
+  await expect(html).toHaveAttribute('data-estilo', 'moderno');
+  await expect(page.locator('#estilo-toggle')).toHaveAttribute('aria-label', 'Usar Tema 2: Retrô 98');
+  expect(await card.evaluate((el) => getComputedStyle(el).borderRadius)).not.toBe('0px');
+
+  // Tema 2: cantos retos e relevo; o claro/escuro continua independente.
+  await page.locator('#estilo-toggle').click();
+  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  await expect(page.locator('#estilo-toggle')).toHaveAttribute('aria-label', 'Usar Tema 1: Moderno');
+  expect(await card.evaluate((el) => getComputedStyle(el).borderRadius)).toBe('0px');
+  expect(await card.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('inset');
+  const fundoClaro = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  await page.locator('#theme-toggle').click();
+  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(fundoClaro);
+
+  // Fica salvo (o script do <head> aplica antes da pintura).
+  const tema = await html.getAttribute('data-theme');
+  await page.reload();
+  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  await expect(html).toHaveAttribute('data-theme', tema!);
+  await page.locator('#estilo-toggle').click();
+  await expect(html).toHaveAttribute('data-estilo', 'moderno');
+});
+
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '28', '789');
