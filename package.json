@@ -1,7 +1,7 @@
 {
   "name": "ferracine-prod",
   "private": true,
-  "version": "1.4.11",
+  "version": "1.4.12",
   "description": "Folha de Produção Diária: registro de OSs do turno e PDF oficial, 100% offline no celular",
   "type": "module",
   "scripts": {
