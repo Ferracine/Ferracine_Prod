@@ -197,16 +197,14 @@ test('lápis edita qualquer item da OS e o voltar do Android pede para descartar
   await page.locator('#q-kmIni').fill('45210');
   await page.locator('#os-code').fill('798');
   await marcar(page, 'clientePresente', 'Sim');
-  await marcar(page, 'dificuldade', 'Sim');
-  // SIM sem complemento: não salva.
-  await salvar(page);
-  await expect(page.getByRole('status').last()).toContainText('preencha o complemento');
-  await page.locator('[data-question="dificuldade"] input').fill('CHUVA FORTE');
+  // Informações adicionais: caixa aberta de várias linhas (texto em maiúsculas, como os outros campos).
+  await expect(page.locator('#q-infoAdicional')).toHaveJSProperty('tagName', 'TEXTAREA');
+  await page.locator('#q-infoAdicional').fill('chuva forte');
   await salvar(page);
 
   await expect(page.getByTestId('os-item')).toContainText('Cód. 798');
   await page.getByRole('button', { name: 'Ver respostas OS 321' }).click();
-  for (const t of ['RELIGAÇÃO', '45210', 'Sim — CHUVA FORTE']) await expect(page.getByRole('dialog')).toContainText(t);
+  for (const t of ['RELIGAÇÃO', '45210', 'Informações adicionais', 'CHUVA FORTE']) await expect(page.getByRole('dialog')).toContainText(t);
   await page.keyboard.press('Escape');
 
   // Voltar do sistema na edição com alterações: confirma antes de descartar.
@@ -586,32 +584,53 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
   await expect(html).toHaveAttribute('data-theme', trocado);
 });
 
-test('Tema 1 (Moderno) e Tema 2 (Retrô 98): troca, fica salvo e combina com claro/escuro', async ({ page }) => {
+test('temas: o botão abre a lista (Moderno, Retrô 98, Windows 3.1); escolha fica salva e combina com claro/escuro', async ({ page }) => {
   await page.goto('/');
   const html = page.locator('html');
   const card = page.locator('#screen-header .card').first();
-  // Padrão: Tema 1, cantos arredondados.
+  const estilo = (prop: string) => card.evaluate((el, p) => getComputedStyle(el).getPropertyValue(p), prop);
+  const escolher = async (nome: string) => {
+    await page.locator('#estilo-toggle').click();
+    await expect(page.getByRole('dialog')).toContainText('Escolha o tema');
+    await page.getByRole('dialog').getByRole('button', { name: new RegExp(nome) }).click();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+  };
+  // Padrão: Tema 1, cantos arredondados; a lista mostra os 3 e marca o atual.
   await expect(html).toHaveAttribute('data-estilo', 'moderno');
-  await expect(page.locator('#estilo-toggle')).toHaveAttribute('aria-label', 'Usar Tema 2: Retrô 98');
-  expect(await card.evaluate((el) => getComputedStyle(el).borderRadius)).not.toBe('0px');
+  expect(await estilo('border-radius')).not.toBe('0px');
+  await page.locator('#estilo-toggle').click();
+  await expect(page.locator('[data-estilo-opcao]')).toHaveCount(3);
+  await expect(page.locator('[data-estilo-opcao="moderno"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(html).toHaveAttribute('data-estilo', 'moderno'); // abrir a lista não troca nada
 
   // Tema 2: cantos retos e relevo; o claro/escuro continua independente.
-  await page.locator('#estilo-toggle').click();
+  await escolher('Tema 2: Retrô 98');
   await expect(html).toHaveAttribute('data-estilo', 'retro');
-  await expect(page.locator('#estilo-toggle')).toHaveAttribute('aria-label', 'Usar Tema 1: Moderno');
-  expect(await card.evaluate((el) => getComputedStyle(el).borderRadius)).toBe('0px');
-  expect(await card.evaluate((el) => getComputedStyle(el).boxShadow)).toContain('inset');
+  expect(await estilo('border-radius')).toBe('0px');
+  expect(await estilo('box-shadow')).toContain('inset');
   const fundoClaro = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   await page.locator('#theme-toggle').click();
   await expect(html).toHaveAttribute('data-estilo', 'retro');
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(fundoClaro);
 
+  // Tema 3: moldura sólida, sem relevo no cartão.
+  await escolher('Tema 3: Windows 3.1');
+  await expect(html).toHaveAttribute('data-estilo', 'win31');
+  expect(await estilo('border-radius')).toBe('0px');
+  expect(await estilo('border-top-width')).toBe('1px');
+  expect(await estilo('box-shadow')).toBe('none');
+  // Barra de título com a moldura embaixo (o bloco comum não pode apagar a borda do Windows 3.1).
+  await page.locator('#estilo-toggle').click();
+  expect(await page.locator('.janela-titulo').evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe('1px');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+
   // Fica salvo (o script do <head> aplica antes da pintura).
   const tema = await html.getAttribute('data-theme');
   await page.reload();
-  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  await expect(html).toHaveAttribute('data-estilo', 'win31');
   await expect(html).toHaveAttribute('data-theme', tema!);
-  await page.locator('#estilo-toggle').click();
+  await escolher('Tema 1: Moderno');
   await expect(html).toHaveAttribute('data-estilo', 'moderno');
 });
 

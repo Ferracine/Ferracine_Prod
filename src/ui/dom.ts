@@ -114,7 +114,7 @@ export const CALLOUT = {
  * (luva, sol, celular numa mão só). A cor diz o papel: ciano do logo = ação principal, laranja = encerrar/gerar,
  * vermelho = excluir/descartar, cinza = o resto.
  */
-// `btn` e `btn-<tom>`: ganchos do Tema 2 (Retrô 98, styles.css), que troca o acabamento sem mudar as telas.
+// `btn` e `btn-<tom>`: ganchos dos temas retrô (styles.css), que troca o acabamento sem mudar as telas.
 const BTN_BASE = 'btn inline-flex items-center justify-center gap-2 rounded-xl leading-tight text-center transition-colors active:scale-[0.98] disabled:opacity-60';
 const BTN_TAMANHO = {
   lg: 'min-h-14 px-6 py-3 text-base font-extrabold', // 56 px: ação principal da tela (ícone w-5)
@@ -141,6 +141,10 @@ export const BTN_PRIMARY_LG = `${btn('primary', 'lg')} shadow-lg shadow-brand/20
 
 /** Link de ação ("Adicionar / excluir ...", "Procurar atualização"): texto pequeno, mas com 44 px de toque. */
 export const BTN_LINK = 'inline-flex items-center gap-1.5 min-h-11 text-xs font-bold text-brand-fg hover:underline whitespace-nowrap';
+
+/** Cores de uma opção de BTN_CHOICE: marcada (destaque do logo) e desmarcada. */
+export const ESCOLHA_ON = 'border-brand bg-brand-600 text-white';
+export const ESCOLHA_OFF = 'border-fg/15 bg-fg/5 text-fg';
 
 /** Escolha entre opções (SIM/NÃO, Solo/Dupla): cor de fundo e borda vêm de quem usa, conforme o estado. */
 export const BTN_CHOICE = 'escolha flex items-center justify-center gap-2 rounded-xl border-2 font-extrabold transition-all';

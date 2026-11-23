@@ -1,9 +1,9 @@
 export type ServiceType = 'COMERCIAL' | 'OCORRENCIA';
 
-export type QuestionType = 'text' | 'yesno' | 'yesno_detail';
+export type QuestionType = 'text' | 'yesno';
 
-/** Teclado sugerido no celular para a resposta de texto. */
-export type InputKind = 'text' | 'numeric' | 'decimal' | 'time';
+/** Tipo de campo da resposta de texto: teclado sugerido no celular (`numeric`, `time`...) ou caixa aberta (`longo`). */
+export type InputKind = 'text' | 'numeric' | 'decimal' | 'time' | 'longo';
 
 /** Colunas próprias do Espelho de Campo; perguntas sem coluna (inclusive o tipo de serviço) vão para INFO ADICIONAL. */
 export const ESPELHO_COLUMNS = ['kmIni', 'horaIni', 'horaFin', 'kmFin', 'medidorInstalado', 'leituraInstalado', 'medidorRetirado', 'leituraRetirado', 'clientePresente'] as const;
@@ -15,8 +15,6 @@ export interface Question {
   text: string;
   type: QuestionType;
   placeholder?: string;
-  /** Rótulo do campo complementar quando a resposta é "Sim" (yesno_detail). */
-  detailLabel?: string;
   input?: InputKind;
   /** Não pode ser pulada. */
   required?: boolean;
@@ -33,6 +31,8 @@ export interface Question {
   showIf?: (answers: Record<string, Answer>) => boolean;
   /** Pergunta de controle (ex.: "Foi instalado novo medidor?"): a resposta não vai para INFO ADICIONAL. */
   semInfo?: boolean;
+  /** Vai para INFO ADICIONAL sem "Rótulo: " na frente (ex.: a caixa "Informações adicionais": a coluna já diz). */
+  semRotulo?: boolean;
 }
 
 export type Choice = 'Sim' | 'Não';
@@ -40,7 +40,7 @@ export type Choice = 'Sim' | 'Não';
 export type Answer =
   | { kind: 'skipped' }
   | { kind: 'text'; value: string }
-  | { kind: 'choice'; choice: Choice; detail?: string };
+  | { kind: 'choice'; choice: Choice };
 
 /**
  * Campos do cabeçalho do turno, todos texto. Fonte única: o tipo, a leitura do armazenamento e o formulário

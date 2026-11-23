@@ -1,5 +1,5 @@
 import { escolha } from './domain/catalog';
-import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type Eletricista, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft } from './domain/types';
+import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type Eletricista, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft, type Choice } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
 /** Chave do protótipo (antes da 1.1.0): não é lida; é apagada ao abrir para não guardar nomes e matrículas à toa. */
@@ -136,10 +136,10 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
   }
 }
 
-// --- Conversões de versões antigas (1.1.0 a 1.4.8) -----------------------
-// Rodam antes dos esquemas, sobre o JSON cru. A 1.4.9 grava no formato atual ao abrir: quando todos os aparelhos já
-// tiverem aberto a 1.4.9 ou mais nova, este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de
-// `converterDados` em `loadData`.
+// --- Conversões de versões antigas (1.1.0 a 1.4.12) ----------------------
+// Rodam antes dos esquemas, sobre o JSON cru. Desde a 1.4.9 o app grava no formato atual ao abrir; a última conversão
+// (dificuldade → informações adicionais) é da 1.4.13. Quando todos os aparelhos já tiverem aberto a 1.4.13 ou mais
+// nova, este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
 
 function converterDados(d: Record<string, unknown>): Record<string, unknown> {
   // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
@@ -185,18 +185,25 @@ function eletricistasDosCabecalhos(...headers: (ShiftHeader | null)[]): Eletrici
   return out;
 }
 
+/** Resposta como as versões antigas gravavam: o SIM/NÃO podia levar um complemento (`detail`). */
+type RespostaAntiga = Exclude<Answer, { kind: 'choice' }> | { kind: 'choice'; choice: Choice; detail?: string };
+
 /**
  * Respostas das versões anteriores no formato atual.
  * - `os`: cópia do número da OS que a 1.4.8 e anteriores gravavam numa pergunta escondida; o número fica no campo
  *   `osNumber`.
+ * - `dificuldade` (até a 1.4.12, "Houve alguma dificuldade...?" SIM + relato): vira a caixa "Informações adicionais"
+ *   (`infoAdicional`) com "DIFICULDADE: <relato>" (maiúsculas, como a caixa grava); o NÃO não ia para a folha e some.
  * - Comercial até a 1.4.4 (ver abaixo): vira medidor da UC (`medidorInstNum`/`leituraInst`) + "Foi instalado novo
  *   medidor?" (`novoMedidor`, `novoMedidorNum`/`novoLeitura`), com o mesmo Espelho de Campo de antes.
  * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
  *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
  */
-function migrateAnswers(type: ServiceType, answers: Record<string, Answer>): Record<string, Answer> {
-  const { os: _copiaDoNumero, ...out } = answers;
-  const numero = (ans: Answer | undefined): Answer | undefined => {
+function migrateAnswers(type: ServiceType, answers: Record<string, RespostaAntiga>): Record<string, Answer> {
+  const { os: _copiaDoNumero, dificuldade, ...out } = answers;
+  const relato = dificuldade?.kind === 'choice' && dificuldade.choice === 'Sim' ? (dificuldade.detail ?? '').trim() : '';
+  if (relato && !out.infoAdicional) out.infoAdicional = { kind: 'text', value: `DIFICULDADE: ${relato}` };
+  const numero = (ans: RespostaAntiga | undefined): Answer | undefined => {
     if (ans?.kind === 'text') return ans;
     const n = ans?.kind === 'choice' && ans.choice === 'Sim' ? (ans.detail ?? '').trim() : '';
     return n ? { kind: 'text', value: n } : undefined;

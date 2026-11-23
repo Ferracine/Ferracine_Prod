@@ -155,6 +155,17 @@ describe('armazenamento', () => {
     expect(folha?.ordens[0]?.answers).toEqual({ medidorInstNum: { kind: 'text', value: 'D60' } });
   });
 
+  it('até a 1.4.12: "Houve alguma dificuldade?" SIM + relato vira a caixa Informações adicionais; o NÃO some', () => {
+    const base = { osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '28', registradaEm: 'x' };
+    const sim = { ...base, id: 's', answers: { dificuldade: { kind: 'choice', choice: 'Sim', detail: ' Cachorro solto ' } } };
+    const nao = { ...base, id: 'n', answers: { dificuldade: { kind: 'choice', choice: 'Não' } } };
+    const draft = { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: { dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Chuva' } } };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [sim, nao], draft }) }));
+    expect(loaded.ordens[0]?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Cachorro solto' } });
+    expect(loaded.ordens[1]?.answers).toEqual({});
+    expect(loaded.draft?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Chuva' } });
+  });
+
   it('armazenamento ilegível não é sobrescrito ao abrir', () => {
     const store = memoryStore({ [STORAGE_KEY]: '{quebrado' });
     expect(loadData(store)).toEqual(emptyData());

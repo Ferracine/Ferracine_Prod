@@ -27,6 +27,15 @@ const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do med
 const HORA_INI: Question = { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' };
 const KM_INI: Question = { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' };
 const KM_FIN: Question = { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' };
+/** Caixa aberta, a última nos dois tipos: o eletricista relata o que achar necessário; vai direto para INFO ADICIONAL. */
+const INFO_ADICIONAL: Question = {
+  id: 'infoAdicional',
+  text: 'Informações adicionais',
+  type: 'text',
+  input: 'longo',
+  placeholder: 'Relate o que achar necessário (dificuldades, observações...)',
+  semRotulo: true,
+};
 /** Segurança: obrigatória nos dois tipos (a OS comercial também pode ter o procedimento). */
 const DITAIS: Question = { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' };
 
@@ -44,7 +53,7 @@ const OCORRENCIA: readonly Question[] = [
   MEDIDOR_INST_NUM,
   LEITURA_INST,
   { id: 'horaFin', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
-  { id: 'dificuldade', text: 'Houve alguma dificuldade, se sim qual?', type: 'yesno_detail', detailLabel: 'Qual foi a dificuldade?', placeholder: 'Descreva a dificuldade encontrada...', short: 'Dificuldade' },
+  INFO_ADICIONAL,
 ];
 
 const COMERCIAL: readonly Question[] = [
@@ -63,7 +72,7 @@ const COMERCIAL: readonly Question[] = [
   DITAIS,
   KM_FIN,
   { id: 'horaFin', text: 'Deseja informar o horário final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
-  { id: 'dificuldade', text: 'Houve alguma dificuldade na execução desse serviço? Se sim relate!', type: 'yesno_detail', detailLabel: 'Relate a dificuldade na execução:', placeholder: 'Relate detalhadamente...', short: 'Dificuldade' },
+  INFO_ADICIONAL,
 ];
 
 const QUESTIONS: Record<ServiceType, readonly Question[]> = { COMERCIAL, OCORRENCIA };

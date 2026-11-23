@@ -1,5 +1,5 @@
 import { isVisible, questionsFor, visibleQuestions } from './catalog';
-import type { Answer, AnswerRow, Choice, OrdemServico, OSDraft, Question, ServiceType } from './types';
+import type { Answer, AnswerRow, OrdemServico, OSDraft, Question, ServiceType } from './types';
 
 /**
  * Regras da OS como funções puras (sem DOM nem armazenamento). A mesma tela serve para a OS nova (rascunho em
@@ -13,7 +13,7 @@ export function startDraft(serviceType: ServiceType): OSDraft {
 
 /**
  * Nada foi preenchido: pode sair sem confirmação.
- * Texto apagado ou "Sim" sem complemento contam como não respondidos.
+ * Texto apagado conta como não respondido.
  */
 export function isUnchanged(draft: OSDraft): boolean {
   return (
@@ -43,7 +43,7 @@ export interface RuleError {
 export type EditResult = { ok: true; os: OrdemServico } | RuleError;
 
 /**
- * Regras comuns à OS nova e à edição: código obrigatório, DITAIS obrigatória, complemento do SIM.
+ * Regras comuns à OS nova e à edição: código obrigatório e DITAIS obrigatória.
  * Devolve o rascunho pronto para `finalize` (número e código aparados) ou o erro.
  */
 function checked(type: ServiceType, edit: OSEdit): { ok: true; draft: OSDraft } | RuleError {
@@ -73,24 +73,11 @@ export function applyEdit(os: OrdemServico, edit: OSEdit): EditResult {
   return r.ok ? { ok: true, os: finalize(r.draft, os.id, new Date(os.registradaEm)) } : r;
 }
 
-/** Resposta ao tocar SIM/NÃO: no "Sim, qual?" o complemento já digitado é mantido; o NÃO o descarta. */
-export function choiceAnswer(q: Question, prev: Answer | undefined, choice: Choice): Answer {
-  if (q.type === 'yesno_detail' && choice === 'Sim') {
-    return { kind: 'choice', choice, detail: prev?.kind === 'choice' ? (prev.detail ?? '') : '' };
-  }
-  return { kind: 'choice', choice };
-}
-
 /**
- * Regras de SIM/NÃO: a obrigatória precisa de SIM ou NÃO e o SIM de um "se sim, qual?" precisa do complemento.
- * Devolve o motivo (sem a pergunta) ou null.
+ * Regra de SIM/NÃO: a obrigatória precisa de SIM ou NÃO. Devolve o motivo (sem a pergunta) ou null.
  */
 function ruleError(q: Question, ans: Answer | undefined): string | null {
-  if (q.required && ans?.kind !== 'choice') return '— resposta obrigatória: marque SIM ou NÃO.';
-  if (q.type === 'yesno_detail' && ans?.kind === 'choice' && ans.choice === 'Sim' && !(ans.detail ?? '').trim()) {
-    return '— você marcou SIM: preencha o complemento.';
-  }
-  return null;
+  return q.required && ans?.kind !== 'choice' ? '— resposta obrigatória: marque SIM ou NÃO.' : null;
 }
 
 /** OS pronta para a folha: respostas normalizadas (vazias ou escondidas viram "pulada"). */
@@ -114,19 +101,18 @@ export function finalize(draft: OSDraft, id: string, now: Date): OrdemServico {
 function normalizeAnswer(q: Question, ans: Answer | undefined): Answer {
   if (!ans || ans.kind === 'skipped') return { kind: 'skipped' };
   if (ans.kind === 'text') {
-    const value = ans.value.trim();
+    // Caixa aberta: quebras de linha e espaços repetidos viram um espaço (uma linha por OS na folha, como as outras).
+    const value = (q.input === 'longo' ? ans.value.replace(/\s+/g, ' ') : ans.value).trim();
     return q.type === 'text' && value ? { kind: 'text', value } : { kind: 'skipped' };
   }
-  if (q.type === 'text') return { kind: 'skipped' };
-  if (q.type === 'yesno' || ans.choice === 'Não') return { kind: 'choice', choice: ans.choice };
-  const detail = (ans.detail ?? '').trim();
-  return detail ? { kind: 'choice', choice: 'Sim', detail } : { kind: 'skipped' };
+  return q.type === 'yesno' ? { kind: 'choice', choice: ans.choice } : { kind: 'skipped' };
 }
 
-function describeAnswer(ans: Answer | undefined): string | null {
+/** Texto da resposta (o digitado ou SIM/NÃO); null = não respondida. Usado no app e no Espelho de Campo. */
+export function describeAnswer(ans: Answer | undefined): string | null {
   if (!ans || ans.kind === 'skipped') return null;
   if (ans.kind === 'text') return ans.value;
-  return ans.choice === 'Sim' && ans.detail ? `Sim — ${ans.detail}` : ans.choice;
+  return ans.choice;
 }
 
 /**

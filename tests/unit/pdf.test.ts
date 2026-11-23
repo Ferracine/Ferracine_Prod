@@ -50,7 +50,7 @@ function ocorrenciaCompleta(n: number): OrdemServico {
     medidorInstNum: { kind: 'text', value: `N62${n}` },
     leituraInst: { kind: 'text', value: '7788' },
     horaFin: { kind: 'text', value: '09:40' },
-    dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Acesso difícil ao poste' },
+    infoAdicional: { kind: 'text', value: 'Acesso difícil ao poste' },
   }, `id-${n}`);
 }
 
@@ -96,7 +96,7 @@ describe('PDF do Espelho de Campo', () => {
       expect(text).toContain(s);
     }
     const emendado = flat(text);
-    for (const s of ['TIPO DE SERVIÇO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'CLIENTE PRESENTE', 'INFO ADICIONAL', 'Tipo: Ligação nova', 'Tipo: Falta de energia', 'Dificuldade: Acesso difícil ao poste']) {
+    for (const s of ['TIPO DE SERVIÇO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'CLIENTE PRESENTE', 'INFO ADICIONAL', 'Tipo: Ligação nova', 'Tipo: Falta de energia', 'Acesso difícil ao poste']) {
       expect(emendado).toContain(s);
     }
     // TIPO DE SERVIÇO traz só o código: a descrição está em INFO ADICIONAL.

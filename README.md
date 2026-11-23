@@ -26,16 +26,17 @@ houver, só serve para o app se atualizar.
    - **Comercial** (ex.: 28 / 709 / 739 / 33 / 798): tipo de serviço, KM inicial, hora inicial, cliente presente,
      lançou ramal, número e leitura do medidor instalado (o da UC), **foi instalado novo medidor?** (SIM abre,
      recuados, o número e a leitura do medidor novo), **DITAIS** (obrigatória), KM final, horário final,
-     dificuldade na execução. No Espelho
+     informações adicionais. No Espelho
      de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
      o da UC para MEDIDOR RETIRADO.
    - **Ocorrência** (ex.: 508 / 509 / 503 / 531 / 324 / 533), 13 perguntas: callback, hora inicial,
      KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
      na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do
-     medidor instalado, hora final, dificuldade.
+     medidor instalado, hora final, informações adicionais.
    - Todos os campos de texto ficam em maiúsculas (o teclado abre com caps e o texto é convertido).
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
-   mesma do lápis. Responda o que souber e toque em **Salvar OS**. Perguntas "se sim, qual?" exigem o complemento. O que é
+   mesma do lápis. Responda o que souber e toque em **Salvar OS**. A última pergunta, **Informações adicionais**, é uma caixa aberta
+   para relatar o que for necessário; vai direto para a coluna INFO ADICIONAL. O que é
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
    Android) pede confirmação se algo foi preenchido.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
@@ -45,7 +46,7 @@ houver, só serve para o app se atualizar.
    turno só é encerrado ao tocar em **Encerrar turno**. As **4 últimas folhas encerradas** ficam na tela inicial para
    baixar ou compartilhar o PDF e baixar a planilha de novo (a 5ª mais antiga sai).
 
-Campo obrigatório que falta (eletricista, horário, código da OS, DITAIS, complemento do SIM, dados do cadastro) fica
+Campo obrigatório que falta (eletricista, horário, código da OS, DITAIS, dados do cadastro) fica
 com a **caixa vermelha** até ser preenchido.
 
 A OS em preenchimento é salva a cada toque: fechar o app no meio não perde as respostas.
@@ -56,7 +57,7 @@ Segue a folha de papel [design/ex_pdf.jpeg](design/ex_pdf.jpeg), em A4 paisagem 
 Energisa, identificação da equipe e tabela de 15 linhas com **ITEM, OS/OCORRÊNCIA, TIPO DE SERVIÇO (só o código),
 KM INICIAL, HORÁRIO INICIAL, HORÁRIO FINAL, KM FINAL, MEDIDOR INSTALADO, LEITURA, MEDIDOR RETIRADO, LEITURA,
 CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFO ADICIONAL**. INFO ADICIONAL traz tudo o que o eletricista respondeu
-e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, dificuldades...).
+e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, informações adicionais...).
 No rodapé, produção total e os técnicos cadastrados com o líder marcado. Logo e identificação ficam só na primeira folha. Com
 mais de 15 OSs, cada 15 a mais abrem uma folha que continua a tabela (títulos das colunas repetidos, ITEM seguindo); a
 produção total e os técnicos saem na última. Embaixo de toda folha: data, equipe e "FOLHA 1/2", "FOLHA 2/2"... Nome do arquivo: `Nome1_Nome2_DD-MM-AAAA_N_servicos.pdf` (com a data do turno).

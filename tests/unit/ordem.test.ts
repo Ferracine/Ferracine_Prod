@@ -20,7 +20,7 @@ describe('catálogo', () => {
       'Digite o número do medidor instalado',
       'Qual a leitura do medidor instalado?',
       'Deseja informar a hora final?',
-      'Houve alguma dificuldade, se sim qual?',
+      'Informações adicionais',
     ]);
   });
 
@@ -39,7 +39,7 @@ describe('catálogo', () => {
       'Houve necessidade de realizar os DITAIS?',
       'Deseja informar o KM final?',
       'Deseja informar o horário final?',
-      'Houve alguma dificuldade na execução desse serviço? Se sim relate!',
+      'Informações adicionais',
     ]);
   });
 
@@ -63,7 +63,7 @@ describe('OS nova (tela da OS)', () => {
 
   it('salva com número, código e respostas normalizadas; número vazio vira S/N', () => {
     const d = ordem.startDraft('COMERCIAL');
-    const r = ordem.createOS({ ...d, osNumber: ' 555 ', serviceCode: ' 709 ', answers: { tipo: { kind: 'text', value: '  Ligação nova  ' }, ...DITAIS_NAO, dificuldade: { kind: 'choice', choice: 'Não' } } }, 'id-1', agora);
+    const r = ordem.createOS({ ...d, osNumber: ' 555 ', serviceCode: ' 709 ', answers: { tipo: { kind: 'text', value: '  Ligação nova  ' }, ...DITAIS_NAO } }, 'id-1', agora);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.os).toMatchObject({ id: 'id-1', osNumber: '555', serviceType: 'COMERCIAL', serviceCode: '709', registradaEm: '2026-11-20T10:00:00.000Z' });
@@ -81,14 +81,11 @@ describe('OS nova (tela da OS)', () => {
     expect(r.ok && 'os' in r.os.answers).toBe(false);
   });
 
-  it('mesmas regras da edição: DITAIS obrigatória, complemento do SIM e código', () => {
+  it('mesmas regras da edição: DITAIS obrigatória e código', () => {
     const d = { ...ordem.startDraft('OCORRENCIA'), serviceCode: '508' };
     const semDitais = ordem.createOS(d, 'x', agora);
     expect(semDitais.ok).toBe(false);
     if (!semDitais.ok) expect(semDitais.field).toBe('ditais');
-    const semComplemento = ordem.createOS({ ...d, answers: { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: ' ' } } }, 'x', agora);
-    expect(semComplemento.ok).toBe(false);
-    if (!semComplemento.ok) expect(semComplemento.field).toBe('dificuldade');
     expect(ordem.createOS({ ...d, serviceCode: ' ', answers: DITAIS_NAO }, 'x', agora)).toMatchObject({ ok: false, field: ordem.CODE_FIELD });
   });
 
@@ -116,13 +113,6 @@ describe('OS nova (tela da OS)', () => {
   it('comercial também exige a pergunta dos DITAIS', () => {
     const semDitais = ordem.createOS({ ...ordem.startDraft('COMERCIAL'), serviceCode: '28' }, 'x', agora);
     expect(semDitais).toMatchObject({ ok: false, field: 'ditais' });
-  });
-
-  it('"Sim, qual?": NÃO descarta o complemento; SIM mantém o que já foi digitado', () => {
-    const q = questionsFor('COMERCIAL').find((x) => x.id === 'dificuldade')!;
-    const sim = { kind: 'choice', choice: 'Sim', detail: 'Chuva' } as const;
-    expect(ordem.choiceAnswer(q, sim, 'Não')).toEqual({ kind: 'choice', choice: 'Não' });
-    expect(ordem.choiceAnswer(q, sim, 'Sim')).toEqual(sim);
   });
 
   it('medidores da comercial: o da UC sempre vale; o novo só com "Foi instalado novo medidor?" = SIM', () => {
@@ -154,11 +144,13 @@ describe('OS nova (tela da OS)', () => {
       osNumber: '1',
       serviceType: 'OCORRENCIA',
       serviceCode: '508',
-      answers: { tipo: { kind: 'text', value: '  ' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: '' }, callback: { kind: 'text', value: 'x' } },
+      answers: { tipo: { kind: 'text', value: '  ' }, infoAdicional: { kind: 'text', value: ' \n ' }, callback: { kind: 'text', value: 'x' } },
     };
     const os = ordem.finalize(d, 'x', new Date());
     expect(os.answers.tipo).toEqual({ kind: 'skipped' });
-    expect(os.answers.dificuldade).toEqual({ kind: 'skipped' });
+    expect(os.answers.infoAdicional).toEqual({ kind: 'skipped' });
+    const relato = ordem.finalize({ ...d, answers: { infoAdicional: { kind: 'text', value: ' POSTE\n\n  CAÍDO \n' } } }, 'x', new Date());
+    expect(relato.answers.infoAdicional).toEqual({ kind: 'text', value: 'POSTE CAÍDO' });
     expect(os.answers.callback).toEqual({ kind: 'skipped' });
   });
 
@@ -176,13 +168,13 @@ describe('OS nova (tela da OS)', () => {
   });
 
   it('answerRows descreve cada pergunta para o app', () => {
-    const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Chuva' } });
+    const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, infoAdicional: { kind: 'text', value: 'Chuva' } });
     const rows = ordem.answerRows(os);
     // O número da OS fica no topo da tela (S/N não conta como "não respondida").
     expect(rows).toHaveLength(13);
     expect(rows[0]).toEqual({ question: 'Tentou callback?', display: 'Não informado', skipped: true, isDitais: false });
     expect(rows[6]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
-    expect(rows[12]?.display).toBe('Sim — Chuva');
+    expect(rows[12]).toMatchObject({ question: 'Informações adicionais', display: 'Chuva' });
   });
 });
 
@@ -205,12 +197,10 @@ describe('edição completa de OS (lápis)', () => {
     expect(r.os.osNumber).toBe('');
   });
 
-  it('aplica as regras: código obrigatório, DITAIS obrigatória e complemento do SIM', () => {
+  it('aplica as regras: código obrigatório e DITAIS obrigatória', () => {
     const os = base();
     expect(ordem.applyEdit(os, { osNumber: '1', serviceCode: ' ', answers: os.answers }).ok).toBe(false);
     const semDitais = ordem.applyEdit(os, { osNumber: '1', serviceCode: '508', answers: { ...os.answers, ditais: { kind: 'skipped' } } });
     expect(semDitais).toMatchObject({ ok: false, field: 'ditais' });
-    const semComplemento = ordem.applyEdit(os, { osNumber: '1', serviceCode: '508', answers: { ...os.answers, dificuldade: { kind: 'choice', choice: 'Sim', detail: ' ' } } });
-    expect(semComplemento).toMatchObject({ ok: false, field: 'dificuldade' });
   });
 });

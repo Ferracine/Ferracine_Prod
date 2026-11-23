@@ -37,7 +37,7 @@ function botaoNovaOS(type: ServiceType, onClick: () => void): HTMLElement {
   return h(
     'button',
     { type: 'button', id: `btn-new-${type.toLowerCase()}`, 'aria-label': `Nova OS ${SERVICE_LABEL[type]}`, class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1', onClick },
-    h('span', { class: `size-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` }, icon(Plus, 'w-8 h-8')),
+    h('span', { class: `nova-os size-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` }, icon(Plus, 'w-8 h-8')),
     h('span', { class: 'text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
   );
 }

@@ -10,14 +10,14 @@
     <link rel="icon" href="/pwa-64x64.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <script>
-      // Estilo (Moderno/Retrô 98) e claro/escuro antes da primeira pintura (evita piscar). Mesmas chaves e regras de
+      // Estilo (Moderno/Retrô 98/Windows 3.1) e claro/escuro antes da primeira pintura (evita piscar). Mesmas chaves e regras de
       // src/theme.ts.
       (function () {
         var t, e;
         try { t = localStorage.getItem('ferracine_prod:theme'); e = localStorage.getItem('ferracine_prod:estilo'); } catch (x) {}
         if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         document.documentElement.dataset.theme = t;
-        document.documentElement.dataset.estilo = e === 'retro' ? 'retro' : 'moderno';
+        document.documentElement.dataset.estilo = /^(retro|win31)$/.test(e) ? e : 'moderno'; // temas de ESTILOS (theme.ts)
       })();
     </script>
   </head>

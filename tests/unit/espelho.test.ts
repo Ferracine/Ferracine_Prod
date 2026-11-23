@@ -6,7 +6,7 @@ import { DITAIS_NAO, finishedOS } from './fixtures';
 describe('linhas do Espelho de Campo', () => {
   it('toda pergunta sem coluna própria tem rótulo curto para INFO ADICIONAL', () => {
     for (const type of ['COMERCIAL', 'OCORRENCIA'] as const) {
-      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.semInfo && !q.short);
+      const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.semInfo && !q.semRotulo && !q.short);
       expect(semRotulo.map((q) => q.id)).toEqual([]);
     }
   });
@@ -26,7 +26,7 @@ describe('linhas do Espelho de Campo', () => {
       novoLeitura: { kind: 'text', value: '0' },
       kmFin: { kind: 'text', value: '45235' },
       horaFin: { kind: 'text', value: '09:40' },
-      dificuldade: { kind: 'choice', choice: 'Sim', detail: 'Cachorro solto' },
+      infoAdicional: { kind: 'text', value: 'Cachorro solto' },
     });
     expect(espelhoRows([os])).toEqual([
       {
@@ -42,7 +42,8 @@ describe('linhas do Espelho de Campo', () => {
         medidorRetirado: 'M-050',
         leituraRetirado: '15432',
         clientePresente: 'Sim',
-        info: 'Tipo: Ligação nova; Lançou ramal: Não; Dificuldade: Cachorro solto',
+        // Informações adicionais: o relato vai sem rótulo (a coluna já é INFO ADICIONAL).
+        info: 'Tipo: Ligação nova; Lançou ramal: Não; Cachorro solto',
       },
     ]);
   });
@@ -57,7 +58,7 @@ describe('linhas do Espelho de Campo', () => {
     expect(espelhoRows([os])[0]?.info).not.toContain('novo medidor');
   });
 
-  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e dificuldade vão para INFO ADICIONAL', () => {
+  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e informações adicionais vão para INFO ADICIONAL', () => {
     const os = finishedOS('', 'OCORRENCIA', '508', {
       callback: { kind: 'choice', choice: 'Sim' },
       horaIni: { kind: 'text', value: '10:00' },
@@ -66,12 +67,11 @@ describe('linhas do Espelho de Campo', () => {
       dispositivo: { kind: 'text', value: 'Chave fusível' },
       ...DITAIS_NAO,
       alteracaoUC: { kind: 'text', value: 'Troca de disjuntor' },
-      dificuldade: { kind: 'choice', choice: 'Não' },
+      infoAdicional: { kind: 'text', value: 'Poste em área alagada' },
     });
     const [row] = espelhoRows([os]);
     expect(row).toMatchObject({ os: 'S/N', codigo: '508', horaIni: '10:00', kmIni: '', clientePresente: '' });
-    // O "Não" de uma pergunta "se sim, qual?" não acrescenta nada à folha.
-    expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor');
+    expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor; Poste em área alagada');
   });
 
   it('perguntas puladas não entram em INFO ADICIONAL', () => {

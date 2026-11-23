@@ -307,7 +307,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     render();
   }
 
-  /** Regra não cumprida (código, DITAIS, complemento do SIM): avisa e rola até o campo. */
+  /** Regra não cumprida (código, DITAIS): avisa e rola até o campo. */
   function showRuleError(result: ordem.RuleError): void {
     showToast(result.error, 'warning');
     const field = document.querySelector(`[data-field="${result.field}"]`);

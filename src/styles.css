@@ -11,6 +11,8 @@
   /* Tons mais escuros das cores do logo, para texto branco por cima com contraste AA. */
   --color-brand-600: #087f9a;
   --color-brand-700: #066a81;
+  /* Ciano do logo bem escuro: texto sobre cinza/branco nos temas retrô (contraste AA). */
+  --color-brand-800: #04505f;
   --color-accent-600: #c4500d;
   --color-accent-700: #a5430b;
   /* Fundos dos avisos rápidos (texto branco por cima, contraste AA para ler ao sol): deu certo, falta algo, erro. */
@@ -32,7 +34,9 @@
 }
 
 @layer base {
-  :root {
+  :root,
+  [data-estilo='moderno'] {
+    --titulo: var(--color-brand);
     --app: #eef4f7;
     --card: #ffffff;
     --field: #ffffff;
@@ -45,7 +49,8 @@
     color-scheme: light;
   }
 
-  :root[data-theme='dark'] {
+  :root[data-theme='dark'],
+  [data-estilo='moderno'][data-theme='dark'] {
     --app: #06141c;
     --card: #0c212c;
     --field: #06141c;
@@ -108,6 +113,17 @@
     box-shadow: 0 0 0 2px var(--color-err);
   }
 
+  /* Miniatura de um tema na janela de escolha (theme.ts): o elemento leva data-estilo/data-theme do tema mostrado. */
+  .amostra {
+    background: var(--app);
+  }
+  .amostra-janela {
+    background: var(--card);
+  }
+  .amostra-titulo {
+    background: var(--titulo);
+  }
+
   .lbl {
     display: block;
     font-size: 0.68rem;
@@ -127,157 +143,206 @@
 }
 
 /*
- * Tema 2: Retrô 98 (<html data-estilo="retro">, src/theme.ts), nas variantes claro e escuro. Inspirado nas janelas
- * dos anos 90: área de trabalho verde-azulada, superfícies cinza, cantos retos, relevo 3D e barra de título azul.
- * Fora de @layer de propósito: regra sem camada vence as utilidades do Tailwind (bg-*, rounded-*, shadow-*), então
- * o tema troca o acabamento sem mexer nas telas. Ganchos: .btn/.btn-<tom> (btn() em dom.ts), .card, .field,
- * .escolha, .janela/.janela-titulo (feedback.ts) e .barra-app (index.html).
+ * Temas retrô: Tema 2 "Retrô 98" (data-estilo="retro") e Tema 3 "Windows 3.1" (data-estilo="win31"), cada um com
+ * variante clara e escura (src/theme.ts). Azuis e laranja são os do logo Energisa (tokens do @theme).
+ * Fora de @layer de propósito: regra sem camada vence as utilidades do Tailwind (bg-*, rounded-*, shadow-*), então o
+ * tema troca o acabamento sem mexer nas telas. Ganchos: .btn/.btn-<tom> (btn() em dom.ts), .card, .field, .escolha,
+ * .janela/.janela-titulo (feedback.ts), .barra-app (index.html) e .nova-os (os "+" do painel).
+ * As variáveis ficam em [data-estilo=...] (não só no :root) para a miniatura da janela de temas mostrar as cores certas.
+ * Tema novo: um bloco de variáveis (--app, --card, --face, --titulo...) e só o acabamento que muda; o comum já vale.
  */
-:root[data-estilo='retro'] {
-  --app: #008080;
-  --card: #c0c0c0;
-  --field: #ffffff;
-  --fg: #000000;
-  --muted: #2e2e2e;
-  --subtle: #4a4a4a;
-  --brand-fg: #000080;
-  --accent-fg: #7a3300;
-  --danger-fg: #9b0000;
-  /* Relevo: luz em cima e à esquerda, sombra embaixo e à direita. */
-  --luz: #ffffff;
-  --luz2: #dfdfdf;
-  --sombra: #808080;
-  --sombra2: #0a0a0a;
-  --titulo-de: #000080;
-  --titulo-ate: #1084d0;
-  --color-brand: #000080;
-  --color-brand-600: #000080;
-  --color-brand-700: #00005c;
-  --color-accent: #a84700;
-  --color-accent-600: #a84700;
-  --color-accent-700: #853800;
+
+/* --- Comum a todo tema que não é o Moderno --- */
+[data-estilo]:not([data-estilo='moderno']) {
   --radius-sm: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
   --radius-3xl: 0;
+  --fg: #000000;
+  --brand-fg: var(--color-brand-800);
+  --accent-fg: #7a3300;
+  --danger-fg: #9b0000;
+}
+[data-estilo]:not([data-estilo='moderno'])[data-theme='dark'] {
+  --fg: #f2f2f2;
+  --brand-fg: #3cc4e2;
+  --accent-fg: #ffb784;
+  --danger-fg: #ff9e9e;
+}
+[data-estilo]:not([data-estilo='moderno']) body {
+  background: var(--app);
+}
+/* Pílulas, selos e os "+" viram retângulos (os rounded-* do Tailwind já vêm de --radius-*). */
+[data-estilo]:not([data-estilo='moderno']) :is(.rounded-full, .card, .field) {
+  border-radius: 0;
+}
+[data-estilo]:not([data-estilo='moderno']) .janela-titulo {
+  background: var(--titulo);
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+}
+[data-estilo]:not([data-estilo='moderno']) .janela-titulo h3 {
+  color: #ffffff;
+  font-size: 1rem;
+}
+[data-estilo]:not([data-estilo='moderno']) .barra-app {
+  background: var(--card);
+}
+[data-estilo]:not([data-estilo='moderno']) :is(.btn-neutral, .btn-outline, .janela-titulo .btn) {
+  background: var(--face);
+  color: var(--fg);
+}
+[data-estilo]:not([data-estilo='moderno']) .btn-ghost {
+  border: none;
+  box-shadow: none;
+}
+[data-estilo]:not([data-estilo='moderno']) .btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+[data-estilo]:not([data-estilo='moderno']) .btn:focus-visible {
+  outline: 1px dotted var(--fg);
+  outline-offset: -5px;
+}
+[data-estilo]:not([data-estilo='moderno']) .field:focus {
+  outline: 2px solid var(--brand-fg);
+  outline-offset: 0;
+}
+[data-estilo]:not([data-estilo='moderno']) .field.faltando {
+  outline: none;
+}
+
+/* --- Tema 2: Retrô 98 --- */
+/* Área de trabalho verde-azulada, superfícies cinza em relevo 3D, barra de título em degradê. */
+[data-estilo='retro'] {
+  --app: #008080;
+  --card: #c0c0c0;
+  --face: var(--card);
+  --field: #ffffff;
+  --muted: #2e2e2e;
+  --subtle: #4a4a4a;
+  /* Relevo: luz em cima e à esquerda, sombra embaixo e à direita. */
+  --luz: #ffffff;
+  --luz2: #dfdfdf;
+  --sombra: #808080;
+  --sombra2: #0a0a0a;
+  --relevo: inset -1px -1px var(--sombra2), inset 1px 1px var(--luz), inset -2px -2px var(--sombra), inset 2px 2px var(--luz2);
+  --afundado: inset 1px 1px var(--sombra), inset -1px -1px var(--luz), inset 2px 2px var(--sombra2), inset -2px -2px var(--luz2);
+  --titulo: linear-gradient(90deg, var(--color-brand-700), var(--color-brand-600)); /* texto branco: AA nos dois tons */
   --font-sans: Tahoma, Verdana, 'Segoe UI', ui-sans-serif, sans-serif;
   color-scheme: light;
 }
-
-:root[data-estilo='retro'][data-theme='dark'] {
+[data-estilo='retro'][data-theme='dark'] {
   --app: #003535;
   --card: #3b3b3b;
   --field: #161616;
-  --fg: #f2f2f2;
   --muted: #d0d0d0;
   --subtle: #ababab;
-  --brand-fg: #9cc2ff;
-  --accent-fg: #ffb784;
-  --danger-fg: #ff9e9e;
   --luz: #8c8c8c;
   --luz2: #5c5c5c;
   --sombra: #1f1f1f;
   --sombra2: #000000;
-  --titulo-de: #00004d;
-  --titulo-ate: #0b5a99;
-  --color-brand: #3a62d6;
-  --color-brand-600: #1f3fa8;
-  --color-brand-700: #172f80;
+  --titulo: linear-gradient(90deg, var(--color-brand-800), var(--color-brand-600));
   color-scheme: dark;
 }
-
-[data-estilo='retro'] {
-  --relevo: inset -1px -1px var(--sombra2), inset 1px 1px var(--luz), inset -2px -2px var(--sombra), inset 2px 2px var(--luz2);
-  --afundado: inset 1px 1px var(--sombra), inset -1px -1px var(--luz), inset 2px 2px var(--sombra2), inset -2px -2px var(--luz2);
-}
-
-[data-estilo='retro'] body {
-  background: var(--app);
-}
-
-[data-estilo='retro'] .card,
-[data-estilo='retro'] .janela {
+[data-estilo='retro'] :is(.card, .janela) {
   background: var(--card);
   border: none;
-  border-radius: 0;
   box-shadow: var(--relevo);
 }
 [data-estilo='retro'] .janela {
   box-shadow: var(--relevo), 6px 6px 0 rgb(0 0 0 / 0.35);
 }
 [data-estilo='retro'] .janela-titulo {
-  background: linear-gradient(90deg, var(--titulo-de), var(--titulo-ate));
-  border: none;
   margin: 3px 3px 0;
-  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
 }
-[data-estilo='retro'] .janela-titulo h3 {
-  color: #ffffff;
-  font-size: 1rem;
-}
-[data-estilo='retro'] .janela-titulo .btn {
-  margin: 0;
-  background: var(--card);
-  color: var(--fg);
-}
-
-[data-estilo='retro'] .barra-app {
-  background: var(--card);
+[data-estilo='retro'] :is(.janela-titulo, .barra-app) {
   border: none;
+}
+[data-estilo='retro'] :is(.barra-app, .nova-os, .escolha) {
   box-shadow: var(--relevo);
 }
-
 [data-estilo='retro'] .btn {
   border: none;
   border-radius: 0;
   box-shadow: var(--relevo);
 }
-[data-estilo='retro'] .btn:active:not(:disabled) {
-  box-shadow: var(--afundado);
-  transform: translate(1px, 1px);
-}
-[data-estilo='retro'] .btn:focus-visible {
-  outline: 1px dotted var(--fg);
-  outline-offset: -5px;
-}
-[data-estilo='retro'] .btn-neutral,
-[data-estilo='retro'] .btn-outline {
-  background: var(--card);
-  color: var(--fg);
-}
-[data-estilo='retro'] .btn-ghost {
-  box-shadow: none;
-}
-
-[data-estilo='retro'] .escolha {
-  box-shadow: var(--relevo);
-}
-[data-estilo='retro'] .escolha[aria-pressed='true'] {
+[data-estilo='retro'] :is(.btn:active:not(:disabled), .escolha[aria-pressed='true']) {
   box-shadow: var(--afundado);
 }
-
 [data-estilo='retro'] .field {
   border: none;
-  border-radius: 0;
   box-shadow: var(--afundado);
 }
-[data-estilo='retro'] .field:focus {
-  box-shadow: var(--afundado);
-  outline: 2px solid var(--color-brand);
-  outline-offset: 0;
-}
-[data-estilo='retro'] .field.faltando,
-[data-estilo='retro'] .field.faltando:focus {
+[data-estilo='retro'] .field.faltando {
   box-shadow: var(--afundado), 0 0 0 2px var(--color-err);
-  outline: none;
 }
 [data-estilo='retro'] .card.faltando {
   box-shadow: var(--relevo), 0 0 0 2px var(--color-err);
 }
 
-/* Pílulas, selos e os "+" viram retângulos. */
-[data-estilo='retro'] .rounded-full {
-  border-radius: 0;
+/* --- Tema 3: Windows 3.1 --- */
+/* Área de trabalho cinza, janelas brancas com moldura preta, botões cinza de canto levemente arredondado com relevo
+   e barra de título sólida (ciano do logo) com o título centralizado. */
+[data-estilo='win31'] {
+  --app: #c0c0c0;
+  --card: #ffffff;
+  --face: #c0c0c0;
+  --field: #ffffff;
+  --muted: #333333;
+  --subtle: #555555;
+  --moldura: #000000;
+  --luz: #ffffff;
+  --sombra: #808080;
+  --titulo: var(--color-brand-600);
+  --font-sans: Arial, Helvetica, ui-sans-serif, sans-serif;
+  color-scheme: light;
+}
+[data-estilo='win31'][data-theme='dark'] {
+  --app: #262626;
+  --card: #000000;
+  --face: #4a4a4a;
+  --field: #000000;
+  --muted: #d0d0d0;
+  --subtle: #a8a8a8;
+  --moldura: #c0c0c0;
+  --luz: #9a9a9a;
+  --sombra: #262626;
+  --titulo: var(--color-brand-700);
+  color-scheme: dark;
+}
+[data-estilo='win31'] :is(.card, .field) {
+  border: 1px solid var(--moldura);
+  box-shadow: none;
+}
+[data-estilo='win31'] .janela {
+  background: var(--card);
+  border: 4px solid var(--face);
+  box-shadow: 0 0 0 5px var(--moldura);
+}
+[data-estilo='win31'] :is(.janela-titulo, .barra-app) {
+  border-bottom: 1px solid var(--moldura);
+}
+[data-estilo='win31'] .janela-titulo h3 {
+  flex: 1;
+  text-align: center;
+}
+[data-estilo='win31'] :is(.btn, .escolha) {
+  border: 1px solid var(--moldura);
+  border-radius: 3px;
+  box-shadow: inset 2px 2px var(--luz), inset -2px -2px var(--sombra);
+}
+[data-estilo='win31'] :is(.btn:active:not(:disabled), .escolha[aria-pressed='true']) {
+  box-shadow: inset 2px 2px var(--sombra);
+}
+[data-estilo='win31'] .nova-os {
+  border: 1px solid var(--moldura);
+  box-shadow: inset 2px 2px rgb(255 255 255 / 0.5), inset -2px -2px rgb(0 0 0 / 0.35);
+}
+[data-estilo='win31'] .field.faltando {
+  border-color: var(--color-err);
+  box-shadow: 0 0 0 2px var(--color-err);
+}
+[data-estilo='win31'] .card.faltando {
+  box-shadow: 0 0 0 2px var(--color-err);
 }

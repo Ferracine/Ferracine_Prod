@@ -1,9 +1,9 @@
 import { CircleCheck, CircleX, Save } from 'lucide';
 import { SERVICE_LABEL, isVisible, questionsFor } from '../domain/catalog';
-import { CODE_FIELD, choiceAnswer, type OSEdit } from '../domain/ordem';
+import { CODE_FIELD, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
-import { btn, BTN_CHOICE, BTN_PRIMARY_LG, h, icon } from './dom';
+import { btn, BTN_CHOICE, BTN_PRIMARY_LG, ESCOLHA_OFF, ESCOLHA_ON, h, icon } from './dom';
 
 export interface OSScreenProps {
   /** `new`: OS nova (rascunho salvo a cada alteração); `edit`: lápis de uma OS concluída. */
@@ -18,11 +18,11 @@ export interface OSScreenProps {
 }
 
 const CHOICE_ON: Record<Choice, string> = {
-  Sim: 'border-brand bg-brand-600 text-white shadow-lg shadow-brand/20',
+  Sim: `${ESCOLHA_ON} shadow-lg shadow-brand/20`,
   // Inverso do tema (escuro no claro, claro no escuro): distingue bem do SIM.
   Não: 'border-fg bg-fg text-app shadow-lg',
 };
-const CHOICE_OFF = 'border-fg/15 bg-fg/5 text-fg hover:border-brand';
+const CHOICE_OFF = `${ESCOLHA_OFF} hover:border-brand`;
 
 /** Rótulo do número no topo da tela: número da ocorrência ou da OS comercial. */
 const NUMBER_LABEL: Record<ServiceType, string> = {
@@ -41,6 +41,8 @@ function inputAttrs(q: Question): Record<string, string> {
     case 'numeric':
     case 'decimal':
       return { type: 'text', inputmode: q.input };
+    case 'longo':
+      return { rows: '4' }; // caixa aberta (textarea)
     default:
       return { type: 'text' };
   }
@@ -118,7 +120,8 @@ export function osScreen(p: OSScreenProps): HTMLElement {
         q.required && h('span', { class: 'ml-2 text-[11px] font-bold text-danger-fg uppercase' }, 'obrigatória'),
       );
       if (q.type === 'text') {
-        const input = h('input', {
+        // Caixa aberta (relato livre, `input: 'longo'`): textarea de várias linhas; o resto, campo de uma linha.
+        const input = h(q.input === 'longo' ? 'textarea' : 'input', {
           id: `q-${q.id}`,
           class: 'field',
           autocomplete: 'off',
@@ -126,8 +129,8 @@ export function osScreen(p: OSScreenProps): HTMLElement {
           value: ans?.kind === 'text' ? ans.value : '',
           placeholder: q.placeholder ?? 'Não informado',
           'aria-label': q.text,
-          onInput: (ev) => {
-            answers[q.id] = { kind: 'text', value: (ev.target as HTMLInputElement).value };
+          onInput: (ev: Event) => {
+            answers[q.id] = { kind: 'text', value: (ev.target as HTMLInputElement | HTMLTextAreaElement).value };
             changed();
           },
         });
@@ -137,30 +140,12 @@ export function osScreen(p: OSScreenProps): HTMLElement {
       const selected = ans?.kind === 'choice' ? ans.choice : undefined;
       const choose = (choice: Choice) => {
         // Tocar de novo no que já está marcado limpa a resposta (exceto na obrigatória).
-        answers[q.id] = selected === choice && !q.required ? { kind: 'skipped' } : choiceAnswer(q, ans, choice);
+        answers[q.id] = selected === choice && !q.required ? { kind: 'skipped' } : { kind: 'choice', choice };
         changed();
         draw();
-        block.querySelector<HTMLInputElement>('input')?.focus();
         refresh(block);
       };
       block.replaceChildren(title, choiceButtons(selected, choose));
-      if (q.type === 'yesno_detail' && ans?.kind === 'choice' && ans.choice === 'Sim') {
-        block.append(
-          h('input', {
-            type: 'text',
-            autocomplete: 'off',
-            value: ans.detail ?? '',
-            placeholder: q.placeholder ?? 'Digite aqui...',
-            class: 'field py-3.5',
-            'aria-label': q.detailLabel ?? 'Complemento',
-            onInput: (ev) => {
-              const cur = answers[q.id];
-              if (cur?.kind === 'choice') answers[q.id] = { ...cur, detail: (ev.target as HTMLInputElement).value };
-              changed();
-            },
-          }),
-        );
-      }
     };
     draw();
     return block;

@@ -1,7 +1,7 @@
 import { ArrowRight, Download, FileDown, Share2, Sheet, Trash2, Truck, UserCog, Users } from 'lucide';
 import { formatDateBR, plural, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
-import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
+import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, ESCOLHA_OFF, ESCOLHA_ON, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
 
 export interface HeaderScreenProps {
@@ -277,8 +277,8 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     for (const b of modoBtns) {
       const on = (b.dataset.modo === 'Dupla') === d;
       b.setAttribute('aria-pressed', String(on));
-      for (const c of ['border-brand', 'bg-brand-600', 'text-white']) b.classList.toggle(c, on);
-      for (const c of ['border-fg/15', 'bg-fg/5', 'text-fg']) b.classList.toggle(c, !on);
+      for (const c of ESCOLHA_ON.split(' ')) b.classList.toggle(c, on);
+      for (const c of ESCOLHA_OFF.split(' ')) b.classList.toggle(c, !on);
     }
   };
 

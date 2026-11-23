@@ -51,7 +51,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     `finalize` grava `skipped`, `checked` não valida, `answerRows`/espelho ignoram (`isVisible`). `semInfo` = pergunta
     de controle que não vai para INFO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
   - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
-    (lápis) passam pelas mesmas regras (código, DITAIS, complemento do SIM). `finalize` normaliza respostas vazias
+    (lápis) passam pelas mesmas regras (código, DITAIS). `finalize` normaliza respostas vazias
     (e escondidas) para `skipped`. `isUnchanged` decide se Cancelar confirma.
   - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
@@ -59,9 +59,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
   eletricistas começam com a dupla dos últimos cabeçalhos). `loadData`: lê, roda as conversões de versões antigas
   sobre o JSON cru (bloco `// --- Conversões de versões antigas` no fim do arquivo: `lastSheet`, eletricistas,
-  número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4 e a cópia escondida do número
-  em `answers.os`), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
-  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.9 ou mais
+  número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4, a cópia escondida do número
+  em `answers.os` e a pergunta de dificuldade até a 1.4.12, que vira "Informações adicionais"), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
+  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.13 ou mais
   nova. Esquemas (`Esquema<T>` + `montar`): um leitor por campo de cada tipo (`DADOS`, `OS`, `RASCUNHO`, `FOLHA`,
   `TECNICO`, `ELETRICISTA`, `CABECALHO`); campo novo no tipo, mesmo opcional, sem leitor **não compila** (se
   compilasse, a primeira abertura o apagaria). Leitor devolve `INVALIDO` para descartar o item (OS sem id, tipo
@@ -103,16 +103,16 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
-  `data-estilo` = Tema 1 `moderno` (padrão) ou Tema 2 `retro` (Retrô 98), chave `ferracine_prod:estilo`; e
-  **claro/escuro** `data-theme`, chave `ferracine_prod:theme` (sem escolha, segue o celular). Dois botões no topo. O
-  Retrô 98 fica no fim de `styles.css`, **fora de `@layer`** (vence as utilidades do Tailwind): redefine as cores,
-  zera `--radius-*`, troca `--font-sans` e dá relevo pelos ganchos `.btn`/`.btn-<tom>` (de `btn()`), `.card`,
-  `.field`, `.escolha`, `.janela`/`.janela-titulo` e `.barra-app`. Tela nova usando esses ganchos já sai nos dois
-  estilos. O PDF e a planilha não mudam com o tema.
-  Cores em `src/styles.css`, do logo: `brand` = ciano `#0fabcc`, `accent` = laranja `#f36f23` (`-600/-700` para
-  botões com texto branco, `-fg` para texto). Use `bg-app`, `bg-card`, `text-fg`, `text-muted`, `text-subtle`,
-  `text-danger-fg`, `bg-fg/5`, `border-fg/10`, nunca cores fixas. Avisos rápidos (toasts): `bg-brand-700`,
-  `bg-ok`, `bg-warn`, `bg-err` com texto branco, sem borda, centralizados e acima das janelas (`z-[60]`). Comercial = ciano, Ocorrência = laranja.
+  `data-estilo` = Tema 1 `moderno` (padrão), Tema 2 `retro` (Retrô 98) ou Tema 3 `win31` (Windows 3.1), chave
+  `ferracine_prod:estilo`, escolhido numa janela com a lista (`ESTILOS`, botão da paleta no topo); e **claro/escuro**
+  `data-theme`, chave `ferracine_prod:theme` (sem escolha, segue o celular). Os temas retrô ficam no fim de
+  `styles.css`, **fora de `@layer`** (vencem as utilidades do Tailwind): um bloco comum
+  `[data-estilo]:not([data-estilo='moderno'])` (cantos retos, barra de título, botões cinza...) e, por tema, as
+  variáveis (`--app`, `--card`, `--face`, `--titulo`...) e só o acabamento que muda, pelos ganchos `.btn`/`.btn-<tom>`
+  (de `btn()`), `.card`, `.field`, `.escolha`, `.janela`/`.janela-titulo`, `.barra-app` e `.nova-os`. As variáveis
+  ficam em `[data-estilo=...]` (não só no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema
+  que mostra. Azuis e laranja são os do logo (tokens do `@theme`, inclusive `brand-800` para texto). Tema novo: id em
+  `ESTILOS`, na lista do script do `<head>` e um bloco de variáveis + acabamento em `styles.css`. O PDF e a planilha não mudam com o tema.
 - Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
@@ -145,8 +145,9 @@ Regras de negócio que não são óbvias no código:
 - Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha no topo de `sheets`
   (`SHEETS_KEPT` = 4; a mais antiga sai).
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
-- O "Não" de pergunta "se sim, qual?" não entra em INFO ADICIONAL; DITAIS e demais SIM/NÃO entram sempre, menos as
-  perguntas de controle (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem.
+- DITAIS e demais SIM/NÃO entram sempre em INFO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
+  (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"
+  (`infoAdicional`, caixa aberta, `semRotulo`) entra sem rótulo.
 - Testes de PDF procuram texto direto em `doc.output()` (sem compressão, acentos em latin-1); `flat()` emenda
   linhas quebradas da mesma célula.
 
