@@ -64,11 +64,15 @@ produção total e os técnicos saem na última. Embaixo de toda folha: data, eq
 
 ### Aparência
 
-Dois temas, cada um com variante clara e escura (dois botões no topo; sem escolha, o claro/escuro segue o celular):
+Três temas, cada um com variante clara e escura. O botão da paleta, no topo, abre a lista para escolher o tema; o do
+sol/lua troca claro e escuro (sem escolha, segue o celular):
 - **Tema 1 – Moderno** (padrão): cantos arredondados, com as cores do logo: ciano para Comercial e ações
   principais, laranja para Ocorrência e encerramento.
 - **Tema 2 – Retrô 98**: visual de janela dos anos 90, com área de trabalho verde-azulada, superfícies cinza,
-  cantos retos, botões e campos em relevo e barra de título azul nas janelas. O logo do Grupo Energisa aparece no topo do app e no
+  cantos retos, botões e campos em relevo e barra de título em degradê nas janelas.
+- **Tema 3 – Windows 3.1**: janelas brancas com moldura preta, botões cinza em relevo e barra de título sólida.
+
+Nos temas retrô os azuis são os do logo Energisa. O logo do Grupo Energisa aparece no topo do app e no
 PDF; a prancheta é o ícone do app (aba do navegador, PWA e APK).
 
 ## Desenvolvimento
