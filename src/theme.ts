@@ -1,6 +1,6 @@
 import { Check, Moon, Palette, Sun } from 'lucide';
 import { androidBridge } from './platform';
-import { btn, BTN_CHOICE, ESCOLHA_OFF, h, icon } from './ui/dom';
+import { botaoDoTopo, BTN_CHOICE, ESCOLHA_OFF, h, icon } from './ui/dom';
 import { closeModal, openModal } from './ui/feedback';
 
 /**
@@ -99,30 +99,19 @@ function escolherEstilo(): void {
   ]);
 }
 
-/** Monta um botão do topo no lugar reservado no index.html (o `<span>` já guarda o espaço dele). */
-function botaoNoLugar(slot: HTMLElement): HTMLButtonElement {
-  const button = h('button', { type: 'button', id: slot.id, class: `${btn('outline', 'icon')} text-fg` });
-  slot.replaceWith(button);
-  return button;
-}
-
 /** Botões do topo: lista de temas e claro ↔ escuro. */
 export function initTheme(slotTema: HTMLElement, slotEstilo: HTMLElement): void {
-  const botaoEstilo = botaoNoLugar(slotEstilo);
-  botaoEstilo.setAttribute('aria-label', 'Escolher o tema');
-  botaoEstilo.title = 'Escolher o tema';
-  botaoEstilo.replaceChildren(icon(Palette, 'w-5 h-5'));
-  botaoEstilo.addEventListener('click', escolherEstilo);
+  botaoDoTopo(slotEstilo, Palette, 'Escolher o tema', escolherEstilo);
   // O <head> já aplicou (só os ids conhecidos); aqui só garante o valor normalizado (as barras são pintadas abaixo).
   document.documentElement.dataset.estilo = estiloAtual();
 
-  const botaoTema = botaoNoLugar(slotTema);
+  const botaoTema = botaoDoTopo(slotTema, Moon, 'Usar tema escuro', () => undefined);
   applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light', botaoTema);
-  botaoTema.addEventListener('click', () => {
+  botaoTema.onclick = () => {
     const theme: Theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     guardar(KEY, theme);
     applyTheme(theme, botaoTema);
-  });
+  };
 
   // Sem escolha salva, acompanha o tema do celular.
   systemDark.addEventListener('change', () => {

@@ -80,10 +80,13 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   Toda mutação passa por `update()`, que persiste e re-renderiza. Na tela da OS, uma entrada extra no `history` faz
   o voltar do Android agir como o Cancelar da tela.
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
-  `navigator.share`: o arquivo (PDF ou planilha) vai em base64 com o tipo (`mime`) para `FerracineBridge.kt`
+  `navigator.share`: o PDF vai em base64 com o tipo (`mime`) para `FerracineBridge.kt`
   (`saveFile`/`openFile`/`shareFile`). No navegador a ponte não existe.
-- `src/planilha.ts`: `.xlsx` montado à mão (Office Open XML mínimo + `zipSync` do fflate, que já vinha com o jsPDF),
-  com as linhas de `espelhoRows`; números de OS/medidor/leitura como texto (zeros à esquerda). Carregado sob demanda.
+- Fim do turno (`app.ts`): "Encerrar turno e gerar PDF" (`encerrarTurno`) encerra e baixa o PDF num toque; só
+  pergunta antes se houver pendência (nenhuma OS, S/N, `faltaObrigatoria`). Histórico (`src/ui/folhas.ts`,
+  `listaFolhas`): o mesmo componente no cartão da tela do cabeçalho e na janela do botão `#historico-toggle` do topo;
+  ações Baixar/Abrir/Compartilhar/Editar/Excluir. **Editar** (`reabrirFolha`) devolve a folha ao turno aberto
+  (cabeçalho e OSs) e a tira de `sheets`; só sem turno aberto. Não há planilha: o app só gera PDF.
 - Campo que falta: `marcarFaltando(el)` (dom.ts) põe `.faltando` (borda vermelha, styles.css) até a pessoa mexer;
   usado no cabeçalho, no cadastro e na OS (`showRuleError`).
 - Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; a cada abertura e,
@@ -97,6 +100,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - Cabeçalho (`header-screen.ts`): Eletricista 1 e 2 são listas dos cadastrados (só o nome; a matrícula aparece no
   campo só leitura ao lado, `#matricula1/2`; nome repetido mostra a matrícula na opção), como o técnico líder; a janela de cadastro (`manageCadastro`) é a mesma para técnicos e eletricistas. Solo esconde o Eletricista 2.
   Quem estava no cabeçalho e não está mais no cadastro aparece como opção "anterior" (não se perde na correção).
+  Na dupla, a lista de cada eletricista fica sem quem está escolhido na outra (`fillEletricistas`). Técnico líder é
+  obrigatório.
   O `ShiftHeader` continua guardando nome/matrícula (o PDF não muda).
 - `src/ui/`: telas montadas com `h()` (`dom.ts`), que coloca texto sempre como nó de texto. Todo `input`/`textarea`
   sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
@@ -112,12 +117,12 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   (de `btn()`), `.card`, `.field`, `.escolha`, `.janela`/`.janela-titulo`, `.barra-app` e `.nova-os`. As variáveis
   ficam em `[data-estilo=...]` (não só no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema
   que mostra. Azuis e laranja são os do logo (tokens do `@theme`, inclusive `brand-800` para texto). Tema novo: id em
-  `ESTILOS`, na lista do script do `<head>` e um bloco de variáveis + acabamento em `styles.css`. O PDF e a planilha não mudam com o tema.
+  `ESTILOS`, na lista do script do `<head>` e um bloco de variáveis + acabamento em `styles.css`. O PDF não muda com o tema.
 - Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
-  Solo/Dupla. Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou `largo` ocupa a linha). Nas
-  janelas, até 2 ações ficam empilhadas na largura toda; mais que 2 vão para a grade. Não escreva classes de botão
+  Solo/Dupla. Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou o marcado como largo ocupa a linha). Nas
+  janelas, as ações ficam empilhadas na largura toda. Botões do topo: `botaoDoTopo` (dom.ts). Não escreva classes de botão
   soltas.
 - Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`) é o
   favicon, o ícone do PWA e o do APK. No `icon.png` a prancheta (sem o lápis) fica no centro; o lápis sobra para a
@@ -135,15 +140,15 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   REQUEST_INSTALL_PACKAGES). Borda a borda em todas as versões
   (o Android 15 obriga): o espaço das barras e do teclado é padding de um `FrameLayout` em volta da WebView (a
   WebView ignora o próprio padding e o app ficava sob as barras). O `index.html` não usa `viewport-fit=cover`. `FerracineBridge` salva em Downloads
-  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider; só PDF e planilha (`TIPOS`/`extOf` recusam outro tipo).
+  (MediaStore no Android 10+; permissão de armazenamento no 7–9), abre e compartilha via FileProvider; só PDF (`TIPOS`/`extOf` recusam outro tipo).
 - `design/`: referência que o dono mandou (foto do PDF em papel, com os dados à mão cobertos por tarja preta). Não coloque arquivos em `dist/`: o build apaga a pasta.
 
 Regras de negócio que não são óbvias no código:
 - A pergunta dos DITAIS (`ditais`) é a única obrigatória, nos dois tipos (OS nova e edição). OS comercial salva
   antes da 1.4.11 não tem a resposta: o lápis pede antes de salvar.
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
-- Gerar o PDF não encerra o turno: só "Encerrar turno" limpa cabeçalho e OSs e guarda a folha no topo de `sheets`
-  (`SHEETS_KEPT` = 4; a mais antiga sai).
+- "Encerrar turno e gerar PDF" encerra de fato: limpa cabeçalho e OSs, guarda a folha no topo de `sheets`
+  (`SHEETS_KEPT` = 4; a mais antiga sai) e baixa o PDF. Erro ao gerar o PDF mantém o turno aberto.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - DITAIS e demais SIM/NÃO entram sempre em INFO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
   (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"

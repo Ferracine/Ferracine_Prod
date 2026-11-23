@@ -1,5 +1,5 @@
 import { X } from 'lucide';
-import { btn, type BtnTom, byId, gradeBotoes, h, icon } from './dom';
+import { btn, type BtnTom, byId, h, icon } from './dom';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
@@ -32,13 +32,9 @@ export function showToast(message: string, type: ToastType = 'info'): void {
 }
 
 export interface ModalAction {
-  label: string | Node;
+  label: string;
   variant: Exclude<BtnTom, 'outline' | 'ghost'>;
   onClick: () => void;
-  /** Ocupa a linha inteira na grade de botões (ex.: "Encerrar turno"). */
-  largo?: boolean;
-  /** Recebe o foco ao abrir. Sem nenhum marcado, o foco vai para o último botão (a ação de confirmar). */
-  autofocus?: boolean;
 }
 
 let lastFocus: Element | null = null;
@@ -48,11 +44,10 @@ export function openModal(title: string, body: Node, actions: ModalAction[]): vo
   const modal = byId('modal');
   const close = h('button', { type: 'button', class: `${btn('ghost', 'icon')} -my-2 -mr-2`, 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
   const buttons = actions.map((a) => h('button', { type: 'button', class: btn(a.variant), onClick: a.onClick }, a.label));
-  // Até 2 ações: uma embaixo da outra na largura toda (rótulos como "Continuar preenchendo" não cabem lado a lado no
-  // celular); a de confirmar fica embaixo, perto do polegar. Mais que 2: grade de 2 colunas iguais.
-  const largos = new Set(buttons.filter((_, i) => actions[i]!.largo));
+  // Uma ação embaixo da outra na largura toda (rótulos como "Continuar preenchendo" não cabem lado a lado no
+  // celular); a de confirmar fica embaixo, perto do polegar.
   for (const b of buttons) b.classList.add('w-full');
-  const rodape = buttons.length > 2 ? gradeBotoes(buttons, largos) : h('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-3' }, buttons);
+  const rodape = h('div', { class: 'grid grid-cols-1 sm:grid-cols-2 gap-3' }, buttons);
   modal.replaceChildren(
     h(
       'div',
@@ -64,8 +59,7 @@ export function openModal(title: string, body: Node, actions: ModalAction[]): vo
   );
   modal.classList.remove('hidden');
   modal.classList.add('flex');
-  const focusIndex = actions.findIndex((a) => a.autofocus);
-  (buttons[focusIndex >= 0 ? focusIndex : buttons.length - 1] ?? close).focus();
+  (buttons.at(-1) ?? close).focus(); // a ação de confirmar
 }
 
 export function isModalOpen(): boolean {
@@ -86,4 +80,6 @@ export function confirmModal(title: string, body: Node | string, confirm: Omit<M
     { label: cancelLabel, variant: 'neutral', onClick: closeModal },
     { ...confirm, onClick: () => { closeModal(); onConfirm(); } },
   ]);
+  // Ação perigosa (excluir, encerrar com pendência): um Enter por engano cancela em vez de confirmar.
+  if (confirm.variant !== 'primary') byId('modal').querySelector<HTMLButtonElement>('[role="dialog"] button.btn-neutral')?.focus();
 }

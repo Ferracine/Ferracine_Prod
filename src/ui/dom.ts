@@ -149,6 +149,13 @@ export const ESCOLHA_OFF = 'border-fg/15 bg-fg/5 text-fg';
 /** Escolha entre opções (SIM/NÃO, Solo/Dupla): cor de fundo e borda vêm de quem usa, conforme o estado. */
 export const BTN_CHOICE = 'escolha flex items-center justify-center gap-2 rounded-xl border-2 font-extrabold transition-all';
 
+/** Botão do topo (histórico, tema...) no lugar reservado no index.html: o `<span>` com o id já guarda o espaço. */
+export function botaoDoTopo(slot: HTMLElement, node: IconNode, rotulo: string, onClick: () => void): HTMLButtonElement {
+  const button = h('button', { type: 'button', id: slot.id, class: `${btn('outline', 'icon')} text-fg`, 'aria-label': rotulo, title: rotulo, onClick }, icon(node, 'w-5 h-5'));
+  slot.replaceWith(button);
+  return button;
+}
+
 /** Botões lado a lado em colunas iguais; o que sobra numa linha (quantidade ímpar) ou é largo ocupa a linha toda. */
 export function gradeBotoes(botoes: HTMLElement[], largos: ReadonlySet<HTMLElement> = new Set()): HTMLElement {
   const meios = botoes.filter((b) => !largos.has(b));

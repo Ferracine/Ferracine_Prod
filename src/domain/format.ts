@@ -1,4 +1,4 @@
-import type { ShiftHeader } from './types';
+import type { ClosedSheet, ShiftHeader } from './types';
 
 /** AAAA-MM-DD → DD/MM/AAAA, sem passar por Date (evita erro de fuso). */
 export function formatDateBR(iso: string): string {
@@ -39,12 +39,25 @@ function slug(text: string): string {
 }
 
 /**
- * Nomes da equipe + data do turno + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_20-11-2026_3_servicos.pdf" (ou .xlsx).
+ * Nome do PDF: nomes da equipe + data do turno + quantidade de serviços: "Joao_da_Silva_Marcos_Lima_20-11-2026_3_servicos.pdf".
  * A data separa as folhas de dias diferentes da mesma equipe (histórico, Downloads, WhatsApp).
  */
-export function sheetFileName(h: ShiftHeader, qtd: number, ext: 'pdf' | 'xlsx'): string {
+export function sheetFileName(h: ShiftHeader, qtd: number): string {
   const names = [slug(h.nome1), slug(h.nome2)].filter(Boolean);
   if (names.length === 0) names.push('Equipe');
   const data = formatDateBR(h.data).replaceAll('/', '-');
-  return `${names.join('_')}${data ? `_${data}` : ''}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.${ext}`;
+  return `${names.join('_')}${data ? `_${data}` : ''}_${qtd}_${qtd === 1 ? 'servico' : 'servicos'}.pdf`;
+}
+
+/** "20/11/2026 17:32 • JOAO • 3 OSs": a hora do encerramento separa dois turnos do mesmo dia. */
+export function sheetLabel(sheet: ClosedSheet): string {
+  const fechada = new Date(sheet.fechadaEm);
+  const hora = Number.isNaN(fechada.getTime()) ? '' : ` ${fechada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  return `${formatDateBR(sheet.header.data)}${hora} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`;
+}
+
+/** Mesmo eletricista: mesmo nome e matrícula (sem diferença de maiúsculas/espaços). Eletricista 1 e 2 não podem ser. */
+export function mesmaPessoa(a: { nome: string; matricula: string } | null | undefined, b: { nome: string; matricula: string } | null | undefined): boolean {
+  const chave = (p: { nome: string; matricula: string }) => `${p.nome.trim().toUpperCase()}|${p.matricula.trim().toUpperCase()}`;
+  return !!a && !!b && chave(a) === chave(b);
 }

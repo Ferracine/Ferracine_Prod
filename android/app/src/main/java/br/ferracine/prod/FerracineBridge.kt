@@ -24,13 +24,13 @@ fun Activity.shareableUri(file: File): Uri = FileProvider.getUriForFile(this, "$
 
 /**
  * Ponte com o JavaScript (src/platform.ts). Na WebView não dá para baixar um blob nem chamar o compartilhamento
- * web, então o app manda o arquivo (PDF ou planilha) em base64 e o Android salva, abre ou compartilha.
+ * web, então o app manda o PDF em base64 e o Android salva, abre ou compartilha.
  * Cada método devolve "" em caso de sucesso ou a mensagem de erro para o app mostrar.
  */
 class FerracineBridge(private val activity: Activity, private val updater: Updater) {
 
     /**
-     * Salva o arquivo (PDF ou planilha, conforme `mime`) na pasta Downloads do celular. Android 10+ usa o MediaStore
+     * Salva o PDF na pasta Downloads do celular. Android 10+ usa o MediaStore
      * (sem permissão); Android 7 a 9 precisa da permissão de armazenamento, pedida no primeiro "Baixar".
      */
     @JavascriptInterface
@@ -124,7 +124,7 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
     @JavascriptInterface
     fun installUpdate(url: String, size: Double): String = updater.start(url, size.toLong())
 
-    /** Grava o arquivo (PDF ou planilha) em cache/pdf e devolve um content:// do FileProvider (res/xml/file_paths.xml). */
+    /** Grava o PDF em cache/pdf e devolve um content:// do FileProvider (res/xml/file_paths.xml). */
     private fun cachedFile(base64: String, name: String): Uri {
         val dir = File(activity.cacheDir, "pdf").apply { mkdirs() }
         val file = File(dir, name).apply { writeBytes(decode(base64)) }
@@ -164,7 +164,7 @@ class FerracineBridge(private val activity: Activity, private val updater: Updat
         }
 
         /** Só os tipos que o app gera: extensão → tipo do arquivo. */
-        val TIPOS = mapOf("pdf" to "application/pdf", "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        val TIPOS = mapOf("pdf" to "application/pdf")
 
         /** Extensão do tipo pedido pelo app; outro tipo é recusado (a ponte não salva nem abre qualquer arquivo). */
         fun extOf(mime: String): String = TIPOS.entries.firstOrNull { it.value == mime }?.key ?: error("tipo de arquivo não suportado")

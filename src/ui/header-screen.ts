@@ -1,8 +1,9 @@
-import { ArrowRight, Download, FileDown, Share2, Sheet, Trash2, Truck, UserCog, Users } from 'lucide';
-import { formatDateBR, plural, todayISO } from '../domain/format';
-import { HEADER_FIELDS, type ClosedSheet, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
-import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, ESCOLHA_OFF, ESCOLHA_ON, gradeBotoes, h, icon, marcarFaltando, onEnter } from './dom';
+import { ArrowRight, FileDown, Trash2, Truck, UserCog, Users } from 'lucide';
+import { mesmaPessoa, todayISO } from '../domain/format';
+import { HEADER_FIELDS, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
+import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, ESCOLHA_OFF, ESCOLHA_ON, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
+import { listaFolhas, type FolhasProps } from './folhas';
 
 export interface HeaderScreenProps {
   /** Cabeçalho atual, quando a tela é aberta para corrigir o turno em andamento. */
@@ -17,15 +18,10 @@ export interface HeaderScreenProps {
   getEletricistas: () => readonly Eletricista[];
   onAddEletricista: (nome: string, matricula: string) => void;
   onRemoveEletricista: (id: string) => void;
-  /** Últimas folhas encerradas (a mais recente primeiro). */
-  sheets: readonly ClosedSheet[];
-  canShare: boolean;
+  /** Últimas folhas encerradas e as ações de cada uma (a mesma lista da janela de histórico do topo). */
+  folhas: FolhasProps;
   onSubmit: (header: ShiftHeader) => void;
   onCancelEdit: () => void;
-  onDownloadSheet: (sheet: ClosedSheet) => void;
-  onShareSheet: (sheet: ClosedSheet) => void;
-  /** Baixa a planilha (Excel) da folha. */
-  onPlanilhaSheet: (sheet: ClosedSheet) => void;
 }
 
 function field(id: keyof ShiftHeader, label: string, attrs: Record<string, string | boolean>, extraCls = '') {
@@ -46,15 +42,8 @@ function group(title: string, node: Parameters<typeof icon>[0], ...children: HTM
   );
 }
 
-/** "20/11/2026 17:32 • JOAO • 3 OSs": a hora do encerramento separa dois turnos do mesmo dia. */
-function sheetLabel(sheet: ClosedSheet): string {
-  const fechada = new Date(sheet.fechadaEm);
-  const hora = Number.isNaN(fechada.getTime()) ? '' : ` ${fechada.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-  return `${formatDateBR(sheet.header.data)}${hora} • ${sheet.header.nome1} • ${plural(sheet.ordens.length, 'OS', 'OSs')}`;
-}
-
-/** Últimas folhas encerradas (até 4): baixar ou compartilhar o PDF de cada uma de novo. */
-function sheetsCard(p: HeaderScreenProps): HTMLElement {
+/** Últimas folhas encerradas (até 4), com as ações de cada uma. */
+export function sheetsCard(folhas: FolhasProps): HTMLElement {
   return h(
     'div',
     { class: 'card p-4 space-y-3', 'data-testid': 'last-sheets' },
@@ -62,21 +51,9 @@ function sheetsCard(p: HeaderScreenProps): HTMLElement {
       'div',
       { class: 'flex items-center gap-3' },
       h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg shrink-0' }, icon(FileDown, 'w-5 h-5')),
-      h('p', { class: 'text-sm font-bold text-fg' }, p.sheets.length === 1 ? 'Última folha encerrada' : `Últimas ${p.sheets.length} folhas encerradas`),
+      h('p', { class: 'text-sm font-bold text-fg' }, folhas.sheets.length === 1 ? 'Última folha encerrada' : `Últimas ${folhas.sheets.length} folhas encerradas`),
     ),
-    p.sheets.map((sheet) =>
-      h(
-        'div',
-        { class: 'space-y-2 border-t border-fg/10 pt-3', 'data-testid': 'last-sheet' },
-        h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
-        // Grade de colunas iguais; "Baixar PDF" (a principal) fica por último e, sobrando sozinho, ocupa a linha.
-        gradeBotoes([
-          ...(p.canShare ? [h('button', { type: 'button', class: btn('neutral'), onClick: () => p.onShareSheet(sheet) }, icon(Share2), 'Compartilhar')] : []),
-          h('button', { type: 'button', class: btn('neutral'), onClick: () => p.onPlanilhaSheet(sheet) }, icon(Sheet), 'Planilha'),
-          h('button', { type: 'button', class: btn('primary'), onClick: () => p.onDownloadSheet(sheet) }, icon(Download), 'Baixar PDF'),
-        ]),
-      ),
-    ),
+    listaFolhas(folhas),
   );
 }
 
@@ -225,27 +202,41 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   /** Quem já estava no cabeçalho (turno anterior ou correção) e não está mais na lista: continua escolhível. */
   const anterior = (n: 1 | 2) => ({ nome: v(`nome${n}`).trim(), matricula: v(`mat${n}`).trim() });
   const ANTERIOR = 'anterior';
-  const eletSel = ([1, 2] as const).map((n) => h('select', { id: `eletricista${n}`, class: 'field', onChange: () => mostraMatricula(n) }));
+  const eletSel = ([1, 2] as const).map((n) => h('select', { id: `eletricista${n}`, class: 'field', onChange: () => fillEletricistas() }));
   let primeiraVez = true;
+  /**
+   * Monta as duas listas. Primeiro decide a escolha de cada uma: na primeira vez, quem veio do turno anterior; depois,
+   * mantém a escolha (o "turno anterior" que acabou de ser cadastrado passa a ser a opção do cadastro); se a pessoa
+   * foi excluída, volta para "Escolha o eletricista". Depois, na dupla, cada lista fica sem quem está escolhido na
+   * outra (a mesma pessoa não pode ser Eletricista 1 e 2).
+   */
   const fillEletricistas = () => {
     const lista = p.getEletricistas();
-    ([1, 2] as const).forEach((n, i) => {
-      const sel = eletSel[i]!;
-      const atual = sel.value || null;
+    const montagem = ([1, 2] as const).map((n, i) => {
+      const atual = eletSel[i]!.value;
       const ant = anterior(n);
-      const doCadastro = lista.find((e) => e.nome === ant.nome.toUpperCase() && e.matricula === ant.matricula.toUpperCase());
-      sel.replaceChildren(
+      const doCadastro = lista.find((e) => mesmaPessoa(e, ant));
+      const comAnterior = !!ant.nome && !doCadastro;
+      const valeAinda = atual === ANTERIOR ? comAnterior : lista.some((e) => e.id === atual);
+      const escolha = primeiraVez || (atual === ANTERIOR && doCadastro) ? (doCadastro?.id ?? (ant.nome ? ANTERIOR : '')) : valeAinda ? atual : '';
+      const pessoa = escolha === ANTERIOR ? ant : (lista.find((e) => e.id === escolha) ?? null);
+      return { ant, comAnterior, escolha, pessoa };
+    });
+    const [m1, m2] = montagem as [(typeof montagem)[number], (typeof montagem)[number]];
+    // Mesma pessoa vinda nas duas (ex.: turno anterior): a 2ª fica para escolher.
+    if (mesmaPessoa(m1.pessoa, m2.pessoa)) Object.assign(m2, { escolha: '', pessoa: null });
+    ([1, 2] as const).forEach((n, i) => {
+      const { ant, comAnterior, escolha } = montagem[i]!;
+      const naOutra = dupla ? montagem[1 - i]!.pessoa : null;
+      eletSel[i]!.replaceChildren(
         h('option', { value: '' }, lista.length ? 'Escolha o eletricista' : 'Nenhum eletricista cadastrado'),
         // Nome repetido no cadastro: mostra a matrícula junto para dar para saber qual é qual.
-        ...lista.map((e) => h('option', { value: e.id }, lista.filter((x) => x.nome === e.nome).length > 1 ? `${e.nome} (Mat: ${e.matricula || 'sem'})` : e.nome)),
-        ...(ant.nome && !doCadastro ? [h('option', { value: ANTERIOR }, `${ant.nome} (turno anterior)`)] : []),
+        ...lista
+          .filter((e) => !mesmaPessoa(e, naOutra))
+          .map((e) => h('option', { value: e.id }, lista.filter((x) => x.nome === e.nome).length > 1 ? `${e.nome} (Mat: ${e.matricula || 'sem'})` : e.nome)),
+        ...(comAnterior && !mesmaPessoa(ant, naOutra) ? [h('option', { value: ANTERIOR }, `${ant.nome} (turno anterior)`)] : []),
       );
-      // Na primeira vez, quem veio do turno anterior. Depois, mantém a escolha (o "turno anterior" que acabou de ser
-      // cadastrado passa a ser a opção do cadastro); se a pessoa escolhida foi excluída, volta para "Escolha o
-      // eletricista".
-      const opcoes = [...sel.options].map((o) => o.value);
-      if (primeiraVez || (atual === ANTERIOR && doCadastro)) sel.value = doCadastro?.id ?? (ant.nome ? ANTERIOR : '');
-      else sel.value = atual !== null && opcoes.includes(atual) ? atual : '';
+      eletSel[i]!.value = escolha;
       mostraMatricula(n);
     });
     primeiraVez = false;
@@ -274,6 +265,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   const setDupla = (d: boolean) => {
     dupla = d;
     grupo2.classList.toggle('hidden', !d);
+    fillEletricistas(); // na dupla, a lista de um fica sem quem está escolhido no outro
     for (const b of modoBtns) {
       const on = (b.dataset.modo === 'Dupla') === d;
       b.setAttribute('aria-pressed', String(on));
@@ -341,7 +333,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       h(
         'div',
         { class: 'flex items-center justify-between gap-2' },
-        h('label', { for: 'lider', class: 'lbl' }, 'Técnico líder responsável'),
+        h('label', { for: 'lider', class: 'lbl' }, 'Técnico líder responsável *'),
         manageLink('btn-tecnicos', 'Adicionar / excluir técnicos', () => manageCadastro(tecnicosCadastro, () => fillLider(liderSelect.value))),
       ),
       liderSelect,
@@ -354,8 +346,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     ),
   );
 
-  fillEletricistas();
-  setDupla(dupla);
+  setDupla(dupla); // monta as listas (com quem veio do turno anterior)
 
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
@@ -367,11 +358,12 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
     if (!e1) faltas.push([eletSel[0]!, 'Escolha o Eletricista 1 (cadastre em "Adicionar / excluir eletricistas").']);
     else if (!e1.matricula.trim()) faltas.push([matSaida[0]!, `${e1.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`]);
     if (dupla && !e2) faltas.push([eletSel[1]!, 'Escolha o Eletricista 2, ou marque Solo.']);
-    else if (e1 && e2 && e2.nome === e1.nome && e2.matricula === e1.matricula) faltas.push([eletSel[1]!, 'Eletricista 1 e 2 não podem ser a mesma pessoa.']);
+    else if (mesmaPessoa(e1, e2)) faltas.push([eletSel[1]!, 'Eletricista 1 e 2 não podem ser a mesma pessoa.']); // rede de segurança: as listas já se excluem
     else if (e2 && !e2.matricula.trim()) faltas.push([matSaida[1]!, `${e2.nome} está sem matrícula: exclua e cadastre de novo com a matrícula.`]);
     for (const k of ['data', 'horaInicio', 'horaFim'] as const) {
       if (!campo(k)) faltas.push([input(k), 'Preencha Data e Horário (início e fim) para liberar o turno.']);
     }
+    if (!liderSelect.value) faltas.push([liderSelect, 'Escolha o técnico líder responsável (cadastre em "Adicionar / excluir técnicos").']);
     if (faltas.length) {
       for (const [el] of faltas) marcarFaltando(el);
       showToast(faltas[0]![1], 'error');
@@ -386,7 +378,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   return h(
     'section',
     { id: 'screen-header', class: 'space-y-6' },
-    !init && p.sheets.length > 0 && sheetsCard(p),
+    !init && p.folhas.sheets.length > 0 && sheetsCard(p.folhas),
     h(
       'div',
       { class: 'card overflow-hidden' },
@@ -394,7 +386,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
         'div',
         { class: 'px-6 py-5 border-b border-fg/10 bg-brand/10' },
         h('p', { class: 'text-[11px] uppercase tracking-widest text-brand-fg font-bold' }, 'Departamento de Operação'),
-        h('h2', { class: 'text-xl font-extrabold mt-0.5 text-fg' }, init ? 'Corrigir cabeçalho do turno' : 'Identificação da equipe e turno'),
+        h('h2', { class: 'text-xl font-extrabold mt-0.5 text-fg' }, init ? 'Editar cabeçalho do turno' : 'Identificação da equipe e turno'),
         h(
           'p',
           { class: 'text-xs text-muted mt-1' },

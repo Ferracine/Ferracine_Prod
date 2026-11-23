@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { espelhoRows } from '../../src/domain/espelho';
-import { formatDateBR, formatHorario, osLabel, sheetFileName, todayISO } from '../../src/domain/format';
+import { formatDateBR, formatHorario, mesmaPessoa, osLabel, sheetFileName, sheetLabel, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
-import { emptyData, type KeyValueStore, loadData, pushSheet, saveData, STORAGE_KEY } from '../../src/storage';
+import { emptyData, encerrarDados, type KeyValueStore, loadData, pushSheet, reabrirDados, removerFolha, saveData, STORAGE_KEY } from '../../src/storage';
 import { startDraft } from '../../src/domain/ordem';
 import { baseHeader as header, finishedOS } from './fixtures';
 
@@ -33,10 +33,10 @@ describe('formatação', () => {
   });
 
   it('nomeia o PDF com os nomes da equipe e a quantidade de serviços', () => {
-    expect(sheetFileName(header, 1, 'pdf')).toBe('Joao_da_Silva_20-11-2026_1_servico.pdf');
-    expect(sheetFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3, 'pdf')).toBe('Joao_da_Silva_Angelo_Souza_20-11-2026_3_servicos.pdf');
-    expect(sheetFileName({ ...header, nome1: '###' }, 0, 'pdf')).toBe('Equipe_20-11-2026_0_servicos.pdf');
-    expect(sheetFileName({ ...header, data: '' }, 2, 'pdf')).toBe('Joao_da_Silva_2_servicos.pdf');
+    expect(sheetFileName(header, 1)).toBe('Joao_da_Silva_20-11-2026_1_servico.pdf');
+    expect(sheetFileName({ ...header, nome2: '  Ângelo  Souza ' }, 3)).toBe('Joao_da_Silva_Angelo_Souza_20-11-2026_3_servicos.pdf');
+    expect(sheetFileName({ ...header, nome1: '###' }, 0)).toBe('Equipe_20-11-2026_0_servicos.pdf');
+    expect(sheetFileName({ ...header, data: '' }, 2)).toBe('Joao_da_Silva_2_servicos.pdf');
   });
 });
 
@@ -164,6 +164,28 @@ describe('armazenamento', () => {
     expect(loaded.ordens[0]?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Cachorro solto' } });
     expect(loaded.ordens[1]?.answers).toEqual({});
     expect(loaded.draft?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Chuva' } });
+  });
+
+  it('encerrar → editar (reabrir) → encerrar de novo: a folha volta ao turno e depois ao topo do histórico', () => {
+    const os = finishedOS('1', 'COMERCIAL', '28', {}, 'o1');
+    const antiga = { header: { ...header, nome1: 'VELHA' }, ordens: [], fechadaEm: 'x', tecnicos: [] };
+    const d: AppData = { ...emptyData(), header, ordens: [os], sheets: [antiga] };
+    const folha = { header, ordens: d.ordens, fechadaEm: '2026-11-20T18:00:00.000Z', tecnicos: [] };
+    encerrarDados(d, folha);
+    expect(d).toMatchObject({ header: null, ordens: [], draft: null, sheets: [folha, antiga] });
+    reabrirDados(d, folha);
+    expect(d).toMatchObject({ header, ordens: [os], draft: null, sheets: [antiga] });
+    const corrigida = { ...folha, fechadaEm: '2026-11-21T08:00:00.000Z' };
+    encerrarDados(d, corrigida);
+    expect(d.sheets).toEqual([corrigida, antiga]);
+    expect(removerFolha(d.sheets, antiga)).toEqual([corrigida]);
+  });
+
+  it('rótulo da folha e "mesma pessoa" (nome e matrícula, sem diferença de maiúsculas/espaços)', () => {
+    expect(sheetLabel({ header, ordens: [], fechadaEm: 'x', tecnicos: [] })).toBe('20/11/2026 • João da Silva • 0 OSs');
+    expect(mesmaPessoa({ nome: ' ana ', matricula: '1' }, { nome: 'ANA', matricula: '1 ' })).toBe(true);
+    expect(mesmaPessoa({ nome: 'ANA', matricula: '1' }, { nome: 'ANA', matricula: '2' })).toBe(false);
+    expect(mesmaPessoa(null, { nome: 'ANA', matricula: '1' })).toBe(false);
   });
 
   it('armazenamento ilegível não é sobrescrito ao abrir', () => {

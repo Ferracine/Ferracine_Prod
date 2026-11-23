@@ -1,20 +1,21 @@
-import { FileDown } from 'lucide';
+import { History } from 'lucide';
 import { SERVICE_LABEL } from './domain/catalog';
-import { osLabel, plural, sheetFileName } from './domain/format';
+import { osLabel, plural, sheetFileName, sheetLabel } from './domain/format';
 import * as ordem from './domain/ordem';
 import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
-import { loadData, pushSheet, saveData, type KeyValueStore } from './storage';
+import { encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
-import { CALLOUT, byId, h, icon, marcarFaltando } from './ui/dom';
-import { closeModal, confirmModal, isModalOpen, openModal, showToast, type ModalAction } from './ui/feedback';
-import { headerScreen } from './ui/header-screen';
+import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando } from './ui/dom';
+import { closeModal, confirmModal, isModalOpen, openModal, showToast } from './ui/feedback';
+import { type AcaoFolha, type FolhasProps, listaFolhas } from './ui/folhas';
+import { headerScreen, sheetsCard } from './ui/header-screen';
 import { osScreen } from './ui/os-screen';
 
 /** `new` = OS nova em preenchimento (rascunho salvo); `edit` = lápis de uma OS concluída. Mesma tela da OS. */
 type Screen = 'header' | 'dashboard' | 'new' | 'edit';
 type PdfModule = typeof import('./pdf');
-/** Arquivo pronto (PDF ou planilha): baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o base64). */
+/** PDF pronto: baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o base64). */
 type Arquivo = { blob: Blob; fileName: string; mime: string; base64?: string };
 const PDF_MIME = 'application/pdf';
 
@@ -51,26 +52,13 @@ function buildPdf(mod: PdfModule, sheet: ClosedSheet): Arquivo {
   const memo = pdfMemo.get(sheet);
   if (memo) return memo;
   const doc = mod.buildSheetPdf(sheet.header, sheet.ordens, sheet.tecnicos);
-  const pdf = { blob: doc.output('blob'), fileName: sheetFileName(sheet.header, sheet.ordens.length, 'pdf'), mime: PDF_MIME };
+  const pdf = { blob: doc.output('blob'), fileName: sheetFileName(sheet.header, sheet.ordens.length), mime: PDF_MIME };
   pdfMemo.set(sheet, pdf);
   return pdf;
 }
 
 async function sheetPdf(sheet: ClosedSheet): Promise<Arquivo> {
   return buildPdf(pdfModule ?? (await loadPdfModule()), sheet);
-}
-
-/** Planilha (.xlsx) de cada folha, montada uma vez (o gerador é carregado só quando pedido). */
-const xlsxMemo = new WeakMap<ClosedSheet, Arquivo>();
-
-async function sheetXlsx(sheet: ClosedSheet): Promise<Arquivo> {
-  const memo = xlsxMemo.get(sheet);
-  if (memo) return memo;
-  const { buildSheetXlsx, XLSX_MIME } = await import('./planilha');
-  const bytes = buildSheetXlsx(sheet.header, sheet.ordens, sheet.tecnicos);
-  const arquivo = { blob: new Blob([bytes], { type: XLSX_MIME }), fileName: sheetFileName(sheet.header, sheet.ordens.length, 'xlsx'), mime: XLSX_MIME };
-  xlsxMemo.set(sheet, arquivo);
-  return arquivo;
 }
 
 /** No APK, entrega o arquivo ao código nativo; devolve true se a ponte tratou o pedido. */
@@ -122,6 +110,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
   let shownScreen: Screen | null = null;
   let generating = false;
+  /** O turno aberto veio de uma folha reaberta: corrigir o cabeçalho dela não muda o "próximo turno" (lastHeader). */
+  let turnoReaberto = false;
   const shareSupported = canShareFiles();
 
   let saveFailed = false;
@@ -165,7 +155,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     let view: HTMLElement;
 
     if (screen === 'header') {
-      badge.textContent = editingHeader ? 'Corrigindo cabeçalho' : 'Aguardando cabeçalho';
+      badge.textContent = editingHeader ? 'Editando cabeçalho' : 'Aguardando cabeçalho';
       view = headerScreen({
         editing: editingHeader ? data.header : null,
         defaults: data.lastHeader,
@@ -176,13 +166,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         getEletricistas: () => data.eletricistas,
         onAddEletricista: (nome, matricula) => update((d) => { d.eletricistas = [...d.eletricistas, { id: newId(), nome, matricula }]; }, false),
         onRemoveEletricista: (id) => update((d) => { d.eletricistas = d.eletricistas.filter((e) => e.id !== id); }, false),
-        sheets: data.sheets,
-        canShare: shareSupported,
+        folhas: folhasProps(),
         onSubmit: submitHeader,
         onCancelEdit: cancelHeaderEdit,
-        onDownloadSheet: (sheet) => void deliverSheet(sheet, 'download'),
-        onShareSheet: (sheet) => void deliverSheet(sheet, 'share'),
-        onPlanilhaSheet: (sheet) => void deliverSheet(sheet, 'planilha'),
       });
     } else if (screen === 'edit') {
       const current = editing!;
@@ -217,7 +203,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         onEdit: openEdit,
         onDelete: deleteOS,
         onEditHeader: () => { editingHeader = true; render(); },
-        onFinish: confirmFinish,
+        onFinish: encerrarTurno,
       });
     }
 
@@ -225,8 +211,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    // Compartilhar precisa chamar navigator.share logo após o toque: deixa o jsPDF carregado em segundo plano.
-    if (screen === 'header' && !editingHeader && data.sheets.length && shareSupported) {
+    // Encerrar gera o PDF e Abrir/Compartilhar do histórico (que abre em qualquer tela) precisam agir logo após o toque:
+    // deixa o jsPDF carregado em segundo plano.
+    if (!pdfModule) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
     }
@@ -261,7 +248,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     editingHeader = false;
     update((d) => {
       d.header = header;
-      d.lastHeader = header; // preenche o próximo turno
+      if (!turnoReaberto) d.lastHeader = header; // preenche o próximo turno
     });
     showToast(wasEditing ? 'Cabeçalho atualizado.' : 'Turno iniciado! Registro de OSs liberado.', 'success');
   }
@@ -426,35 +413,34 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   // --- PDF e encerramento do turno ----------------------------------------
 
-  function confirmFinish(): void {
+  /**
+   * "Encerrar turno e gerar PDF": encerra de fato e já baixa o PDF. Só pergunta antes se houver o que conferir
+   * (nenhuma OS, OS sem número ou sem DITAIS); a folha encerrada pode ser reaberta depois pelo "Editar" do histórico.
+   */
+  function encerrarTurno(): void {
     const n = data.ordens.length;
-    if (n === 0) {
-      confirmModal(
-        'Nenhuma OS registrada',
-        'Você ainda não registrou nenhuma Ordem de Serviço neste turno. Deseja gerar a folha em branco mesmo assim?',
-        { label: 'Gerar mesmo assim', variant: 'neutral' },
-        () => void generatePdf(),
-        'Voltar e adicionar OS',
-      );
+    const { semNumero, semDitais } = ordem.pendencias(data.ordens);
+    const pendencias = [
+      n === 0 && 'Nenhuma OS registrada: a folha sai em branco.',
+      semNumero > 0 && `${plural(semNumero, 'OS está', 'OSs estão')} sem número (S/N).`,
+      semDitais > 0 && `${plural(semDitais, 'OS está', 'OSs estão')} sem a resposta dos DITAIS (obrigatória).`,
+      !data.tecnicos.some((t) => t.id === data.header?.lider) && 'Sem técnico líder: use "Editar" no cabeçalho para escolher.',
+    ].filter((p): p is string => !!p);
+    if (!pendencias.length) {
+      void encerrarEGerar();
       return;
     }
-    const semNumero = data.ordens.filter((o) => !o.osNumber).length;
-    const semDitais = data.ordens.filter(ordem.faltaObrigatoria).length;
-    const body = h(
-      'div',
-      { class: 'space-y-3' },
-      h('p', null, `Você está prestes a gerar o Espelho de Campo com ${plural(n, 'Ordem de Serviço', 'Ordens de Serviço')}.`),
-      semNumero > 0 &&
-        h('div', { class: CALLOUT.danger }, `${plural(semNumero, 'OS está', 'OSs estão')} sem número (S/N). Use o lápis na lista para preencher antes de gerar, se quiser.`),
-      semDitais > 0 &&
-        h('div', { class: CALLOUT.danger }, `${plural(semDitais, 'OS está', 'OSs estão')} sem a resposta dos DITAIS (obrigatória). Use o lápis na lista para responder antes de gerar.`),
-      h('div', { class: CALLOUT.warning }, 'O turno só é encerrado quando você tocar em "Encerrar turno", depois de ter o PDF em mãos.'),
+    confirmModal(
+      'Conferir antes de encerrar',
+      h('div', { class: 'space-y-3' }, pendencias.map((p) => h('div', { class: CALLOUT.danger }, p)), h('p', null, 'Use o lápis na lista para corrigir, ou encerre assim mesmo.')),
+      { label: 'Encerrar mesmo assim', variant: 'accent' },
+      () => void encerrarEGerar(),
+      'Voltar e corrigir',
     );
-    confirmModal('Finalizar turno e gerar PDF', body, { label: h('span', { class: 'inline-flex items-center gap-2' }, icon(FileDown, 'w-5 h-5'), 'Gerar PDF'), variant: 'accent' }, () => void generatePdf());
   }
 
-  async function generatePdf(): Promise<void> {
-    // Toque duplo enquanto o jsPDF carrega não pode gerar duas vezes.
+  async function encerrarEGerar(): Promise<void> {
+    // Toque duplo enquanto o jsPDF carrega não pode encerrar duas vezes.
     if (generating || !data.header) return;
     generating = true;
     const sheet: ClosedSheet = { header: data.header, ordens: data.ordens, fechadaEm: new Date().toISOString(), tecnicos: data.tecnicos };
@@ -463,75 +449,102 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       pdf = await sheetPdf(sheet);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      showToast('Erro ao gerar o PDF. Os dados do turno foram mantidos; tente novamente.', 'error');
+      showToast('Erro ao gerar o PDF. O turno continua aberto; tente novamente.', 'error');
       return;
     } finally {
       generating = false;
     }
-
+    // Enquanto o gerador carregava, a tela seguiu livre: se o turno mudou (OS salva, rascunho, edição), não encerra
+    // com dados velhos.
+    if (data.header !== sheet.header || data.ordens !== sheet.ordens || data.draft || editing || editingHeader) {
+      showToast('O turno mudou enquanto o PDF era preparado. Toque em "Encerrar turno" de novo.', 'warning');
+      return;
+    }
+    turnoReaberto = false;
+    // `sheet` é o mesmo objeto do PDF: o memo serve os botões do histórico sem remontar.
+    update((d) => encerrarDados(d, sheet));
+    showToast('Turno encerrado. O PDF está nas últimas folhas encerradas.', 'success');
     void downloadFile(pdf);
-
-    // Foco inicial em Compartilhar/Baixar, nunca no "Encerrar turno".
-    const actions: ModalAction[] = [
-      { label: 'Baixar PDF', variant: 'neutral', autofocus: true, onClick: () => void downloadFile(pdf) },
-      { label: 'Abrir PDF', variant: 'neutral', onClick: () => void openFile(pdf) },
-      { label: 'Planilha (Excel)', variant: 'neutral', onClick: () => void deliverSheet(sheet, 'planilha') },
-      { label: 'Encerrar turno', variant: 'accent', largo: true, onClick: () => { closeModal(); closeShift(sheet); } },
-    ];
-    if (shareSupported) actions.unshift({ label: 'Compartilhar', variant: 'primary', autofocus: true, onClick: () => void shareFile(pdf) });
-
-    openModal(
-      'PDF gerado',
-      h(
-        'div',
-        { class: 'space-y-3' },
-        h('p', null, 'Arquivo: ', h('strong', { class: 'text-fg break-all' }, pdf.fileName)),
-        h('p', { class: 'text-muted' }, 'Confira se o PDF foi salvo. Se não baixou, use os botões abaixo.'),
-        h(
-          'div',
-          { class: CALLOUT.warning },
-          h('strong', null, 'Só toque em "Encerrar turno" depois de ter o PDF em mãos.'),
-          ' Isso limpa as OSs e o cabeçalho deste turno (as últimas folhas ficam na tela inicial).',
-        ),
-      ),
-      actions,
-    );
-  }
-
-  /** `sheet` é o mesmo objeto do PDF gerado: o memo serve o "Baixar/Compartilhar" da tela inicial sem remontar. */
-  function closeShift(sheet: ClosedSheet): void {
-    update((d) => {
-      d.sheets = pushSheet(d.sheets, sheet);
-      d.header = null;
-      d.ordens = [];
-      d.draft = null;
-    });
-    showToast('Turno encerrado. Os dados da equipe já ficam preenchidos para o próximo turno.', 'success');
   }
 
   /** Folhas sendo entregues agora: toque duplo na mesma entrega uma vez só; as outras folhas seguem livres. */
   const delivering = new Set<ClosedSheet>();
 
-  /** Baixa ou compartilha o PDF de uma folha, ou baixa a planilha (Excel) dela. */
-  async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'share' | 'planilha'): Promise<void> {
+  /** Baixa, abre ou compartilha o PDF de uma folha. */
+  async function deliverSheet(sheet: ClosedSheet, mode: 'download' | 'open' | 'share'): Promise<void> {
     if (delivering.has(sheet)) return;
     delivering.add(sheet);
     try {
-      if (mode === 'planilha') {
-        await downloadFile(await sheetXlsx(sheet));
-        return;
-      }
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
       const pdf = pdfModule ? buildPdf(pdfModule, sheet) : await sheetPdf(sheet);
-      if (mode === 'download') await downloadFile(pdf);
-      else await shareFile(pdf);
+      await { download: downloadFile, open: openFile, share: shareFile }[mode](pdf);
     } catch (error) {
-      console.error('Erro ao gerar o arquivo:', error);
-      showToast(mode === 'planilha' ? 'Não foi possível gerar a planilha.' : 'Não foi possível gerar o PDF.', 'error');
+      console.error('Erro ao gerar o PDF:', error);
+      showToast('Não foi possível gerar o PDF.', 'error');
     } finally {
       delivering.delete(sheet);
     }
   }
+
+  /** Histórico das últimas folhas, com as ações de cada uma (cartão da tela do cabeçalho e janela do topo). */
+  /** `naJanela`: a lista está na janela do botão do topo (depois de excluir, a janela volta com a lista). */
+  function folhasProps(naJanela = false): FolhasProps {
+    return { sheets: data.sheets, canShare: shareSupported, turnoAberto: !!data.header, onAcao: (sheet, acao) => acaoFolha(sheet, acao, naJanela) };
+  }
+
+  function abrirHistorico(): void {
+    void loadPdfModule().catch(() => undefined); // Abrir/Compartilhar logo após o toque precisam do gerador pronto
+    openModal('Últimas folhas encerradas', listaFolhas(folhasProps(true)), [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }]);
+  }
+
+  function acaoFolha(sheet: ClosedSheet, acao: AcaoFolha, naJanela: boolean): void {
+    if (acao === 'edit') reabrirFolha(sheet);
+    else if (acao === 'delete') excluirFolha(sheet, naJanela);
+    else void deliverSheet(sheet, acao);
+  }
+
+  /**
+   * "Editar": a folha volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico; "Encerrar" a devolve corrigida.
+   * Os técnicos da folha voltam ao cadastro (o líder dela continua valendo, mesmo se tinha sido excluído).
+   */
+  function reabrirFolha(sheet: ClosedSheet): void {
+    if (data.header) return; // com turno aberto o botão já vem desativado, com o aviso
+    confirmModal(
+      'Editar folha encerrada',
+      `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, o PDF corrigido volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
+      { label: 'Editar folha', variant: 'primary' },
+      () => {
+        turnoReaberto = true;
+        update((d) => {
+          reabrirDados(d, sheet);
+          d.tecnicos = [...d.tecnicos, ...sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id))];
+        });
+        showToast('Folha reaberta: corrija o que precisar e toque em "Encerrar turno e gerar PDF".', 'info');
+      },
+    );
+  }
+
+  /** Não redesenha a tela (perderia o que estiver sendo digitado): só o cartão das folhas, se estiver na tela. */
+  function excluirFolha(sheet: ClosedSheet, naJanela: boolean): void {
+    confirmModal(
+      'Excluir folha',
+      `Excluir a folha de ${sheetLabel(sheet)} do histórico? O PDF já baixado no celular não é apagado.`,
+      { label: 'Excluir', variant: 'danger' },
+      () => {
+        update((d) => {
+          d.sheets = removerFolha(d.sheets, sheet);
+        }, false);
+        const cartao = document.querySelector('[data-testid="last-sheets"]');
+        if (data.sheets.length) cartao?.replaceWith(sheetsCard(folhasProps()));
+        else cartao?.remove();
+        showToast('Folha excluída do histórico.', 'success');
+        if (naJanela) abrirHistorico();
+      },
+    );
+  }
+
+  // Botão do topo (ao lado do tema): o histórico a qualquer momento, também com o turno aberto.
+  botaoDoTopo(byId('historico-toggle'), History, 'Últimas folhas encerradas', abrirHistorico);
 
   document.addEventListener('keydown', (ev) => {
     if (ev.key === 'Escape') closeModal();

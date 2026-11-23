@@ -28,9 +28,16 @@ async function escolherEletricista1(page: Page, nome: string, mat: string) {
   await expect(page.locator('#matricula1')).toHaveValue(mat);
 }
 
+/** Cadastra e escolhe o técnico líder (obrigatório para iniciar o turno). */
+async function escolherLider(page: Page) {
+  await cadastrarTecnico(page, 'TEC. LIDER', '69 90000-0000');
+  await page.locator('#lider').selectOption({ label: 'TEC. LIDER - 69 90000-0000' });
+}
+
 async function iniciarTurno(page: Page) {
   await page.goto('/');
   await escolherEletricista1(page, 'João da Silva', '123456');
+  await escolherLider(page);
   await page.getByLabel('Equipe', { exact: true }).fill('PVH-01');
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
@@ -99,14 +106,12 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByRole('dialog')).toContainText('456');
   await page.keyboard.press('Escape');
 
-  // Gerar PDF: baixa na hora; o turno continua aberto até "Encerrar turno".
-  await page.locator('#btn-finish').click();
+  // Encerrar: sem pendência, um toque encerra o turno e já baixa o PDF (nenhuma janela).
   const download = page.waitForEvent('download');
-  await page.getByRole('button', { name: /Gerar PDF/ }).click();
+  await page.locator('#btn-finish').click();
   const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
   expect((await download).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);
-  await expect(page.getByRole('dialog')).toContainText('PDF gerado');
-  await page.getByRole('button', { name: 'Encerrar turno' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
   await expect(page.locator('#screen-header')).toBeVisible();
@@ -239,13 +244,21 @@ test('técnicos: cadastrar, excluir e a lista do cabeçalho acompanha', async ({
   await expect(lider.locator('option')).toHaveText(['—', 'TEC. DOIS', 'TEC. TRES - 69 3333-3333']);
 });
 
-test('fechar a janela do PDF sem encerrar mantém o turno aberto', async ({ page }) => {
+test('encerrar com pendência (nenhuma OS ou OS S/N): pergunta antes; "Voltar e corrigir" mantém o turno aberto', async ({ page }) => {
   await iniciarTurno(page);
   await page.locator('#btn-finish').click();
-  await page.getByRole('button', { name: 'Gerar mesmo assim' }).click();
-  await expect(page.getByRole('dialog')).toContainText('PDF gerado');
-  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma OS registrada');
+  await page.getByRole('button', { name: 'Voltar e corrigir' }).click();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await novaOS(page, 'comercial', '28'); // sem número (S/N)
+  await salvar(page);
+  await page.locator('#btn-finish').click();
+  await expect(page.getByRole('dialog')).toContainText('1 OS está sem número (S/N)');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
+  expect((await download).suggestedFilename()).toMatch(/_1_servico\.pdf$/);
+  await expect(page.locator('#screen-header')).toBeVisible();
+  await expect(page.getByTestId('last-sheet')).toContainText('1 OS');
 });
 
 test('número repetido pede confirmação (OS nova e edição)', async ({ page }) => {
@@ -314,7 +327,7 @@ test('avisos rápidos: sem borda e centralizados sobre o app também no computad
   expect(Math.abs(box!.x + box!.width / 2 - (app!.x + app!.width / 2))).toBeLessThan(4);
 
   // Aviso disparado com uma janela aberta aparece acima dela (não atrás do fundo escurecido).
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.locator('#btn-tecnicos').click();
   await page.getByRole('button', { name: 'Adicionar técnico' }).click();
   const alerta = page.getByRole('status').filter({ hasText: 'Digite o nome do técnico' });
@@ -373,20 +386,22 @@ test('eletricistas: cadastro igual ao dos técnicos, lista com o nome, matrícul
   await expect(page.locator('#eletricista2')).toBeVisible();
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
-  // Dupla sem o segundo, ou a mesma pessoa duas vezes: não inicia.
+  await escolherLider(page);
+  // Dupla sem o segundo: não inicia.
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await expect(page.getByRole('alert')).toContainText('Escolha o Eletricista 2');
   await expect(page.locator('#eletricista2')).toHaveClass(/faltando/); // caixa vermelha
-  await page.locator('#eletricista2').selectOption({ label: 'ANA LIMA' });
-  await page.getByRole('button', { name: /Iniciar turno/ }).click();
-  await expect(page.getByRole('alert').last()).toContainText('mesma pessoa');
+  // Quem está no Eletricista 1 não aparece no 2, e vice-versa.
+  await expect(page.locator('#eletricista2 option')).toHaveText(['Escolha o eletricista', 'BIA SOUZA', 'CAIO ROCHA']);
   await page.locator('#eletricista2').selectOption({ label: 'BIA SOUZA' });
+  await expect(page.locator('#eletricista1 option')).toHaveText(['Escolha o eletricista', 'ANA LIMA', 'CAIO ROCHA']);
+  await expect(page.locator('#eletricista1 option:checked')).toHaveText('ANA LIMA');
   await expect(page.locator('#eletricista2')).not.toHaveClass(/faltando/);
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await expect(page.getByTestId('header-info').locator('dd')).toHaveText(['ANA LIMA', '111', 'BIA SOUZA', '222', '-', '-', '-']);
 
-  // Corrigir: volta em Dupla com os dois escolhidos; Solo tira o Eletricista 2.
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  // Editar: volta em Dupla com os dois escolhidos; Solo tira o Eletricista 2.
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await expect(page.locator('[data-modo="Dupla"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#eletricista2 option:checked')).toHaveText('BIA SOUZA');
   await page.locator('[data-modo="Solo"]').click();
@@ -394,7 +409,7 @@ test('eletricistas: cadastro igual ao dos técnicos, lista com o nome, matrícul
   await expect(page.getByTestId('header-info').locator('dt')).toHaveText(['Eletricista 1', 'Matrícula', 'Equipe', 'Viatura', 'Bodycam']);
 
   // Excluir do cadastro quem está escolhido: a lista volta para "Escolha o eletricista" (não fica escolhido escondido).
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.locator('#btn-eletricistas').click();
   await page.getByRole('button', { name: 'Excluir eletricista ANA LIMA' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
@@ -413,7 +428,8 @@ test('OS comercial salva antes da DITAIS valer na comercial: selo "falta DITAIS"
   await expect(page.getByTestId('os-item')).toContainText('falta DITAIS');
   await page.locator('#btn-finish').click();
   await expect(page.getByRole('dialog')).toContainText('1 OS está sem a resposta dos DITAIS');
-  await page.getByRole('dialog').getByRole('button', { name: 'Cancelar' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Sem técnico líder'); // dado antigo, sem líder
+  await page.getByRole('dialog').getByRole('button', { name: 'Voltar e corrigir' }).click();
   await page.getByRole('button', { name: 'Editar OS 77' }).click();
   await salvar(page);
   await expect(page.locator('[data-question="ditais"]')).toHaveClass(/faltando/);
@@ -467,7 +483,7 @@ test('aviso "Salvo em Downloads" com nome de arquivo comprido não vaza para for
   await page.route('https://api.github.com/**', (route) => route.abort());
   await iniciarTurno(page);
   await page.locator('#btn-finish').click();
-  await page.getByRole('button', { name: 'Gerar mesmo assim' }).click();
+  await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
   const aviso = page.getByRole('status').filter({ hasText: nome });
   await expect(aviso).toBeVisible();
   expect(await aviso.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
@@ -488,13 +504,14 @@ test('cabeçalho do turno: uma informação por linha (eletricistas separados)',
   await page.locator('#eletricista2').selectOption({ label: 'BIA' });
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
+  await escolherLider(page);
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   const linhas = page.getByTestId('header-info').locator('dt');
   await expect(linhas).toHaveText(['Eletricista 1', 'Matrícula', 'Eletricista 2', 'Matrícula', 'Equipe', 'Viatura', 'Bodycam']);
   await expect(page.getByTestId('header-info').locator('dd').nth(2)).toHaveText('BIA');
   await expect(page.getByTestId('header-info').locator('dd').nth(3)).toHaveText('2');
   // Gravado em maiúsculas mesmo que o valor tenha entrado sem passar pela digitação (ex.: turno anterior).
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.getByLabel('Equipe', { exact: true }).evaluate((el) => ((el as HTMLInputElement).value = 'pvh-02'));
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
   await expect(page.getByTestId('header-info')).toContainText('PVH-02');
@@ -510,12 +527,12 @@ test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeir
   });
   await page.goto('/');
   await escolherEletricista1(page, 'Turno 5', '1');
+  await escolherLider(page);
   await page.getByLabel('Início *').fill('07:00');
   await page.getByLabel('Fim *').fill('17:00');
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await page.locator('#btn-finish').click();
-  await page.getByRole('button', { name: 'Gerar mesmo assim' }).click();
-  await page.getByRole('button', { name: 'Encerrar turno' }).click();
+  await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
 
   const folhas = page.getByTestId('last-sheet');
   await expect(page.getByTestId('last-sheets')).toContainText('Últimas 4 folhas encerradas');
@@ -532,7 +549,7 @@ test('falta preencher: a caixa fica vermelha (código, DITAIS, cadastro e cabeç
   await page.goto('/');
   // Cabeçalho: sem eletricista e sem horário.
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
-  for (const id of ['#eletricista1', '#horaInicio', '#horaFim']) await expect(page.locator(id)).toHaveClass(/faltando/);
+  for (const id of ['#eletricista1', '#horaInicio', '#horaFim', '#lider']) await expect(page.locator(id)).toHaveClass(/faltando/);
   await page.getByLabel('Início *').fill('07:00');
   await expect(page.locator('#horaInicio')).not.toHaveClass(/faltando/);
   // Cadastro de eletricista sem matrícula.
@@ -555,21 +572,73 @@ test('falta preencher: a caixa fica vermelha (código, DITAIS, cadastro e cabeç
   await expect(page.locator('[data-question="ditais"]')).not.toHaveClass(/faltando/);
 });
 
-test('planilha (Excel): baixa pela janela do PDF e pelo histórico das folhas', async ({ page }) => {
+test('histórico: baixar, abrir, excluir e editar (reabre como turno e volta ao topo ao encerrar)', async ({ page, context }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '709', '111');
   await salvar(page);
+  await page.locator('#btn-finish').click(); // sem pendência: encerra direto
+  await expect(page.locator('#screen-header')).toBeVisible();
+  const folha = page.getByTestId('last-sheet').first();
+  await expect(folha).toContainText('1 OS');
+
+  // Baixar e abrir o PDF de novo.
+  const download = page.waitForEvent('download');
+  await folha.getByRole('button', { name: 'Baixar PDF' }).click();
+  expect((await download).suggestedFilename()).toMatch(/_1_servico\.pdf$/);
+  const aba = context.waitForEvent('page');
+  await folha.getByRole('button', { name: 'Abrir PDF' }).click();
+  await (await aba).close();
+
+  // Editar: a folha volta a ser o turno aberto, com a OS; sai do histórico.
+  await folha.getByRole('button', { name: 'Editar', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('volta a ser o turno aberto');
+  await page.getByRole('button', { name: 'Editar folha' }).click();
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  await expect(page.getByTestId('os-item')).toContainText('OS 111');
+  // A folha reaberta saiu do histórico (o do topo fica vazio até encerrar de novo).
+  await page.locator('#historico-toggle').click();
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma folha encerrada');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  // Corrige e encerra de novo: volta ao topo do histórico, com as 2 OSs.
+  await novaOS(page, 'ocorrencia', '508', '222');
+  await salvar(page);
   await page.locator('#btn-finish').click();
-  await page.getByRole('button', { name: /Gerar PDF/ }).click();
-  await expect(page.getByRole('dialog')).toContainText('PDF gerado');
-  const hoje = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
-  const planilha = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Planilha (Excel)' }).click();
-  expect((await planilha).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hoje}_1_servico.xlsx`);
-  await page.getByRole('button', { name: 'Encerrar turno' }).click();
-  const doHistorico = page.waitForEvent('download');
-  await page.getByTestId('last-sheet').first().getByRole('button', { name: 'Planilha' }).click();
-  expect((await doHistorico).suggestedFilename()).toMatch(/\.xlsx$/);
+  await expect(page.getByTestId('last-sheet')).toHaveCount(1);
+  await expect(page.getByTestId('last-sheet').first()).toContainText('2 OSs');
+
+  // Botão do topo: a mesma lista; Editar desativado com turno aberto. (Turno novo já vem com a equipe; só o líder.)
+  await page.locator('#lider').selectOption({ label: 'TEC. LIDER - 69 90000-0000' });
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await page.locator('#historico-toggle').click();
+  await expect(page.getByRole('dialog').getByTestId('last-sheet')).toHaveCount(1);
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Editar', exact: true })).toBeDisabled();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+
+  // Excluir pede confirmação.
+  await page.locator('#historico-toggle').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('O PDF já baixado no celular não é apagado');
+  // Excluir é perigoso: o foco começa no Cancelar.
+  await expect(page.getByRole('dialog').getByRole('button', { name: 'Cancelar' })).toBeFocused();
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir', exact: true }).click();
+  // Depois de excluir, a janela do histórico volta (agora vazia).
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma folha encerrada');
+});
+
+test('excluir uma folha pelo cartão da tela inicial não apaga o que já foi digitado no cabeçalho', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return;
+    const header = (nome: string) => ({ nome1: nome, mat1: '1', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' });
+    const sheets = ['A', 'B'].map((n) => ({ header: header(`TURNO ${n}`), ordens: [], fechadaEm: 'x', tecnicos: [] }));
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: null, ordens: [], draft: null, sheets, lastHeader: null, tecnicos: [] }));
+  });
+  await page.goto('/');
+  await page.getByLabel('Equipe', { exact: true }).fill('DIGITADO');
+  await page.getByTestId('last-sheet').first().getByRole('button', { name: 'Excluir', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(page.getByTestId('last-sheet')).toHaveCount(1);
+  await expect(page.getByTestId('last-sheet')).toContainText('TURNO B');
+  await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('DIGITADO');
 });
 
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
@@ -652,7 +721,7 @@ test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) =
 
 test('voltar do Android na correção do cabeçalho cancela a correção (não fecha o app)', async ({ page }) => {
   await iniciarTurno(page);
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await page.getByLabel('Equipe', { exact: true }).fill('OUTRA');
   await page.goBack();
   await expect(page.locator('#screen-dashboard')).toBeVisible();
@@ -675,11 +744,11 @@ test('salvar a OS e abrir outra na hora: a nova continua aberta (o voltar atrasa
   await expect(page.getByTestId('os-item')).toHaveCount(1);
 });
 
-test('corrigir o cabeçalho mantém a folha', async ({ page }) => {
+test('editar o cabeçalho mantém a folha', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '28', '1');
   await salvar(page);
-  await page.getByRole('button', { name: 'Corrigir' }).click();
+  await page.getByRole('button', { name: 'Editar', exact: true }).click();
   await escolherEletricista1(page, 'João Souza', '123456');
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
   await expect(page.getByTestId('header-info')).toContainText('JOÃO SOUZA');

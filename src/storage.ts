@@ -99,6 +99,26 @@ export function pushSheet(sheets: readonly ClosedSheet[], sheet: ClosedSheet): C
   return [sheet, ...sheets].slice(0, SHEETS_KEPT);
 }
 
+export function removerFolha(sheets: readonly ClosedSheet[], sheet: ClosedSheet): ClosedSheet[] {
+  return sheets.filter((s) => s !== sheet);
+}
+
+/** Encerra o turno: a folha vai para o topo do histórico e cabeçalho, OSs e rascunho ficam vazios. */
+export function encerrarDados(d: AppData, sheet: ClosedSheet): void {
+  d.sheets = pushSheet(d.sheets, sheet);
+  d.header = null;
+  d.ordens = [];
+  d.draft = null;
+}
+
+/** "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. */
+export function reabrirDados(d: AppData, sheet: ClosedSheet): void {
+  d.header = sheet.header;
+  d.ordens = sheet.ordens;
+  d.draft = null;
+  d.sheets = removerFolha(d.sheets, sheet);
+}
+
 /**
  * Lê o estado salvo; dado ausente ou corrompido vira estado vazio. Primeiro as conversões de versões antigas (sobre
  * o JSON cru), depois os esquemas acima montam cada objeto só com os campos atuais. Se o resultado difere do que

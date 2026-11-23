@@ -114,7 +114,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
           'div',
           { class: 'flex items-center gap-2' },
           h('span', { class: 'text-xs bg-fg/10 px-3 py-1 rounded-full font-semibold text-fg' }, `${formatDateBR(header.data)} | ${formatHorario(header)}`),
-          h('button', { type: 'button', class: btn('neutral', 'sm'), onClick: p.onEditHeader }, icon(Pencil, 'w-3.5 h-3.5'), 'Corrigir'),
+          h('button', { type: 'button', class: btn('neutral', 'sm'), onClick: p.onEditHeader }, icon(Pencil, 'w-3.5 h-3.5'), 'Editar'),
         ),
       ),
       h(
@@ -154,9 +154,9 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         'button',
         { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} w-full shadow-lg shadow-accent/20`, onClick: p.onFinish },
         icon(FileDown, 'w-5 h-5'),
-        'Finalizar turno e gerar PDF',
+        'Encerrar turno e gerar PDF',
       ),
-      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Gera o Espelho de Campo. O turno só é encerrado depois que você confirmar que tem o PDF em mãos.'),
+      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Encerra o turno e baixa o Espelho de Campo em PDF. A folha fica nas últimas encerradas (dá para editar depois).'),
     ),
   );
 }

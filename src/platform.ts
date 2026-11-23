@@ -1,6 +1,6 @@
 /**
  * Ponte com o APK (android/: WebView + FerracineBridge.kt). No navegador/PWA ela não existe e o app usa as APIs web.
- * Na WebView, baixar um blob, abrir em nova aba e navigator.share não funcionam: o arquivo (PDF ou planilha) vai
+ * Na WebView, baixar um blob, abrir em nova aba e navigator.share não funcionam: o PDF vai
  * em base64 para o código nativo, que salva em Downloads, abre no app certo ou chama o compartilhamento do Android.
  * Cada método devolve "" em caso de sucesso ou a mensagem de erro (saveFile: "salvo:<nome>" no sucesso).
  */

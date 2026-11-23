@@ -15,7 +15,8 @@ houver, só serve para o app se atualizar.
 ## Como funciona
 
 1. **Cabeçalho do turno**: **Solo** ou **Dupla**, Eletricista 1 (e 2 na dupla) escolhidos na lista dos cadastrados
-   (a matrícula aparece no campo ao lado), equipe, viatura, data, horário de início e fim, bodycams e técnico líder. A partir do segundo turno, **tudo vem
+   (a matrícula aparece no campo ao lado), equipe, viatura, data, horário de início e fim, bodycams e técnico líder (obrigatório). Na dupla, quem está escolhido num eletricista não aparece na lista do
+   outro. A partir do segundo turno, **tudo vem
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
@@ -41,10 +42,11 @@ houver, só serve para o app se atualizar.
    Android) pede confirmação se algo foi preenchido.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
    respostas; a lixeira exclui. Número de OS repetido pede confirmação.
-5. **Finalizar turno**: gera o PDF e salva na hora (no APK, na pasta Downloads). A janela "PDF gerado" oferece
-   Compartilhar, Baixar, Abrir e **Planilha (Excel)** (`.xlsx` com o mesmo conteúdo do espelho, uma linha por OS); o
-   turno só é encerrado ao tocar em **Encerrar turno**. As **4 últimas folhas encerradas** ficam na tela inicial para
-   baixar ou compartilhar o PDF e baixar a planilha de novo (a 5ª mais antiga sai).
+5. **Encerrar turno e gerar PDF**: um toque encerra o turno e baixa o PDF (no APK, na pasta Downloads). Só aparece
+   uma janela se houver o que conferir (nenhuma OS, OS sem número ou sem DITAIS).
+6. **Últimas 4 folhas encerradas** (na tela inicial e no botão de histórico do topo, ao lado do tema): **Baixar**,
+   **Abrir**, **Compartilhar**, **Editar** e **Excluir**. Editar reabre a folha como turno (cabeçalho e OSs) para
+   corrigir; ao encerrar de novo, o PDF corrigido volta ao topo. A 5ª folha mais antiga sai.
 
 Campo obrigatório que falta (eletricista, horário, código da OS, DITAIS, dados do cadastro) fica
 com a **caixa vermelha** até ser preenchido.
@@ -116,11 +118,10 @@ design/       referência do dono do app: foto do PDF em papel (dados à mão co
 src/domain/   regras puras: catálogo de perguntas, regras da OS, linhas do espelho, formatação
 src/storage.ts  estado salvo no aparelho (chave ferracine_prod:v3)
 src/pdf.ts    montagem do PDF com jsPDF + AutoTable (carregado só ao gerar)
-src/planilha.ts planilha .xlsx do espelho (Office Open XML + zip do fflate)
-src/platform.ts ponte com o APK (salvar/abrir/compartilhar PDF e planilha)
+src/platform.ts ponte com o APK (salvar/abrir/compartilhar o PDF)
 src/ui/       telas (cabeçalho, painel, tela da OS), toast e modal
 src/app.ts    controlador: estado, persistência e navegação entre telas
-android/      app Android (WebView + ponte de arquivos: PDF e planilha)
+android/      app Android (WebView + ponte do PDF)
 tests/unit/   Vitest   ·   tests/e2e/  Playwright
 ```
 
@@ -152,5 +153,5 @@ rodapé. Sem internet nada muda. No navegador/PWA quem atualiza é o service wor
 A primeira versão foi um `index.html` único gerado com o Gemini (preservado no primeiro commit deste repositório).
 O layout seguiu um modelo enviado pelo dono e o PDF segue a folha de papel do Espelho de Campo. Sobre essa base, o app
 acrescenta: funcionamento offline (PWA e APK), salvamento da OS em andamento, edição completa de OS, correção do
-cabeçalho, preenchimento automático do turno, técnicos cadastráveis, histórico das 4 últimas folhas (PDF e planilha) e proteção contra
+cabeçalho, preenchimento automático do turno, técnicos cadastráveis, histórico das 4 últimas folhas (baixar, abrir, compartilhar, editar e excluir) e proteção contra
 injeção de HTML.

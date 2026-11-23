@@ -110,6 +110,14 @@ describe('OS nova (tela da OS)', () => {
     expect(r.ok && r.os.serviceCode).toBe('709');
   });
 
+  it('pendências do encerramento: OSs sem número e sem DITAIS', () => {
+    const ok = finishedOS('1', 'COMERCIAL', '28', { ...DITAIS_NAO });
+    const sn = finishedOS('', 'OCORRENCIA', '508', { ...DITAIS_NAO });
+    const semDitais = { ...ok, answers: {} };
+    expect(ordem.pendencias([ok])).toEqual({ semNumero: 0, semDitais: 0 });
+    expect(ordem.pendencias([ok, sn, semDitais])).toEqual({ semNumero: 1, semDitais: 1 });
+  });
+
   it('comercial também exige a pergunta dos DITAIS', () => {
     const semDitais = ordem.createOS({ ...ordem.startDraft('COMERCIAL'), serviceCode: '28' }, 'x', agora);
     expect(semDitais).toMatchObject({ ok: false, field: 'ditais' });

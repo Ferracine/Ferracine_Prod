@@ -117,10 +117,15 @@ export function describeAnswer(ans: Answer | undefined): string | null {
 
 /**
  * OS já salva sem a resposta de uma pergunta obrigatória (ex.: OS comercial registrada antes da 1.4.11, quando a
- * DITAIS ainda não valia na comercial). O lápis pede a resposta; o painel e o "Gerar PDF" avisam.
+ * DITAIS ainda não valia na comercial). O lápis pede a resposta; o painel e o "Encerrar turno" avisam.
  */
 export function faltaObrigatoria(os: Pick<OrdemServico, 'serviceType' | 'answers'>): boolean {
   return visibleQuestions(os.serviceType, os.answers).some((q) => q.required && os.answers[q.id]?.kind !== 'choice');
+}
+
+/** O que conferir antes de encerrar o turno: OSs sem número (S/N) e sem resposta obrigatória (DITAIS). */
+export function pendencias(ordens: readonly OrdemServico[]): { semNumero: number; semDitais: number } {
+  return { semNumero: ordens.filter((o) => !o.osNumber).length, semDitais: ordens.filter(faltaObrigatoria).length };
 }
 
 export function answerRows(os: Pick<OrdemServico, 'serviceType' | 'answers'>): AnswerRow[] {
