@@ -4,7 +4,7 @@
  * instalada, vira atualização.
  */
 
-const REPO = 'Bruno1991/Ferracine_Prod';
+const REPO = 'Ferracine/Ferracine_Prod';
 export const LATEST_RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 /** O APK só é baixado deste endereço (o Updater.kt confere o mesmo prefixo). */
 export const DOWNLOAD_PREFIX = `https://github.com/${REPO}/releases/download/`;

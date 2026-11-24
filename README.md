@@ -6,10 +6,10 @@ app web instalável (PWA). Nenhum dado sai do aparelho: tudo fica guardado no pr
 houver, só serve para o app se atualizar.
 
 - **APK (Android)**: baixe o `FerracineProd-<versão>.apk` em
-  [Releases](https://github.com/Bruno1991/Ferracine_Prod/releases/latest) e instale (o Android pede para permitir
+  [Releases](https://github.com/Ferracine/Ferracine_Prod/releases/latest) e instale (o Android pede para permitir
   "instalar apps desconhecidos" na primeira vez). Depois disso o próprio app avisa quando sair versão nova (ver
   "Atualização do APK").
-- **Web / PWA**: <https://bruno1991.github.io/Ferracine_Prod/> (abra uma vez com internet; depois funciona offline e
+- **Web / PWA**: <https://ferracine.github.io/Ferracine_Prod/> (abra uma vez com internet; depois funciona offline e
   pode ser instalado pelo menu do navegador).
 
 ## Como funciona
@@ -130,7 +130,7 @@ Para mudar perguntas, edite só [src/domain/catalog.ts](src/domain/catalog.ts): 
 ## Publicação
 
 - **GitHub Pages**: todo push no `main` roda `.github/workflows/deploy-pages.yml` (tipos, testes unitários, build)
-  e publica `dist/` em <https://bruno1991.github.io/Ferracine_Prod/>.
+  e publica `dist/` em <https://ferracine.github.io/Ferracine_Prod/>.
 - **APK**: suba a versão no `package.json`, rode `pnpm apk` e anexe `release/FerracineProd-<versão>.apk` a uma Release
   do GitHub (`gh release create v<versão> release/FerracineProd-<versão>.apk`). Publicar a Release já entrega a
   atualização a todos os celulares com o APK (ver abaixo).
@@ -147,6 +147,12 @@ app" (envia o APK ao Google) ou oferecer "Mais detalhes" → "Instalar sem anál
 PIN); qualquer um dos dois segue a instalação. No rodapé ficam a versão instalada e o botão
 **Procurar atualização**: enquanto consulta mostra "Procurando..." e, se houver versão nova, o aviso aparece ali no
 rodapé. Sem internet nada muda. No navegador/PWA quem atualiza é o service worker.
+
+## Créditos
+
+- **Idealizador:** Paulo Vitor Ferracini Silva — [github.com/Ferracine](https://github.com/Ferracine)
+- **Desenvolvimento:** Elias Bruno Silva — [github.com/Bruno1991](https://github.com/Bruno1991) · Claude Code —
+  [github.com/claude](https://github.com/claude)
 
 ## Histórico
 

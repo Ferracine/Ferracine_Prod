@@ -122,7 +122,7 @@ class Updater(private val activity: Activity, private val emit: (status: String,
 
     private companion object {
         /** Mesmo prefixo de src/domain/update.ts: o app só baixa APK das Releases do próprio repositório. */
-        const val DOWNLOAD_PREFIX = "https://github.com/Bruno1991/Ferracine_Prod/releases/download/"
+        const val DOWNLOAD_PREFIX = "https://github.com/Ferracine/Ferracine_Prod/releases/download/"
         const val DOWNLOAD_MAX_MS = 5 * 60_000L
 
         // Estado do processo, não da tela: se o Android recriar a MainActivity enquanto o eletricista está nas
