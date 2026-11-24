@@ -61,7 +61,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   sobre o JSON cru (bloco `// --- Conversões de versões antigas` no fim do arquivo: `lastSheet`, eletricistas,
   número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4, a cópia escondida do número
   em `answers.os` e a pergunta de dificuldade até a 1.4.12, que vira "Informações adicionais"), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
-  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.13 ou mais
+  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.16 ou mais
   nova. Esquemas (`Esquema<T>` + `montar`): um leitor por campo de cada tipo (`DADOS`, `OS`, `RASCUNHO`, `FOLHA`,
   `TECNICO`, `ELETRICISTA`, `CABECALHO`); campo novo no tipo, mesmo opcional, sem leitor **não compila** (se
   compilasse, a primeira abertura o apagaria). Leitor devolve `INVALIDO` para descartar o item (OS sem id, tipo
@@ -150,8 +150,10 @@ Regras de negócio que não são óbvias no código:
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
 - "Encerrar turno" encerra de fato: limpa cabeçalho e OSs e guarda a folha no topo de `sheets` (`SHEETS_KEPT` = 4; a
   mais antiga sai). O PDF só é baixado quando o eletricista toca em "Baixar PDF". A folha guarda `baixadaEm` ('' =
-  ainda não baixada nem compartilhada): o histórico mostra "PDF não baixado" e o encerramento avisa se uma folha não
-  baixada vai sair do histórico. Folhas de antes da 1.4.16 (encerrar já baixava) contam como baixadas.
+  ainda não baixada): o histórico mostra "PDF não baixado" e o encerramento avisa se uma folha não baixada vai sair do
+  histórico. Só **Baixar** marca (o compartilhar do Android não confirma o envio; Abrir é só ver); no navegador o
+  clique de download também não confirma que salvou. Reabrir e reencerrar zera a marca (o PDF corrigido precisa ser
+  baixado de novo). Folhas de antes da 1.4.16 (encerrar já baixava) contam como baixadas.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - DITAIS e demais SIM/NÃO entram sempre em INFORMAÇÃO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
   (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"

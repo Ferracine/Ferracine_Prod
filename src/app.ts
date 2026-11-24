@@ -35,14 +35,20 @@ function canShareFiles(): boolean {
 }
 
 // --- PDF ---------------------------------------------------------------------
-// jsPDF só é carregado quando o PDF é pedido no histórico (pré-carregado na tela inicial com folhas e ao abrir o
-// histórico do topo, para Abrir/Compartilhar agirem logo após o toque).
+// jsPDF só é carregado quando há folhas no histórico (pré-carregado em segundo plano, para Abrir/Compartilhar agirem
+// logo após o toque).
 
 let pdfModule: PdfModule | null = null;
 let pdfModuleLoading: Promise<PdfModule> | null = null;
 
 function loadPdfModule(): Promise<PdfModule> {
-  pdfModuleLoading ??= import('./pdf').then((mod) => (pdfModule = mod));
+  pdfModuleLoading ??= import('./pdf').then(
+    (mod) => (pdfModule = mod),
+    (error: unknown) => {
+      pdfModuleLoading = null; // sem sinal na 1ª vez, por exemplo: o próximo toque tenta de novo
+      throw error;
+    },
+  );
   return pdfModuleLoading;
 }
 
@@ -214,9 +220,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    // Abrir/Compartilhar precisam agir logo após o toque: na tela inicial com folhas, deixa o jsPDF carregado em segundo
-    // plano (a janela do histórico do topo carrega ao abrir).
-    if (!pdfModuleLoading && screen === 'header' && !editingHeader && data.sheets.length) {
+    // Abrir/Compartilhar do histórico (tela inicial ou janela do topo, em qualquer tela) precisam agir logo após o toque:
+    // com folhas no histórico, deixa o jsPDF carregado em segundo plano.
+    if (!pdfModuleLoading && data.sheets.length) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
     }
@@ -449,6 +455,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   function encerrar(): void {
     turnoReaberto = false;
     update((d) => encerrarDados(d, new Date().toISOString()));
+    // Toque duplo: o 2º toque cairia num botão da tela do cabeçalho, que acabou de aparecer no lugar do painel.
+    root.style.pointerEvents = 'none';
+    setTimeout(() => (root.style.pointerEvents = ''), 400);
     showToast('Turno encerrado. A folha está nas últimas encerradas: toque em "Baixar PDF" para salvar.', 'success');
   }
 
@@ -463,8 +472,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
       const pdf = buildPdf(pdfModule ?? (await loadPdfModule()), sheet);
       const saiu = await { download: downloadFile, open: openFile, share: shareFile }[mode](pdf);
-      // Baixado ou compartilhado: some o "PDF não baixado" (abrir só para ver não conta).
-      if (saiu && mode !== 'open' && !sheet.baixadaEm) {
+      // Só "Baixar" tira o "PDF não baixado": o Android não confirma o compartilhamento (abrir o seletor e voltar já
+      // conta como sucesso) e abrir é só para ver. No navegador, o clique de download também não confirma que salvou.
+      if (saiu && mode === 'download' && !sheet.baixadaEm) {
         update(() => {
           sheet.baixadaEm = new Date().toISOString();
         }, false);

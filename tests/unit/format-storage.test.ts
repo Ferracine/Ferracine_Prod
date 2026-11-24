@@ -140,6 +140,10 @@ describe('armazenamento', () => {
       lastHeader: header,
       eletricistas: [{ id: 'e', nome: 'ANA', matricula: '1' }],
     };
+    // Uma folha montada pelo próprio encerramento (a ordem dos campos tem de bater com o esquema FOLHA).
+    const turno: AppData = { ...emptyData(), header, ordens: [os], tecnicos: data.tecnicos };
+    encerrarDados(turno, '2026-11-20T20:00:00.000Z');
+    data.sheets = [...turno.sheets, ...data.sheets];
     const store = memoryStore();
     saveData(store, data);
     let gravacoes = 0;

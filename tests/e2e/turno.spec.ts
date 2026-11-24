@@ -130,6 +130,11 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('last-sheet')).toContainText('2 OSs');
   // Até baixar, a folha avisa "PDF não baixado"; baixar tira o aviso.
   await expect(page.getByTestId('last-sheet')).toContainText('PDF não baixado');
+  // Abrir é só ver: o aviso continua.
+  const aba = page.context().waitForEvent('page');
+  await page.getByTestId('last-sheet').getByRole('button', { name: 'Abrir PDF' }).click();
+  await (await aba).close();
+  await expect(page.getByTestId('last-sheet')).toContainText('PDF não baixado');
   const last = page.waitForEvent('download');
   await page.getByTestId('last-sheet').getByRole('button', { name: 'Baixar PDF' }).click();
   expect((await last).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);

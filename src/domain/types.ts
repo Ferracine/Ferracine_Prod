@@ -90,7 +90,7 @@ export interface ClosedSheet {
   fechadaEm: string;
   /** Técnicos cadastrados quando a folha foi gerada (o PDF de novo sai igual mesmo se a lista mudar). */
   tecnicos: Tecnico[];
-  /** Quando o PDF foi baixado ou compartilhado pela 1ª vez; '' = ainda não (o histórico mostra "PDF não baixado"). */
+  /** Quando o PDF foi baixado pela 1ª vez ("Baixar PDF"); '' = ainda não (o histórico mostra "PDF não baixado"). */
   baixadaEm: string;
 }
 

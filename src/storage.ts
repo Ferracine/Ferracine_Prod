@@ -161,10 +161,10 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
   }
 }
 
-// --- Conversões de versões antigas (1.1.0 a 1.4.12) ----------------------
+// --- Conversões de versões antigas (1.1.0 a 1.4.15) ----------------------
 // Rodam antes dos esquemas, sobre o JSON cru. Desde a 1.4.9 o app grava no formato atual ao abrir; a última conversão
-// (dificuldade → informações adicionais) é da 1.4.13. Quando todos os aparelhos já tiverem aberto a 1.4.13 ou mais
-// nova, este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
+// (`baixadaEm` das folhas antigas) é da 1.4.16. Quando todos os aparelhos já tiverem aberto a 1.4.16 ou mais nova, este
+// bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
 
 function converterDados(d: Record<string, unknown>): Record<string, unknown> {
   // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
@@ -180,7 +180,8 @@ function converterDados(d: Record<string, unknown>): Record<string, unknown> {
 
 /**
  * Folha do histórico: respostas antigas nas OSs; e, até a 1.4.15, encerrar já baixava o PDF, então a folha sem
- * `baixadaEm` conta como baixada no encerramento (não aparece "PDF não baixado" nas folhas antigas).
+ * `baixadaEm` conta como baixada no encerramento (não aparece "PDF não baixado" nas folhas antigas). Aproximação
+ * aceita: um download que falhou naquela época (ex.: Android 7–9 sem permissão) também conta como baixado.
  */
 function converterFolha(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object') return raw;
