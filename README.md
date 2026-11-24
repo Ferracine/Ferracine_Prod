@@ -37,7 +37,7 @@ houver, só serve para o app se atualizar.
    - Todos os campos de texto ficam em maiúsculas (o teclado abre com caps e o texto é convertido).
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
    mesma do lápis. Responda o que souber e toque em **Salvar OS**. A última pergunta, **Informações adicionais**, é uma caixa aberta
-   para relatar o que for necessário; vai direto para a coluna INFO ADICIONAL. O que é
+   para relatar o que for necessário; vai direto para a coluna INFORMAÇÃO ADICIONAL. O que é
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
    Android) pede confirmação se algo foi preenchido.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
@@ -56,9 +56,9 @@ A OS em preenchimento é salva a cada toque: fechar o app no meio não perde as 
 ### O PDF (Espelho de Campo)
 
 Segue a folha de papel [design/ex_pdf.jpeg](design/ex_pdf.jpeg), em A4 paisagem e preto e branco: logo do Grupo
-Energisa, identificação da equipe e tabela de 15 linhas com **ITEM, OS/OCORRÊNCIA, TIPO DE SERVIÇO (só o código),
+Energisa, identificação da equipe e tabela de 15 linhas com **ITEM, OS/OCORRÊNCIA, CÓDIGO (do serviço),
 KM INICIAL, HORÁRIO INICIAL, HORÁRIO FINAL, KM FINAL, MEDIDOR INSTALADO, LEITURA, MEDIDOR RETIRADO, LEITURA,
-CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFO ADICIONAL**. INFO ADICIONAL traz tudo o que o eletricista respondeu
+CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFORMAÇÃO ADICIONAL**. INFORMAÇÃO ADICIONAL traz tudo o que o eletricista respondeu
 e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, informações adicionais...).
 No rodapé, produção total e os técnicos cadastrados com o líder marcado. Logo e identificação ficam só na primeira folha. Com
 mais de 15 OSs, cada 15 a mais abrem uma folha que continua a tabela (títulos das colunas repetidos, ITEM seguindo); a

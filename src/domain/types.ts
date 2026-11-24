@@ -5,7 +5,7 @@ export type QuestionType = 'text' | 'yesno';
 /** Tipo de campo da resposta de texto: teclado sugerido no celular (`numeric`, `time`...) ou caixa aberta (`longo`). */
 export type InputKind = 'text' | 'numeric' | 'decimal' | 'time' | 'longo';
 
-/** Colunas próprias do Espelho de Campo; perguntas sem coluna (inclusive o tipo de serviço) vão para INFO ADICIONAL. */
+/** Colunas próprias do Espelho de Campo; perguntas sem coluna (inclusive o tipo de serviço) vão para INFORMAÇÃO ADICIONAL. */
 export const ESPELHO_COLUMNS = ['kmIni', 'horaIni', 'horaFin', 'kmFin', 'medidorInstalado', 'leituraInstalado', 'medidorRetirado', 'leituraRetirado', 'clientePresente'] as const;
 
 export type EspelhoColumn = (typeof ESPELHO_COLUMNS)[number];
@@ -22,16 +22,16 @@ export interface Question {
   isDitais?: boolean;
   /** Coluna própria no Espelho de Campo (fixa, ou conforme as respostas: ex. medidor atual vira "retirado" na troca). */
   espelho?: EspelhoColumn | ((answers: Record<string, Answer>) => EspelhoColumn);
-  /** Rótulo curto na coluna INFO ADICIONAL do PDF (perguntas sem `espelho`). */
+  /** Rótulo curto na coluna INFORMAÇÃO ADICIONAL do PDF (perguntas sem `espelho`). */
   short?: string;
   /**
    * Só aparece (e só vale) quando a condição é verdadeira, conforme as outras respostas; escondida, a resposta não
    * conta, não é validada e não vai ao PDF. Na tela, fica recuada embaixo da pergunta de que depende.
    */
   showIf?: (answers: Record<string, Answer>) => boolean;
-  /** Pergunta de controle (ex.: "Foi instalado novo medidor?"): a resposta não vai para INFO ADICIONAL. */
+  /** Pergunta de controle (ex.: "Foi instalado novo medidor?"): a resposta não vai para INFORMAÇÃO ADICIONAL. */
   semInfo?: boolean;
-  /** Vai para INFO ADICIONAL sem "Rótulo: " na frente (ex.: a caixa "Informações adicionais": a coluna já diz). */
+  /** Vai para INFORMAÇÃO ADICIONAL sem "Rótulo: " na frente (ex.: a caixa "Informações adicionais": a coluna já diz). */
   semRotulo?: boolean;
 }
 

@@ -4,14 +4,14 @@ import { espelhoRows } from '../../src/domain/espelho';
 import { DITAIS_NAO, finishedOS } from './fixtures';
 
 describe('linhas do Espelho de Campo', () => {
-  it('toda pergunta sem coluna própria tem rótulo curto para INFO ADICIONAL', () => {
+  it('toda pergunta sem coluna própria tem rótulo curto para INFORMAÇÃO ADICIONAL', () => {
     for (const type of ['COMERCIAL', 'OCORRENCIA'] as const) {
       const semRotulo = questionsFor(type).filter((q) => !q.espelho && !q.semInfo && !q.semRotulo && !q.short);
       expect(semRotulo.map((q) => q.id)).toEqual([]);
     }
   });
 
-  it('comercial: código sozinho, KM/horários/medidores/leituras/cliente nas colunas, o resto em INFO ADICIONAL', () => {
+  it('comercial: código sozinho, KM/horários/medidores/leituras/cliente nas colunas, o resto em INFORMAÇÃO ADICIONAL', () => {
     const os = finishedOS('7788', 'COMERCIAL', '709', {
       tipo: { kind: 'text', value: 'Ligação nova' },
       kmIni: { kind: 'text', value: '45210' },
@@ -42,7 +42,7 @@ describe('linhas do Espelho de Campo', () => {
         medidorRetirado: 'M-050',
         leituraRetirado: '15432',
         clientePresente: 'Sim',
-        // Informações adicionais: o relato vai sem rótulo (a coluna já é INFO ADICIONAL).
+        // Informações adicionais: o relato vai sem rótulo (a coluna já é INFORMAÇÃO ADICIONAL).
         info: 'Tipo: Ligação nova; Lançou ramal: Não; Cachorro solto',
       },
     ]);
@@ -58,7 +58,7 @@ describe('linhas do Espelho de Campo', () => {
     expect(espelhoRows([os])[0]?.info).not.toContain('novo medidor');
   });
 
-  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e informações adicionais vão para INFO ADICIONAL', () => {
+  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e informações adicionais vão para INFORMAÇÃO ADICIONAL', () => {
     const os = finishedOS('', 'OCORRENCIA', '508', {
       callback: { kind: 'choice', choice: 'Sim' },
       horaIni: { kind: 'text', value: '10:00' },
@@ -74,7 +74,7 @@ describe('linhas do Espelho de Campo', () => {
     expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor; Poste em área alagada');
   });
 
-  it('perguntas puladas não entram em INFO ADICIONAL', () => {
+  it('perguntas puladas não entram em INFORMAÇÃO ADICIONAL', () => {
     const [row] = espelhoRows([finishedOS('123', 'OCORRENCIA', '503')]);
     expect(row?.info).toBe('');
     expect(row?.os).toBe('123');

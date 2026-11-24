@@ -4,7 +4,7 @@ import type { Answer, Choice, Question, ServiceType } from './types';
  * Catálogo de perguntas da Folha de Produção, por tipo de OS, na ordem definida pelo dono do app.
  * Mudanças aqui alteram a tela da OS (nova e edição) e o PDF.
  * `espelho` liga a resposta a uma coluna própria do Espelho de Campo; as demais (inclusive "Qual tipo de serviço?")
- * entram em INFO ADICIONAL com o rótulo `short`. Os ids são estáveis: OSs salvas guardam as respostas por id.
+ * entram em INFORMAÇÃO ADICIONAL com o rótulo `short`. Os ids são estáveis: OSs salvas guardam as respostas por id.
  */
 
 export const SERVICE_LABEL: Record<ServiceType, string> = {
@@ -27,7 +27,7 @@ const LEITURA_INST: Question = { id: 'leituraInst', text: 'Qual a leitura do med
 const HORA_INI: Question = { id: 'horaIni', text: 'Deseja informar a hora inicial?', type: 'text', placeholder: 'Ex: 08:15', input: 'time', espelho: 'horaIni' };
 const KM_INI: Question = { id: 'kmIni', text: 'Deseja informar o KM inicial?', type: 'text', placeholder: 'Ex: 45210', input: 'numeric', espelho: 'kmIni' };
 const KM_FIN: Question = { id: 'kmFin', text: 'Deseja informar o KM final?', type: 'text', placeholder: 'Ex: 45235', input: 'numeric', espelho: 'kmFin' };
-/** Caixa aberta, a última nos dois tipos: o eletricista relata o que achar necessário; vai direto para INFO ADICIONAL. */
+/** Caixa aberta, a última nos dois tipos: o eletricista relata o que achar necessário; vai direto para INFORMAÇÃO ADICIONAL. */
 const INFO_ADICIONAL: Question = {
   id: 'infoAdicional',
   text: 'Informações adicionais',

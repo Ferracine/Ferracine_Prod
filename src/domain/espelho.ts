@@ -4,9 +4,9 @@ import { describeAnswer } from './ordem';
 import { ESPELHO_COLUMNS, type EspelhoColumn, type OrdemServico } from './types';
 
 /**
- * Linhas da tabela do Espelho de Campo. A coluna TIPO DE SERVIÇO traz só o código; as colunas próprias (KM,
+ * Linhas da tabela do Espelho de Campo. A coluna CÓDIGO traz o código do serviço; as colunas próprias (KM,
  * horários, medidores, leituras, cliente presente) vêm das perguntas etiquetadas com `espelho` no catálogo; todas
- * as outras respostas (tipo de serviço, defeito, informações adicionais...) vão para INFO ADICIONAL como "Rótulo: resposta".
+ * as outras respostas (tipo de serviço, defeito, informações adicionais...) vão para INFORMAÇÃO ADICIONAL como "Rótulo: resposta".
  */
 
 export type EspelhoRow = { item: number; os: string; codigo: string; info: string } & Record<EspelhoColumn, string>;

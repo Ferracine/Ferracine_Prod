@@ -43,17 +43,17 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/domain/` é puro (sem DOM, sem storage) e é onde estão as regras:
   - `catalog.ts`: a lista exata de perguntas de cada tipo, na ordem definida pelo dono (código do serviço é livre). Ids descritivos e
     estáveis (`kmIni`, `ditais`...): OSs salvas guardam respostas por id. `espelho: '<coluna>'` liga a resposta a uma
-    coluna do PDF; sem coluna, vai para INFO ADICIONAL com o rótulo `short`. O número da OS não é pergunta: fica
+    coluna do PDF; sem coluna, vai para INFORMAÇÃO ADICIONAL com o rótulo `short`. O número da OS não é pergunta: fica
     em `osNumber` (campo do topo da tela; vazio = S/N).
   - Perguntas condicionais: `showIf(respostas)` no catálogo (ex.: número/leitura do medidor novo da comercial só com
     "Foi instalado novo medidor?" = SIM). `espelho` pode ser função das respostas: na troca, o medidor da UC vai para
     MEDIDOR RETIRADO e o novo para MEDIDOR INSTALADO. Escondida não vale:
     `finalize` grava `skipped`, `checked` não valida, `answerRows`/espelho ignoram (`isVisible`). `semInfo` = pergunta
-    de controle que não vai para INFO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
+    de controle que não vai para INFORMAÇÃO ADICIONAL. Na tela, a dependente fica recuada (`ml-6`) e aparece/some na hora.
   - `ordem.ts`: regras da OS como funções puras. `startDraft` (OS nova), `createOS` ("Salvar OS") e `applyEdit`
     (lápis) passam pelas mesmas regras (código, DITAIS). `finalize` normaliza respostas vazias
     (e escondidas) para `skipped`. `isUnchanged` decide se Cancelar confirma.
-  - `espelho.ts`: linhas do PDF a partir do catálogo (TIPO DE SERVIÇO = só o código).
+  - `espelho.ts`: linhas do PDF a partir do catálogo (coluna CÓDIGO = código do serviço).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
@@ -150,7 +150,7 @@ Regras de negócio que não são óbvias no código:
 - "Encerrar turno e gerar PDF" encerra de fato: limpa cabeçalho e OSs, guarda a folha no topo de `sheets`
   (`SHEETS_KEPT` = 4; a mais antiga sai) e baixa o PDF. Erro ao gerar o PDF mantém o turno aberto.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
-- DITAIS e demais SIM/NÃO entram sempre em INFO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
+- DITAIS e demais SIM/NÃO entram sempre em INFORMAÇÃO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
   (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"
   (`infoAdicional`, caixa aberta, `semRotulo`) entra sem rótulo.
 - Testes de PDF procuram texto direto em `doc.output()` (sem compressão, acentos em latin-1); `flat()` emenda

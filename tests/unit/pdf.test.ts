@@ -35,7 +35,7 @@ function comercial(n: number): OrdemServico {
   }, `id-${n}`);
 }
 
-/** Ocorrência com todas as perguntas respondidas (o pior caso para o espaço da INFO ADICIONAL). */
+/** Ocorrência com todas as perguntas respondidas (o pior caso para o espaço da INFORMAÇÃO ADICIONAL). */
 function ocorrenciaCompleta(n: number): OrdemServico {
   return finishedOS(`16438545${n}`, 'OCORRENCIA', '508', {
     callback: { kind: 'choice', choice: 'Sim' },
@@ -65,7 +65,7 @@ function flat(text: string): string {
 }
 
 describe('PDF do Espelho de Campo', () => {
-  it('traz identificação, as colunas do espelho, INFO ADICIONAL e técnicos cadastrados numa folha A4 paisagem', () => {
+  it('traz identificação, as colunas do espelho, INFORMAÇÃO ADICIONAL e técnicos cadastrados numa folha A4 paisagem', () => {
     const doc = buildSheetPdf(header, [comercial(1), ocorrenciaCompleta(2)], tecnicos);
     const text = pdfText(doc);
     for (const s of [
@@ -96,10 +96,10 @@ describe('PDF do Espelho de Campo', () => {
       expect(text).toContain(s);
     }
     const emendado = flat(text);
-    for (const s of ['TIPO DE SERVIÇO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'CLIENTE PRESENTE', 'INFO ADICIONAL', 'Tipo: Ligação nova', 'Tipo: Falta de energia', 'Acesso difícil ao poste']) {
+    for (const s of ['CÓDIGO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'CLIENTE PRESENTE', 'INFORMAÇÃO ADICIONAL', 'Tipo: Ligação nova', 'Tipo: Falta de energia', 'Acesso difícil ao poste']) {
       expect(emendado).toContain(s);
     }
-    // TIPO DE SERVIÇO traz só o código: a descrição está em INFO ADICIONAL.
+    // CÓDIGO traz só o código do serviço: a descrição está em INFORMAÇÃO ADICIONAL.
     expect(text).not.toContain('709 - Ligação nova');
     expect(doc.getNumberOfPages()).toBe(1);
     expect(doc.internal.pageSize.getWidth()).toBeCloseTo(297, 0);
@@ -143,7 +143,7 @@ describe('PDF do Espelho de Campo', () => {
     for (const [pagina, n] of [[f1, 1], [f2, 2]] as const) {
       expect(pagina).toContain('(DATA: 20/11/2026   |   EQUIPE: PVH-01)');
       expect(pagina).toContain(`(FOLHA ${n}/2)`);
-      expect(flat(pagina)).toContain('TIPO DE SERVIÇO'); // títulos das colunas em toda folha
+      expect(flat(pagina)).toContain('CÓDIGO'); // títulos das colunas em toda folha
     }
     expect(f1).toContain('(15) Tj');
     expect(f1).not.toContain('(16) Tj');

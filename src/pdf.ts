@@ -99,12 +99,12 @@ function checkbox(doc: jsPDF, x: number, y: number, size: number, marked: boolea
   doc.line(x + size - p, y + p, x + p, y + size - p);
 }
 
-const HEAD = ['', 'OS/OCORRÊNCIA', 'TIPO DE SERVIÇO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'CLIENTE PRESENTE', 'INFO ADICIONAL'];
+const HEAD = ['', 'OS/OCORRÊNCIA', 'CÓDIGO', 'KM INICIAL', 'HORÁRIO INICIAL', 'HORÁRIO FINAL', 'KM FINAL', 'MEDIDOR INSTALADO', 'LEITURA', 'MEDIDOR RETIRADO', 'LEITURA', 'CLIENTE PRESENTE', 'INFORMAÇÃO ADICIONAL'];
 const COL_CLIENTE = HEAD.indexOf('CLIENTE PRESENTE');
 
 /**
- * ITEM (vertical) | OS/OCORRÊNCIA | TIPO DE SERVIÇO (código) | KM INICIAL | HORÁRIO INICIAL | HORÁRIO FINAL | KM FINAL |
- * MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | CLIENTE PRESENTE (SIM/NÃO) | INFO ADICIONAL
+ * ITEM (vertical) | OS/OCORRÊNCIA | CÓDIGO (do serviço) | KM INICIAL | HORÁRIO INICIAL | HORÁRIO FINAL | KM FINAL |
+ * MEDIDOR INSTALADO | LEITURA | MEDIDOR RETIRADO | LEITURA | CLIENTE PRESENTE (SIM/NÃO) | INFORMAÇÃO ADICIONAL
  */
 function tabelaServicos(doc: jsPDF, linhas: readonly EspelhoRow[], primeiroItem: number, startY?: number): void {
   const rows: RowInput[] = linhas.map((r) => [
