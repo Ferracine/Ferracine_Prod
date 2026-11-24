@@ -106,12 +106,15 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByRole('dialog')).toContainText('456');
   await page.keyboard.press('Escape');
 
-  // Encerrar: sem pendência, um toque encerra o turno e já baixa o PDF (nenhuma janela).
-  const download = page.waitForEvent('download');
+  // Encerrar: sem pendência, um toque encerra o turno, sem janela e SEM baixar nada (só pelo "Baixar PDF").
+  let baixou = false;
+  page.on('download', () => (baixou = true));
   await page.locator('#btn-finish').click();
-  const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
-  expect((await download).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);
+  await expect(page.locator('#screen-header')).toBeVisible();
   await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.waitForTimeout(500);
+  expect(baixou).toBe(false);
+  const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
   await expect(page.locator('#screen-header')).toBeVisible();
@@ -254,9 +257,7 @@ test('encerrar com pendência (nenhuma OS ou OS S/N): pergunta antes; "Voltar e 
   await salvar(page);
   await page.locator('#btn-finish').click();
   await expect(page.getByRole('dialog')).toContainText('1 OS está sem número (S/N)');
-  const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
-  expect((await download).suggestedFilename()).toMatch(/_1_servico\.pdf$/);
   await expect(page.locator('#screen-header')).toBeVisible();
   await expect(page.getByTestId('last-sheet')).toContainText('1 OS');
 });
@@ -484,6 +485,7 @@ test('aviso "Salvo em Downloads" com nome de arquivo comprido não vaza para for
   await iniciarTurno(page);
   await page.locator('#btn-finish').click();
   await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
+  await page.getByTestId('last-sheet').first().getByRole('button', { name: 'Baixar PDF' }).click(); // só baixa ao pedir
   const aviso = page.getByRole('status').filter({ hasText: nome });
   await expect(aviso).toBeVisible();
   expect(await aviso.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);

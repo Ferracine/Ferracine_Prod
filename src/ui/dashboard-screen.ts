@@ -154,9 +154,9 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         'button',
         { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} w-full shadow-lg shadow-accent/20`, onClick: p.onFinish },
         icon(FileDown, 'w-5 h-5'),
-        'Encerrar turno e gerar PDF',
+        'Encerrar turno',
       ),
-      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Encerra o turno e baixa o Espelho de Campo em PDF. A folha fica nas últimas encerradas (dá para editar depois).'),
+      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'A folha vai para as últimas encerradas: de lá você baixa, abre ou compartilha o PDF (e edita, se precisar).'),
     ),
   );
 }

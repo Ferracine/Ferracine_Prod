@@ -109,7 +109,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** OS aberta na tela de edição (lápis). Só em memória: a OS salva muda apenas em "Salvar alterações". */
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
   let shownScreen: Screen | null = null;
-  let generating = false;
   /** O turno aberto veio de uma folha reaberta: corrigir o cabeçalho dela não muda o "próximo turno" (lastHeader). */
   let turnoReaberto = false;
   const shareSupported = canShareFiles();
@@ -414,7 +413,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   // --- PDF e encerramento do turno ----------------------------------------
 
   /**
-   * "Encerrar turno e gerar PDF": encerra de fato e já baixa o PDF. Só pergunta antes se houver o que conferir
+   * "Encerrar turno": encerra de fato (sem baixar nada). Só pergunta antes se houver o que conferir
    * (nenhuma OS, OS sem número ou sem DITAIS); a folha encerrada pode ser reaberta depois pelo "Editar" do histórico.
    */
   function encerrarTurno(): void {
@@ -427,44 +426,28 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       !data.tecnicos.some((t) => t.id === data.header?.lider) && 'Sem técnico líder: use "Editar" no cabeçalho para escolher.',
     ].filter((p): p is string => !!p);
     if (!pendencias.length) {
-      void encerrarEGerar();
+      encerrar();
       return;
     }
     confirmModal(
       'Conferir antes de encerrar',
       h('div', { class: 'space-y-3' }, pendencias.map((p) => h('div', { class: CALLOUT.danger }, p)), h('p', null, 'Use o lápis na lista para corrigir, ou encerre assim mesmo.')),
       { label: 'Encerrar mesmo assim', variant: 'accent' },
-      () => void encerrarEGerar(),
+      encerrar,
       'Voltar e corrigir',
     );
   }
 
-  async function encerrarEGerar(): Promise<void> {
-    // Toque duplo enquanto o jsPDF carrega não pode encerrar duas vezes.
-    if (generating || !data.header) return;
-    generating = true;
+  /**
+   * Encerra o turno: a folha vai para o topo do histórico e cabeçalho/OSs ficam vazios. O PDF não é baixado aqui: só
+   * quando o eletricista toca em Baixar (ou Abrir/Compartilhar) na folha.
+   */
+  function encerrar(): void {
+    if (!data.header) return;
     const sheet: ClosedSheet = { header: data.header, ordens: data.ordens, fechadaEm: new Date().toISOString(), tecnicos: data.tecnicos };
-    let pdf: Arquivo;
-    try {
-      pdf = await sheetPdf(sheet);
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      showToast('Erro ao gerar o PDF. O turno continua aberto; tente novamente.', 'error');
-      return;
-    } finally {
-      generating = false;
-    }
-    // Enquanto o gerador carregava, a tela seguiu livre: se o turno mudou (OS salva, rascunho, edição), não encerra
-    // com dados velhos.
-    if (data.header !== sheet.header || data.ordens !== sheet.ordens || data.draft || editing || editingHeader) {
-      showToast('O turno mudou enquanto o PDF era preparado. Toque em "Encerrar turno" de novo.', 'warning');
-      return;
-    }
     turnoReaberto = false;
-    // `sheet` é o mesmo objeto do PDF: o memo serve os botões do histórico sem remontar.
     update((d) => encerrarDados(d, sheet));
-    showToast('Turno encerrado. O PDF está nas últimas folhas encerradas.', 'success');
-    void downloadFile(pdf);
+    showToast('Turno encerrado. A folha está nas últimas encerradas: toque em "Baixar PDF" para salvar.', 'success');
   }
 
   /** Folhas sendo entregues agora: toque duplo na mesma entrega uma vez só; as outras folhas seguem livres. */
@@ -519,7 +502,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
           reabrirDados(d, sheet);
           d.tecnicos = [...d.tecnicos, ...sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id))];
         });
-        showToast('Folha reaberta: corrija o que precisar e toque em "Encerrar turno e gerar PDF".', 'info');
+        showToast('Folha reaberta: corrija o que precisar e toque em "Encerrar turno".', 'info');
       },
     );
   }
