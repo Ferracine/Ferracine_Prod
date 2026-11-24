@@ -2,7 +2,7 @@ import { History } from 'lucide';
 import { SERVICE_LABEL } from './domain/catalog';
 import { osLabel, plural, sheetFileName, sheetLabel } from './domain/format';
 import * as ordem from './domain/ordem';
-import type { AppData, ClosedSheet, OrdemServico, OSDraft, ShiftHeader } from './domain/types';
+import { SHEETS_KEPT, type AppData, type ClosedSheet, type OrdemServico, type OSDraft, type ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
 import { encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
@@ -35,7 +35,8 @@ function canShareFiles(): boolean {
 }
 
 // --- PDF ---------------------------------------------------------------------
-// jsPDF só é carregado quando preciso (gerar, ou pré-carregar na tela inicial para o Compartilhar).
+// jsPDF só é carregado quando o PDF é pedido no histórico (pré-carregado na tela inicial com folhas e ao abrir o
+// histórico do topo, para Abrir/Compartilhar agirem logo após o toque).
 
 let pdfModule: PdfModule | null = null;
 let pdfModuleLoading: Promise<PdfModule> | null = null;
@@ -57,49 +58,52 @@ function buildPdf(mod: PdfModule, sheet: ClosedSheet): Arquivo {
   return pdf;
 }
 
-async function sheetPdf(sheet: ClosedSheet): Promise<Arquivo> {
-  return buildPdf(pdfModule ?? (await loadPdfModule()), sheet);
-}
-
-/** No APK, entrega o arquivo ao código nativo; devolve true se a ponte tratou o pedido. */
-async function viaAndroid(action: 'saveFile' | 'openFile' | 'shareFile', arquivo: Arquivo): Promise<boolean> {
-  if (!androidBridge) return false;
+/** No APK, entrega o arquivo ao código nativo: null = sem a ponte (navegador); senão, se deu certo. */
+async function viaAndroid(action: 'saveFile' | 'openFile' | 'shareFile', arquivo: Arquivo): Promise<boolean | null> {
+  if (!androidBridge) return null;
   arquivo.base64 ??= await blobToBase64(arquivo.blob);
   const r = androidBridge[action](arquivo.base64, arquivo.fileName, arquivo.mime);
   // saveFile: "salvo:<nome que ficou em Downloads>"; os outros: "" quando dá certo. Senão, a mensagem de erro.
   if (r.startsWith(SAVED_PREFIX)) showToast(`Salvo em Downloads: ${r.slice(SAVED_PREFIX.length)}`, 'success');
   else if (r) showToast(r, 'error');
-  return true;
+  return !r || r.startsWith(SAVED_PREFIX);
 }
 
-async function downloadFile(pdf: Arquivo): Promise<void> {
-  if (await viaAndroid('saveFile', pdf)) return;
+/** Devolvem true quando o PDF saiu (baixado/compartilhado). */
+async function downloadFile(pdf: Arquivo): Promise<boolean> {
+  const nativo = await viaAndroid('saveFile', pdf);
+  if (nativo !== null) return nativo;
   const url = URL.createObjectURL(pdf.blob);
   const a = h('a', { href: url, download: pdf.fileName, class: 'hidden' });
   document.body.append(a);
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return true;
 }
 
-async function openFile(pdf: Arquivo): Promise<void> {
-  if (await viaAndroid('openFile', pdf)) return;
+async function openFile(pdf: Arquivo): Promise<boolean> {
+  const nativo = await viaAndroid('openFile', pdf);
+  if (nativo !== null) return nativo;
   const url = URL.createObjectURL(pdf.blob);
-  if (!window.open(url, '_blank')) {
-    showToast('O navegador bloqueou a abertura. Use "Baixar PDF" ou "Compartilhar".', 'warning');
-  }
+  const aberto = !!window.open(url, '_blank');
+  if (!aberto) showToast('O navegador bloqueou a abertura. Use "Baixar PDF" ou "Compartilhar".', 'warning');
   setTimeout(() => URL.revokeObjectURL(url), 120_000);
+  return aberto;
 }
 
-async function shareFile(pdf: Arquivo): Promise<void> {
-  if (await viaAndroid('shareFile', pdf)) return;
+async function shareFile(pdf: Arquivo): Promise<boolean> {
+  const nativo = await viaAndroid('shareFile', pdf);
+  if (nativo !== null) return nativo;
   try {
     const file = new File([pdf.blob], pdf.fileName, { type: pdf.mime });
     await navigator.share({ files: [file], title: pdf.fileName });
+    return true;
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') return; // usuário fechou o compartilhamento
+    if (error instanceof DOMException && error.name === 'AbortError') return false; // usuário fechou o compartilhamento
     console.error('Erro ao compartilhar PDF:', error);
     showToast('Não foi possível compartilhar. Use "Baixar PDF".', 'warning');
+    return false;
   }
 }
 
@@ -210,9 +214,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    // Abrir/Compartilhar do histórico (que abre em qualquer tela) precisam agir logo após o toque: deixa o jsPDF
-    // carregado em segundo plano.
-    if (!pdfModule) {
+    // Abrir/Compartilhar precisam agir logo após o toque: na tela inicial com folhas, deixa o jsPDF carregado em segundo
+    // plano (a janela do histórico do topo carrega ao abrir).
+    if (!pdfModuleLoading && screen === 'header' && !editingHeader && data.sheets.length) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
     }
@@ -413,17 +417,20 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   // --- PDF e encerramento do turno ----------------------------------------
 
   /**
-   * "Encerrar turno": encerra de fato (sem baixar nada). Só pergunta antes se houver o que conferir
-   * (nenhuma OS, OS sem número ou sem DITAIS); a folha encerrada pode ser reaberta depois pelo "Editar" do histórico.
+   * "Encerrar turno": encerra num toque, sem gerar nem baixar o PDF (só pelo Baixar do histórico). Pergunta antes só
+   * se houver o que conferir (nenhuma OS, OS sem número ou sem DITAIS, sem técnico líder, ou uma folha ainda não
+   * baixada que sairia do histórico); a folha encerrada pode ser reaberta depois pelo "Editar" do histórico.
    */
   function encerrarTurno(): void {
     const n = data.ordens.length;
     const { semNumero, semDitais } = ordem.pendencias(data.ordens);
+    const sai = data.sheets.length >= SHEETS_KEPT ? data.sheets[SHEETS_KEPT - 1] : undefined;
     const pendencias = [
       n === 0 && 'Nenhuma OS registrada: a folha sai em branco.',
       semNumero > 0 && `${plural(semNumero, 'OS está', 'OSs estão')} sem número (S/N).`,
       semDitais > 0 && `${plural(semDitais, 'OS está', 'OSs estão')} sem a resposta dos DITAIS (obrigatória).`,
       !data.tecnicos.some((t) => t.id === data.header?.lider) && 'Sem técnico líder: use "Editar" no cabeçalho para escolher.',
+      sai && !sai.baixadaEm && `A folha de ${sheetLabel(sai)} não foi baixada e sai do histórico ao encerrar: baixe antes, se precisar.`,
     ].filter((p): p is string => !!p);
     if (!pendencias.length) {
       encerrar();
@@ -431,22 +438,17 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     }
     confirmModal(
       'Conferir antes de encerrar',
-      h('div', { class: 'space-y-3' }, pendencias.map((p) => h('div', { class: CALLOUT.danger }, p)), h('p', null, 'Use o lápis na lista para corrigir, ou encerre assim mesmo.')),
+      h('div', { class: 'space-y-3' }, pendencias.map((p) => h('div', { class: CALLOUT.danger }, p)), h('p', null, 'Corrija o que precisar, ou encerre assim mesmo.')),
       { label: 'Encerrar mesmo assim', variant: 'accent' },
       encerrar,
       'Voltar e corrigir',
     );
   }
 
-  /**
-   * Encerra o turno: a folha vai para o topo do histórico e cabeçalho/OSs ficam vazios. O PDF não é baixado aqui: só
-   * quando o eletricista toca em Baixar (ou Abrir/Compartilhar) na folha.
-   */
+  /** A folha vai para o topo do histórico com "PDF não baixado" até o eletricista baixar (`encerrarDados`). */
   function encerrar(): void {
-    if (!data.header) return;
-    const sheet: ClosedSheet = { header: data.header, ordens: data.ordens, fechadaEm: new Date().toISOString(), tecnicos: data.tecnicos };
     turnoReaberto = false;
-    update((d) => encerrarDados(d, sheet));
+    update((d) => encerrarDados(d, new Date().toISOString()));
     showToast('Turno encerrado. A folha está nas últimas encerradas: toque em "Baixar PDF" para salvar.', 'success');
   }
 
@@ -459,8 +461,15 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     delivering.add(sheet);
     try {
       // Com o módulo já carregado, monta na hora (síncrono) e o compartilhamento ainda conta como resposta ao toque.
-      const pdf = pdfModule ? buildPdf(pdfModule, sheet) : await sheetPdf(sheet);
-      await { download: downloadFile, open: openFile, share: shareFile }[mode](pdf);
+      const pdf = buildPdf(pdfModule ?? (await loadPdfModule()), sheet);
+      const saiu = await { download: downloadFile, open: openFile, share: shareFile }[mode](pdf);
+      // Baixado ou compartilhado: some o "PDF não baixado" (abrir só para ver não conta).
+      if (saiu && mode !== 'open' && !sheet.baixadaEm) {
+        update(() => {
+          sheet.baixadaEm = new Date().toISOString();
+        }, false);
+        atualizarListasDeFolhas();
+      }
     } catch (error) {
       console.error('Erro ao gerar o PDF:', error);
       showToast('Não foi possível gerar o PDF.', 'error');
@@ -487,14 +496,15 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   }
 
   /**
-   * "Editar": a folha volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico; "Encerrar" a devolve corrigida.
+   * "Editar": a folha volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico; ao encerrar, a folha corrigida
+   * volta ao topo do histórico.
    * Os técnicos da folha voltam ao cadastro (o líder dela continua valendo, mesmo se tinha sido excluído).
    */
   function reabrirFolha(sheet: ClosedSheet): void {
     if (data.header) return; // com turno aberto o botão já vem desativado, com o aviso
     confirmModal(
       'Editar folha encerrada',
-      `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, o PDF corrigido volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
+      `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, a folha corrigida volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
       { label: 'Editar folha', variant: 'primary' },
       () => {
         turnoReaberto = true;
@@ -507,7 +517,15 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     );
   }
 
-  /** Não redesenha a tela (perderia o que estiver sendo digitado): só o cartão das folhas, se estiver na tela. */
+  /** Troca só as listas de folhas na tela (cartão da tela inicial e janela do topo): redesenhar perderia o digitado. */
+  function atualizarListasDeFolhas(): void {
+    const cartao = document.querySelector('[data-testid="last-sheets"]');
+    if (data.sheets.length) cartao?.replaceWith(sheetsCard(folhasProps()));
+    else cartao?.remove();
+    document.querySelector('[role="dialog"] [data-lista="folhas"]')?.replaceWith(listaFolhas(folhasProps(true)));
+  }
+
+  /** Não redesenha a tela (perderia o que estiver sendo digitado). */
   function excluirFolha(sheet: ClosedSheet, naJanela: boolean): void {
     confirmModal(
       'Excluir folha',
@@ -517,9 +535,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         update((d) => {
           d.sheets = removerFolha(d.sheets, sheet);
         }, false);
-        const cartao = document.querySelector('[data-testid="last-sheets"]');
-        if (data.sheets.length) cartao?.replaceWith(sheetsCard(folhasProps()));
-        else cartao?.remove();
+        atualizarListasDeFolhas();
         showToast('Folha excluída do histórico.', 'success');
         if (naJanela) abrirHistorico();
       },

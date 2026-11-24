@@ -11,7 +11,7 @@ Evidências: `git grep` em src, tests, README.md e CLAUDE.md; `tsc --noEmit` (no
 - [x] `CLAUDE.md:85` e `CLAUDE.md:150-151` — descrevem o download automático e "erro ao gerar mantém o turno aberto" — atualizar
 
 ## Lote 2 (Risco Baixo/Médio)
-- Nenhum item: `sheetPdf`, `loadPdfModule`, `downloadFile` e o pré-carregamento seguem em uso (`deliverSheet`, `abrirHistorico`); a variável `generating` e a guarda de "turno mudou" já saíram no commit da funcionalidade.
+- Nenhum item: `loadPdfModule`, `downloadFile` e o pré-carregamento seguem em uso (`deliverSheet`, `abrirHistorico`); a variável `generating` e a guarda de "turno mudou" já saíram no commit da funcionalidade. (Depois, no /simplify: `sheetPdf` saiu — `deliverSheet` chama `buildPdf` direto — e o pré-carregamento ficou só na tela inicial com folhas.)
 
 ## Lote 3 (Risco Médio)
 - Nenhum item.

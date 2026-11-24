@@ -43,7 +43,8 @@ houver, só serve para o app se atualizar.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
    respostas; a lixeira exclui. Número de OS repetido pede confirmação.
 5. **Encerrar turno**: um toque encerra o turno e a folha vai para as últimas encerradas; nada é baixado sozinho.
-   Só aparece uma janela se houver o que conferir (nenhuma OS, OS sem número, sem DITAIS ou sem técnico líder).
+   Só aparece uma janela se houver o que conferir (nenhuma OS, OS sem número, sem DITAIS, sem técnico líder ou uma
+   folha ainda não baixada que sairia do histórico). Até ser baixada, a folha mostra **PDF não baixado**.
 6. **Últimas 4 folhas encerradas** (na tela inicial e no botão de histórico do topo, ao lado do tema): **Baixar** (salva o PDF; no APK, na pasta Downloads),
    **Abrir**, **Compartilhar**, **Editar** e **Excluir**. Editar reabre a folha como turno (cabeçalho e OSs) para
    corrigir; ao encerrar de novo, o PDF corrigido volta ao topo. A 5ª folha mais antiga sai.

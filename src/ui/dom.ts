@@ -111,7 +111,7 @@ export const CALLOUT = {
 
 /**
  * Padrão dos botões: mesmo raio (rounded-xl), mesmo espaçamento em todas as cores e área de toque mínima de 44 px
- * (luva, sol, celular numa mão só). A cor diz o papel: ciano do logo = ação principal, laranja = encerrar/gerar,
+ * (luva, sol, celular numa mão só). A cor diz o papel: ciano do logo = ação principal, laranja = encerrar,
  * vermelho = excluir/descartar, cinza = o resto.
  */
 // `btn` e `btn-<tom>`: ganchos dos temas retrô (styles.css), que troca o acabamento sem mudar as telas.

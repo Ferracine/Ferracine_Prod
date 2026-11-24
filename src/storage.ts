@@ -80,6 +80,7 @@ const FOLHA: Esquema<ClosedSheet> = {
   ordens: (v) => lista(OS, v),
   fechadaEm: texto,
   tecnicos: (v) => lista(TECNICO, v),
+  baixadaEm: texto,
 };
 
 /** Tudo o que o app guarda. Sem versão 3 ou sem a lista de OSs, o dado não é deste app: começa vazio. */
@@ -103,9 +104,13 @@ export function removerFolha(sheets: readonly ClosedSheet[], sheet: ClosedSheet)
   return sheets.filter((s) => s !== sheet);
 }
 
-/** Encerra o turno: a folha vai para o topo do histórico e cabeçalho, OSs e rascunho ficam vazios. */
-export function encerrarDados(d: AppData, sheet: ClosedSheet): void {
-  d.sheets = pushSheet(d.sheets, sheet);
+/**
+ * Encerra o turno: a folha (ainda sem PDF baixado) vai para o topo do histórico e cabeçalho, OSs e rascunho ficam
+ * vazios. Sem turno aberto, não faz nada.
+ */
+export function encerrarDados(d: AppData, fechadaEm: string): void {
+  if (!d.header) return;
+  d.sheets = pushSheet(d.sheets, { header: d.header, ordens: d.ordens, fechadaEm, tecnicos: d.tecnicos, baixadaEm: '' });
   d.header = null;
   d.ordens = [];
   d.draft = null;
@@ -168,8 +173,22 @@ function converterDados(d: Record<string, unknown>): Record<string, unknown> {
     ...d,
     ordens: Array.isArray(d.ordens) ? d.ordens.map(converterOS) : d.ordens,
     draft: converterRascunho(d.draft),
-    sheets: sheets.map((s: unknown) => (s && typeof s === 'object' && Array.isArray((s as ClosedSheet).ordens) ? { ...s, ordens: (s as ClosedSheet).ordens.map(converterOS) } : s)),
+    sheets: sheets.map(converterFolha),
     eletricistas: Array.isArray(d.eletricistas) ? d.eletricistas : eletricistasDosCabecalhos(normalizeHeader(d.header), normalizeHeader(d.lastHeader)),
+  };
+}
+
+/**
+ * Folha do histórico: respostas antigas nas OSs; e, até a 1.4.15, encerrar já baixava o PDF, então a folha sem
+ * `baixadaEm` conta como baixada no encerramento (não aparece "PDF não baixado" nas folhas antigas).
+ */
+function converterFolha(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object') return raw;
+  const s = raw as Partial<ClosedSheet>;
+  return {
+    ...s,
+    ...(Array.isArray(s.ordens) ? { ordens: s.ordens.map(converterOS) } : {}),
+    ...('baixadaEm' in s ? {} : { baixadaEm: s.fechadaEm }),
   };
 }
 

@@ -25,7 +25,7 @@ export function listaFolhas(p: FolhasProps): HTMLElement {
     h('button', { type: 'button', class: btn(tom), onClick: () => p.onAcao(sheet, acao), ...extra }, icon(node), texto);
   return h(
     'div',
-    { class: 'space-y-3' },
+    { class: 'space-y-3', 'data-lista': 'folhas' },
     p.sheets.map((sheet) => {
       // Destrutiva, mas discreta (contornada, texto vermelho): o destaque fica com "Baixar PDF"; confirma antes.
       const excluir = botao(sheet, 'delete', 'outline', Trash2, 'Excluir');
@@ -33,7 +33,12 @@ export function listaFolhas(p: FolhasProps): HTMLElement {
       return h(
         'div',
         { class: 'space-y-2 border-t border-fg/10 pt-3 first:border-t-0 first:pt-0', 'data-testid': 'last-sheet' },
-        h('p', { class: 'text-xs text-muted min-w-0' }, sheetLabel(sheet)),
+        h(
+          'p',
+          { class: 'text-xs text-muted min-w-0 flex flex-wrap items-center gap-2' },
+          sheetLabel(sheet),
+          !sheet.baixadaEm && h('span', { class: 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-rose-500/15 text-danger-fg' }, 'PDF não baixado'),
+        ),
         gradeBotoes(
           [
             botao(sheet, 'download', 'primary', Download, 'Baixar PDF'),

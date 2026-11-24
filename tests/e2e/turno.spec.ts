@@ -117,7 +117,6 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
 
   // Próximo turno: dados da equipe já preenchidos, data de hoje e técnico líder em branco.
-  await expect(page.locator('#screen-header')).toBeVisible();
   await expect(page.locator('#eletricista1 option:checked')).toHaveText('JOÃO DA SILVA');
   await expect(page.locator('#matricula1')).toHaveValue('123456');
   await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('PVH-01');
@@ -129,9 +128,12 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByLabel('Data *')).toHaveValue(hoje);
   await expect(page.getByLabel('Técnico líder responsável')).toHaveValue('');
   await expect(page.getByTestId('last-sheet')).toContainText('2 OSs');
+  // Até baixar, a folha avisa "PDF não baixado"; baixar tira o aviso.
+  await expect(page.getByTestId('last-sheet')).toContainText('PDF não baixado');
   const last = page.waitForEvent('download');
   await page.getByTestId('last-sheet').getByRole('button', { name: 'Baixar PDF' }).click();
   expect((await last).suggestedFilename()).toBe(`JOAO_DA_SILVA_${hojeBR}_2_servicos.pdf`);
+  await expect(page.getByTestId('last-sheet')).not.toContainText('PDF não baixado');
 });
 
 test('dois "+": Comercial e Ocorrência abrem a tela da OS em branco com as perguntas de cada tipo', async ({ page }) => {
@@ -517,6 +519,21 @@ test('cabeçalho do turno: uma informação por linha (eletricistas separados)',
   await page.getByLabel('Equipe', { exact: true }).evaluate((el) => ((el as HTMLInputElement).value = 'pvh-02'));
   await page.getByRole('button', { name: /Salvar cabeçalho/ }).click();
   await expect(page.getByTestId('header-info')).toContainText('PVH-02');
+});
+
+test('encerrar avisa quando uma folha não baixada vai sair do histórico (só 4 ficam)', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (localStorage.getItem('ferracine_prod:v3')) return;
+    const h = (nome: string) => ({ nome1: nome, mat1: '1', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: 't1' });
+    const sheets = [4, 3, 2, 1].map((n) => ({ header: h(`TURNO ${n}`), ordens: [], fechadaEm: 'x', tecnicos: [], baixadaEm: n === 1 ? '' : 'x' }));
+    const os = { id: 'a', osNumber: '1', serviceType: 'COMERCIAL', serviceCode: '28', answers: { ditais: { kind: 'choice', choice: 'Não' } }, registradaEm: 'x' };
+    localStorage.setItem('ferracine_prod:v3', JSON.stringify({ version: 3, header: h('ATUAL'), ordens: [os], draft: null, sheets, lastHeader: h('ATUAL'), tecnicos: [{ id: 't1', nome: 'TEC', telefone: '1' }], eletricistas: [] }));
+  });
+  await page.route('https://api.github.com/**', (route) => route.abort());
+  await page.goto('/');
+  await page.locator('#btn-finish').click();
+  await expect(page.getByRole('dialog')).toContainText('TURNO 1');
+  await expect(page.getByRole('dialog')).toContainText('não foi baixada e sai do histórico');
 });
 
 test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeiro', async ({ page }) => {

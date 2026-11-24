@@ -1,4 +1,4 @@
-import { ClipboardList, Eye, FileDown, Pencil, Plus, Trash2 } from 'lucide';
+import { CheckCheck, ClipboardList, Eye, Pencil, Plus, Trash2 } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
@@ -153,7 +153,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       h(
         'button',
         { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} w-full shadow-lg shadow-accent/20`, onClick: p.onFinish },
-        icon(FileDown, 'w-5 h-5'),
+        icon(CheckCheck, 'w-5 h-5'),
         'Encerrar turno',
       ),
       h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'A folha vai para as últimas encerradas: de lá você baixa, abre ou compartilha o PDF (e edita, se precisar).'),

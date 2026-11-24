@@ -149,7 +149,9 @@ Regras de negócio que não são óbvias no código:
   antes da 1.4.11 não tem a resposta: o lápis pede antes de salvar.
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
 - "Encerrar turno" encerra de fato: limpa cabeçalho e OSs e guarda a folha no topo de `sheets` (`SHEETS_KEPT` = 4; a
-  mais antiga sai). O PDF só é baixado quando o eletricista toca em "Baixar PDF".
+  mais antiga sai). O PDF só é baixado quando o eletricista toca em "Baixar PDF". A folha guarda `baixadaEm` ('' =
+  ainda não baixada nem compartilhada): o histórico mostra "PDF não baixado" e o encerramento avisa se uma folha não
+  baixada vai sair do histórico. Folhas de antes da 1.4.16 (encerrar já baixava) contam como baixadas.
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - DITAIS e demais SIM/NÃO entram sempre em INFORMAÇÃO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
   (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"

@@ -66,7 +66,7 @@ describe('armazenamento', () => {
       header: { ...header, equipe: 'PVH-01', viatura: 'ABC1D23', bodycam2: 'BC-9', lider: 't1' },
       ordens: [{ id: '1', osNumber: '10', serviceType: 'COMERCIAL', serviceCode: '28', answers: { tipo: { kind: 'skipped' } }, registradaEm: '2026-11-20T10:00:00.000Z' }],
       draft: { osNumber: '', serviceType: 'OCORRENCIA', serviceCode: '508', answers: {} },
-      sheets: [{ header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos }],
+      sheets: [{ header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos, baixadaEm: '' }],
       eletricistas: [{ id: 'e1', nome: 'ANA', matricula: '1' }],
       lastHeader: header,
       tecnicos,
@@ -136,7 +136,7 @@ describe('armazenamento', () => {
       header,
       ordens: [os],
       draft: { ...startDraft('OCORRENCIA'), serviceCode: '508' },
-      sheets: [{ header, ordens: [os], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos: [{ id: 't', nome: 'TEC', telefone: '1' }] }],
+      sheets: [{ header, ordens: [os], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos: [{ id: 't', nome: 'TEC', telefone: '1' }], baixadaEm: '' }],
       lastHeader: header,
       eletricistas: [{ id: 'e', nome: 'ANA', matricula: '1' }],
     };
@@ -168,21 +168,32 @@ describe('armazenamento', () => {
 
   it('encerrar → editar (reabrir) → encerrar de novo: a folha volta ao turno e depois ao topo do histórico', () => {
     const os = finishedOS('1', 'COMERCIAL', '28', {}, 'o1');
-    const antiga = { header: { ...header, nome1: 'VELHA' }, ordens: [], fechadaEm: 'x', tecnicos: [] };
+    const antiga = { header: { ...header, nome1: 'VELHA' }, ordens: [], fechadaEm: 'x', tecnicos: [], baixadaEm: 'x' };
     const d: AppData = { ...emptyData(), header, ordens: [os], sheets: [antiga] };
-    const folha = { header, ordens: d.ordens, fechadaEm: '2026-11-20T18:00:00.000Z', tecnicos: [] };
-    encerrarDados(d, folha);
+    encerrarDados(d, '2026-11-20T18:00:00.000Z');
+    // A folha é montada do turno, ainda sem PDF baixado.
+    const folha = { header, ordens: [os], fechadaEm: '2026-11-20T18:00:00.000Z', tecnicos: [], baixadaEm: '' };
     expect(d).toMatchObject({ header: null, ordens: [], draft: null, sheets: [folha, antiga] });
-    reabrirDados(d, folha);
+    reabrirDados(d, d.sheets[0]!);
     expect(d).toMatchObject({ header, ordens: [os], draft: null, sheets: [antiga] });
+    encerrarDados(d, '2026-11-21T08:00:00.000Z');
     const corrigida = { ...folha, fechadaEm: '2026-11-21T08:00:00.000Z' };
-    encerrarDados(d, corrigida);
     expect(d.sheets).toEqual([corrigida, antiga]);
     expect(removerFolha(d.sheets, antiga)).toEqual([corrigida]);
+    // Sem turno aberto, encerrar não faz nada.
+    encerrarDados(d, 'x');
+    expect(d.sheets).toEqual([corrigida, antiga]);
+  });
+
+  it('até a 1.4.15 encerrar já baixava o PDF: folha antiga (sem baixadaEm) conta como baixada; a nova não', () => {
+    const velha = { header, ordens: [], fechadaEm: '2026-11-19T20:00:00.000Z', tecnicos: [] };
+    const nova = { ...velha, fechadaEm: '2026-11-20T20:00:00.000Z', baixadaEm: '' };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), sheets: [nova, velha] }) }));
+    expect(loaded.sheets.map((s) => s.baixadaEm)).toEqual(['', '2026-11-19T20:00:00.000Z']);
   });
 
   it('rótulo da folha e "mesma pessoa" (nome e matrícula, sem diferença de maiúsculas/espaços)', () => {
-    expect(sheetLabel({ header, ordens: [], fechadaEm: 'x', tecnicos: [] })).toBe('20/11/2026 • João da Silva • 0 OSs');
+    expect(sheetLabel({ header, ordens: [], fechadaEm: 'x', tecnicos: [], baixadaEm: '' })).toBe('20/11/2026 • João da Silva • 0 OSs');
     expect(mesmaPessoa({ nome: ' ana ', matricula: '1' }, { nome: 'ANA', matricula: '1 ' })).toBe(true);
     expect(mesmaPessoa({ nome: 'ANA', matricula: '1' }, { nome: 'ANA', matricula: '2' })).toBe(false);
     expect(mesmaPessoa(null, { nome: 'ANA', matricula: '1' })).toBe(false);
@@ -241,7 +252,7 @@ describe('armazenamento', () => {
   });
 
   it('histórico de folhas: a última folha da versão anterior vira o 1º item; guarda no máximo 4', () => {
-    const folha = (data: string) => ({ header: { ...header, data }, ordens: [], fechadaEm: data, tecnicos: [] });
+    const folha = (data: string) => ({ header: { ...header, data }, ordens: [], fechadaEm: data, tecnicos: [], baixadaEm: data });
     // Até a 1.4.4: só `lastSheet`.
     const antigo = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), sheets: undefined, lastSheet: folha('2026-11-20') }) }));
     expect(antigo.sheets.map((s) => s.header.data)).toEqual(['2026-11-20']);
