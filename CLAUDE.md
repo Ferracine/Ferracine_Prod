@@ -159,11 +159,10 @@ Regras de negócio que não são óbvias no código:
 ## Publicação
 
 Remoto `origin` = github.com/Ferracine/Ferracine_Prod (público; dono: conta **Ferracine**, idealizador Paulo Vitor
-Ferracini Silva; Pages em ferracine.github.io/Ferracine_Prod). O `gh`/git padrão desta máquina é do Bruno1991, que
-não tem acesso ao repositório: push e Release vão com o token da conta Ferracine (`FERRACINE_GITHUB_TOKEN` do
-`C:\dev\.env`), por comando e sem gravar o token (ex.: `git -c http.https://github.com/.extraheader="AUTHORIZATION:
-basic <base64 de x-access-token:TOKEN>" push origin main` e `GH_TOKEN=... gh release create -R Ferracine/Ferracine_Prod
-...`). Push no `main` publica no GitHub Pages pelo
+Ferracini Silva; Pages em ferracine.github.io/Ferracine_Prod). O Bruno1991 (o `gh`/git padrão desta máquina) é
+colaborador com escrita: push e Release saem normalmente (`git push`, `gh release create -R Ferracine/Ferracine_Prod`).
+Configurações do repositório (Pages, colaboradores) só pela conta Ferracine: `GH_TOKEN=$FERRACINE_GITHUB_TOKEN gh api ...`
+(`C:\dev\.env`), por comando e sem gravar o token. Push no `main` publica no GitHub Pages pelo
 workflow `.github/workflows/deploy-pages.yml` (lint, testes unitários, build). O APK vai como asset de uma
 Release (`gh release create v<versão> release/FerracineProd-<versão>.apk`). **Publicar a Release entrega a
 atualização a todos os APKs instalados**: tag `v` + versão do `package.json` e o APK com esse nome exato, assinado
@@ -171,9 +170,9 @@ com a chave de sempre. Push, Release e publicação só com OK explícito do Bru
 
 ## Pendências conhecidas
 
-- Mudança de conta (1.4.15): o repositório antigo `Bruno1991/Ferracine_Prod` fica **arquivado** com a 1.4.15 (a
-  ponte: os APKs até a 1.4.14 só olham lá, atualizam para ela e passam a olhar a conta Ferracine). Quando todos os
-  celulares estiverem na 1.4.15+, apagar o repositório antigo e tirar o aviso de `bruno1991.github.io` do `main.ts`.
+- Mudança de conta (1.4.15): o repositório antigo `Bruno1991/Ferracine_Prod` foi apagado. APK até a 1.4.14 não
+  recebe mais atualização sozinho: instalar uma vez à mão o APK da Release mais recente da conta Ferracine (mesma
+  assinatura; os dados do app ficam).
 - O Chrome grava o `localStorage` em disco com atraso: Chrome morto com o app na tela pode perder o último passo do
   preenchimento. Se isso virar problema em campo, migrar o estado para IndexedDB.
 - No navegador/PWA, o voltar do sistema com uma janela aberta no painel segue o histórico (pode sair do app). No APK
