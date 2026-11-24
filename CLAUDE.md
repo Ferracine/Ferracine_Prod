@@ -82,7 +82,8 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/platform.ts`: ponte com o APK (`window.FerracineAndroid`). Na WebView não há download de blob, nova aba nem
   `navigator.share`: o PDF vai em base64 com o tipo (`mime`) para `FerracineBridge.kt`
   (`saveFile`/`openFile`/`shareFile`). No navegador a ponte não existe.
-- Fim do turno (`app.ts`): "Encerrar turno e gerar PDF" (`encerrarTurno`) encerra e baixa o PDF num toque; só
+- Fim do turno (`app.ts`): "Encerrar turno" (`encerrarTurno` → `encerrar`) encerra num toque, sem gerar nem baixar o
+  PDF (ele é montado só quando pedido no histórico: Baixar/Abrir/Compartilhar, `deliverSheet`); só
   pergunta antes se houver pendência (nenhuma OS, S/N, `faltaObrigatoria`). Histórico (`src/ui/folhas.ts`,
   `listaFolhas`): o mesmo componente no cartão da tela do cabeçalho e na janela do botão `#historico-toggle` do topo;
   ações Baixar/Abrir/Compartilhar/Editar/Excluir. **Editar** (`reabrirFolha`) devolve a folha ao turno aberto
@@ -147,8 +148,8 @@ Regras de negócio que não são óbvias no código:
 - A pergunta dos DITAIS (`ditais`) é a única obrigatória, nos dois tipos (OS nova e edição). OS comercial salva
   antes da 1.4.11 não tem a resposta: o lápis pede antes de salvar.
 - Número da OS é opcional: `osNumber` vazio aparece como "S/N" (`osLabel`).
-- "Encerrar turno e gerar PDF" encerra de fato: limpa cabeçalho e OSs, guarda a folha no topo de `sheets`
-  (`SHEETS_KEPT` = 4; a mais antiga sai) e baixa o PDF. Erro ao gerar o PDF mantém o turno aberto.
+- "Encerrar turno" encerra de fato: limpa cabeçalho e OSs e guarda a folha no topo de `sheets` (`SHEETS_KEPT` = 4; a
+  mais antiga sai). O PDF só é baixado quando o eletricista toca em "Baixar PDF".
 - Turno novo vem preenchido com `lastHeader` (exceto data = hoje e líder em branco).
 - DITAIS e demais SIM/NÃO entram sempre em INFORMAÇÃO ADICIONAL ("Rótulo: SIM/NÃO"), menos as perguntas de controle
   (`semInfo`: "Foi instalado novo medidor?"), porque as colunas de medidor já dizem. "Informações adicionais"

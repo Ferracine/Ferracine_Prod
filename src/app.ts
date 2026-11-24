@@ -45,7 +45,7 @@ function loadPdfModule(): Promise<PdfModule> {
   return pdfModuleLoading;
 }
 
-/** PDF já montado de cada folha (a do turno e as do histórico): alternar entre elas não remonta o jsPDF. */
+/** PDF já montado de cada folha do histórico: baixar, abrir e compartilhar a mesma folha não remonta o jsPDF. */
 const pdfMemo = new WeakMap<ClosedSheet, Arquivo>();
 
 function buildPdf(mod: PdfModule, sheet: ClosedSheet): Arquivo {
@@ -210,8 +210,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    // Encerrar gera o PDF e Abrir/Compartilhar do histórico (que abre em qualquer tela) precisam agir logo após o toque:
-    // deixa o jsPDF carregado em segundo plano.
+    // Abrir/Compartilhar do histórico (que abre em qualquer tela) precisam agir logo após o toque: deixa o jsPDF
+    // carregado em segundo plano.
     if (!pdfModule) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
