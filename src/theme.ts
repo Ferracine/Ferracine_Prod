@@ -1,29 +1,50 @@
 import { Check, Moon, Palette, Sun } from 'lucide';
 import { androidBridge } from './platform';
-import { botaoDoTopo, BTN_CHOICE, ESCOLHA_OFF, h, icon } from './ui/dom';
+import { botaoDoTopo, BTN_CHOICE, ESCOLHA_OFF, ESCOLHA_ON, h, icon } from './ui/dom';
 import { closeModal, openModal } from './ui/feedback';
 
 /**
- * Aparência em dois eixos, cada um num atributo do <html> e salvo no aparelho:
- * - estilo (`data-estilo`): Tema 1 "Moderno" (padrão), Tema 2 "Retrô 98" ou Tema 3 "Windows 3.1";
- * - variante (`data-theme`): claro ou escuro (sem escolha salva, segue o celular).
- * O script no <head> do index.html aplica os dois antes da primeira pintura (mesmas chaves e regras); aqui ficam os
- * botões do topo (lista de temas e claro/escuro) e o acompanhamento do tema do celular. Cores em styles.css.
+ * Aparência em dois eixos independentes, gravados no aparelho e aplicados no <html>:
+ * - estilo (`data-estilo`): tema completo e independente (superfícies, botões, bordas e tipografia em `ESTILOS`);
+ * - variante (`data-theme`): `light` ou `dark` (sem escolha salva, segue o celular).
+ * Nenhum tema herda cores do logotipo; cada estilo possui identidade cromática própria em styles.css.
  */
 
 type Theme = 'light' | 'dark';
+type GrupoEstilo = 'Paletas modernas' | 'Especiais e clássicos';
 
-/** Temas, na ordem da lista. O id é o valor de `data-estilo` (cores em styles.css). */
+interface EstiloDef {
+  readonly id: string;
+  readonly grupo: GrupoEstilo;
+  readonly nome: string;
+  readonly descricao: string;
+}
+
+/** Lista única de temas (fonte de verdade). Cada tema possui paleta de botões e superfícies exclusiva (claro + escuro). */
 const ESTILOS = [
-  { id: 'moderno', nome: 'Tema 1: Moderno', descricao: 'Cantos arredondados, cores do logo Energisa.' },
-  { id: 'retro', nome: 'Tema 2: Retrô 98', descricao: 'Janelas cinza em relevo, barra de título em degradê.' },
-  { id: 'win31', nome: 'Tema 3: Windows 3.1', descricao: 'Janelas brancas com moldura preta, barra de título sólida.' },
-] as const;
+  { id: 'moderno', grupo: 'Paletas modernas', nome: 'Tema 1: Safira & Violeta', descricao: 'Cantos arredondados, botões em azul safira e violeta real.' },
+  { id: 'floresta', grupo: 'Paletas modernas', nome: 'Tema 2: Esmeralda & Ouro', descricao: 'Superfície sálvia suave com botões esmeralda e ouro velho.' },
+  { id: 'sol-forte', grupo: 'Paletas modernas', nome: 'Tema 3: Alto Contraste', descricao: 'Branco solar / preto OLED puro, bordas de 2 px, ultramar e púrpura.' },
+  { id: 'win98', grupo: 'Especiais e clássicos', nome: 'Tema 4: Windows 98', descricao: 'Desktop teal, cinza #c0c0c0 com chanfro 3D e barra azul marinho.' },
+  { id: 'xp', grupo: 'Especiais e clássicos', nome: 'Tema 5: Windows XP', descricao: 'Estilo Luna / Royale Noir com barra brilhante, botões perolados e verde Iniciar.' },
+  { id: 'win31', grupo: 'Especiais e clássicos', nome: 'Tema 6: Windows 3.1', descricao: 'Moldura 16-bit de cantos retos, título centralizado e alto contraste VGA.' },
+  { id: 'win10', grupo: 'Especiais e clássicos', nome: 'Tema 7: Windows 10', descricao: 'Visual Fluent nítido em Segoe UI com azul #0078D7 e foco inferior.' },
+] as const satisfies readonly EstiloDef[];
+
 type Estilo = (typeof ESTILOS)[number]['id'];
 
+const GRUPOS: readonly GrupoEstilo[] = ['Paletas modernas', 'Especiais e clássicos'];
 const KEY = 'ferracine_prod:theme';
 const ESTILO_KEY = 'ferracine_prod:estilo';
 const systemDark = window.matchMedia('(prefers-color-scheme: dark)');
+
+function ler(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
 
 function guardar(key: string, valor: string): void {
   try {
@@ -33,24 +54,50 @@ function guardar(key: string, valor: string): void {
   }
 }
 
-function saved(): Theme | null {
-  try {
-    const t = localStorage.getItem(KEY);
-    return t === 'light' || t === 'dark' ? t : null;
-  } catch {
-    return null;
-  }
+function savedTheme(): Theme | null {
+  const t = ler(KEY);
+  return t === 'light' || t === 'dark' ? t : null;
 }
 
-const estiloAtual = (): Estilo => ESTILOS.find((e) => e.id === document.documentElement.dataset.estilo)?.id ?? 'moderno';
+const temaAtual = (): Theme => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
 
-/** Barras do sistema (e a cor do navegador) com o fundo da combinação atual (variável --app de styles.css). */
+function normalizarEstilo(): Estilo {
+  const salvo = ler(ESTILO_KEY);
+  const bruto = salvo ?? document.documentElement.dataset.estilo;
+  if (bruto === 'retro') {
+    guardar(ESTILO_KEY, 'win98');
+    return 'win98';
+  }
+  const valido = ESTILOS.find((e) => e.id === bruto)?.id;
+  if (valido) return valido;
+  if (salvo !== null) guardar(ESTILO_KEY, 'moderno');
+  return 'moderno';
+}
+
+function canal(v: string | undefined): number {
+  return Math.max(0, Math.min(255, Math.round(Number(v) || 0)));
+}
+
+/**
+ * Converte a cor computada do body em #rrggbb de 6 dígitos (Color.parseColor do Android recusa #fff/#000) e calcula
+ * a luminância real da barra para escolher ícones claros ou escuros no sistema.
+ */
+function lerCorDaBarra(): { hex: string; escura: boolean } | null {
+  const m = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g);
+  if (!m || m.length < 3 || m[3] === '0') return null;
+  const r = canal(m[0]);
+  const g = canal(m[1]);
+  const b = canal(m[2]);
+  const hex = `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+  return { hex, escura: 0.299 * r + 0.587 * g + 0.114 * b < 140 };
+}
+
+/** Sincroniza meta theme-color e barras do Android com o fundo atual do tema. */
 function pintarBarras(): void {
-  const root = document.documentElement;
-  const bar = getComputedStyle(root).getPropertyValue('--app').trim();
-  if (!bar) return;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bar);
-  androidBridge?.setSystemBars(bar, root.dataset.theme === 'dark'); // no APK, as barras do Android seguem o tema
+  const cor = lerCorDaBarra();
+  if (!cor) return;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', cor.hex);
+  androidBridge?.setSystemBars(cor.hex, cor.escura);
 }
 
 function applyTheme(theme: Theme, button: HTMLButtonElement): void {
@@ -67,54 +114,130 @@ function applyEstilo(estilo: Estilo): void {
   pintarBarras();
 }
 
-/** Janela com a lista dos temas; tocar num deles aplica, guarda e fecha. */
-function escolherEstilo(): void {
-  const atual = estiloAtual();
-  const opcoes = ESTILOS.map((e) =>
+/** Miniatura fiel da paleta (fundo, cartão, faixa de título e pílulas dos dois tons de botão). */
+function miniatura(id: Estilo, theme: Theme): HTMLElement {
+  return h(
+    'span',
+    { 'data-estilo': id, 'data-theme': theme, class: 'amostra shrink-0 w-16 h-12 border border-fg/25 p-1.5 flex items-center justify-center', 'aria-hidden': 'true' },
+    h(
+      'span',
+      { class: 'amostra-janela w-full h-full flex flex-col justify-between overflow-hidden' },
+      h('span', { class: 'amostra-titulo block h-2.5 w-full' }),
+      h(
+        'span',
+        { class: 'flex items-center gap-1 px-1.5 pb-1' },
+        h('span', { class: 'amostra-brand h-2 flex-1' }),
+        h('span', { class: 'amostra-accent h-2 flex-1' }),
+      ),
+    ),
+  );
+}
+
+/** Janela com todos os temas e alternador Claro/Escuro ao vivo para comparar as paletas. */
+function escolherEstilo(botaoTemaTopo: HTMLButtonElement): void {
+  const atual = normalizarEstilo();
+  const amostras: HTMLElement[] = [];
+
+  const modoBtns = (
+    [
+      { id: 'light', rotulo: 'Claro', icone: Sun },
+      { id: 'dark', rotulo: 'Escuro', icone: Moon },
+    ] as const
+  ).map((m) =>
     h(
       'button',
       {
         type: 'button',
-        'data-estilo-opcao': e.id,
-        'aria-pressed': String(e.id === atual),
-        class: `${BTN_CHOICE} w-full justify-start text-left gap-3 p-3 min-h-16 ${e.id === atual ? 'border-brand bg-brand/10 text-fg' : ESCOLHA_OFF}`,
-        onClick: () => {
-          guardar(ESTILO_KEY, e.id);
-          applyEstilo(e.id);
-          closeModal();
-        },
+        'data-modo-cor': m.id,
+        class: `${BTN_CHOICE} flex-1 min-h-11 px-3 text-xs`,
+        onClick: () => trocarModoNaJanela(m.id),
       },
-      // Miniatura com as cores do próprio tema (styles.css: `.amostra`), na variante clara/escura em uso.
-      h(
-        'span',
-        { 'data-estilo': e.id, 'data-theme': document.documentElement.dataset.theme ?? 'light', class: 'amostra shrink-0 w-14 h-11 border border-fg/20 p-1.5', 'aria-hidden': 'true' },
-        h('span', { class: 'amostra-janela block w-full h-full border border-black/40' }, h('span', { class: 'amostra-titulo block h-2' })),
-      ),
-      h('span', { class: 'flex-1 min-w-0' }, h('span', { class: 'block text-sm font-extrabold' }, e.nome), h('span', { class: 'block text-xs font-medium text-muted' }, e.descricao)),
-      e.id === atual && icon(Check, 'w-5 h-5 shrink-0 text-brand-fg'),
+      icon(m.icone, 'w-4 h-4'),
+      m.rotulo,
     ),
   );
-  openModal('Escolha o tema', h('div', { class: 'space-y-2' }, opcoes, h('p', { class: 'text-xs text-muted pt-1' }, 'Claro ou escuro: botão do sol/lua, ao lado. O PDF não muda com o tema.')), [
-    { label: 'Fechar', variant: 'neutral', onClick: closeModal },
-  ]);
-}
 
-/** Botões do topo: lista de temas e claro ↔ escuro. */
-export function initTheme(slotTema: HTMLElement, slotEstilo: HTMLElement): void {
-  botaoDoTopo(slotEstilo, Palette, 'Escolher o tema', escolherEstilo);
-  // O <head> já aplicou (só os ids conhecidos); aqui só garante o valor normalizado (as barras são pintadas abaixo).
-  document.documentElement.dataset.estilo = estiloAtual();
-
-  const botaoTema = botaoDoTopo(slotTema, Moon, 'Usar tema escuro', () => undefined);
-  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light', botaoTema);
-  botaoTema.onclick = () => {
-    const theme: Theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    guardar(KEY, theme);
-    applyTheme(theme, botaoTema);
+  const sincronizarModoBtns = (theme: Theme) => {
+    for (const b of modoBtns) {
+      const ativo = b.dataset.modoCor === theme;
+      b.setAttribute('aria-pressed', String(ativo));
+      for (const c of ESCOLHA_ON.split(' ')) b.classList.toggle(c, ativo);
+      for (const c of ESCOLHA_OFF.split(' ')) b.classList.toggle(c, !ativo);
+    }
+    for (const a of amostras) a.dataset.theme = theme;
   };
 
-  // Sem escolha salva, acompanha o tema do celular.
+  const trocarModoNaJanela = (theme: Theme) => {
+    guardar(KEY, theme);
+    applyTheme(theme, botaoTemaTopo);
+    sincronizarModoBtns(theme);
+  };
+
+  const secoes = GRUPOS.map((grupo) => {
+    const itens = ESTILOS.filter((e) => e.grupo === grupo).map((e) => {
+      const prev = miniatura(e.id, temaAtual());
+      amostras.push(prev);
+      const selecionado = e.id === atual;
+      return h(
+        'button',
+        {
+          type: 'button',
+          'data-estilo-opcao': e.id,
+          'aria-pressed': String(selecionado),
+          class: `${BTN_CHOICE} w-full justify-start text-left gap-3 p-3 min-h-16 ${selecionado ? 'border-brand bg-brand/10 text-fg' : ESCOLHA_OFF}`,
+          onClick: () => {
+            guardar(ESTILO_KEY, e.id);
+            applyEstilo(e.id);
+            closeModal();
+          },
+        },
+        prev,
+        h(
+          'span',
+          { class: 'flex-1 min-w-0' },
+          h('span', { class: 'block text-sm font-extrabold text-fg' }, e.nome),
+          h('span', { class: 'block text-xs font-medium text-muted' }, e.descricao),
+        ),
+        selecionado && icon(Check, 'w-5 h-5 shrink-0 text-brand-fg'),
+      );
+    });
+    return h('div', { class: 'space-y-2' }, h('p', { class: 'lbl mb-1' }, grupo), itens);
+  });
+
+  sincronizarModoBtns(temaAtual());
+
+  openModal(
+    'Escolha o tema',
+    h(
+      'div',
+      { class: 'space-y-4' },
+      h(
+        'div',
+        { class: 'space-y-1.5' },
+        h('p', { class: 'lbl mb-0' }, 'Variante de luminosidade'),
+        h('div', { class: 'flex gap-2', role: 'group', 'aria-label': 'Variante clara ou escura' }, modoBtns),
+      ),
+      secoes,
+      h('p', { class: 'text-xs text-muted pt-1' }, 'Cada tema possui paleta própria e independente. O PDF oficial não muda com o tema.'),
+    ),
+    [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }],
+  );
+}
+
+/** Inicializa os botões do topo (lista de temas e claro ↔ escuro) e acompanha o sistema. */
+export function initTheme(slotTema: HTMLElement, slotEstilo: HTMLElement): void {
+  document.documentElement.dataset.estilo = normalizarEstilo();
+
+  const botaoTema = botaoDoTopo(slotTema, Moon, 'Usar tema escuro', () => {
+    const next: Theme = temaAtual() === 'dark' ? 'light' : 'dark';
+    guardar(KEY, next);
+    applyTheme(next, botaoTema);
+  });
+
+  botaoDoTopo(slotEstilo, Palette, 'Escolher o tema', () => escolherEstilo(botaoTema));
+  applyTheme(temaAtual(), botaoTema);
+
   systemDark.addEventListener('change', () => {
-    if (!saved()) applyTheme(systemDark.matches ? 'dark' : 'light', botaoTema);
+    if (!savedTheme()) applyTheme(systemDark.matches ? 'dark' : 'light', botaoTema);
   });
 }

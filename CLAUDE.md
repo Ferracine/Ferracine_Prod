@@ -109,16 +109,18 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
-  `data-estilo` = Tema 1 `moderno` (padrão), Tema 2 `retro` (Retrô 98) ou Tema 3 `win31` (Windows 3.1), chave
-  `ferracine_prod:estilo`, escolhido numa janela com a lista (`ESTILOS`, botão da paleta no topo); e **claro/escuro**
-  `data-theme`, chave `ferracine_prod:theme` (sem escolha, segue o celular). Os temas retrô ficam no fim de
-  `styles.css`, **fora de `@layer`** (vencem as utilidades do Tailwind): um bloco comum
-  `[data-estilo]:not([data-estilo='moderno'])` (cantos retos, barra de título, botões cinza...) e, por tema, as
-  variáveis (`--app`, `--card`, `--face`, `--titulo`...) e só o acabamento que muda, pelos ganchos `.btn`/`.btn-<tom>`
-  (de `btn()`), `.card`, `.field`, `.escolha`, `.janela`/`.janela-titulo`, `.barra-app` e `.nova-os`. As variáveis
-  ficam em `[data-estilo=...]` (não só no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema
-  que mostra. Azuis e laranja são os do logo (tokens do `@theme`, inclusive `brand-800` para texto). Tema novo: id em
-  `ESTILOS`, na lista do script do `<head>` e um bloco de variáveis + acabamento em `styles.css`. O PDF não muda com o tema.
+  `data-estilo` (chave `ferracine_prod:estilo`) e **claro/escuro** `data-theme` (chave `ferracine_prod:theme`; sem
+  escolha, segue o celular). Temas em `ESTILOS`: paletas modernas `moderno` (Safira & Violeta, padrão), `floresta`
+  (Esmeralda & Ouro) e `sol-forte` (Alto Contraste); clássicos `win98`, `xp`, `win31` e `win10`. Id antigo `retro`
+  vira `win98`; id desconhecido (temas removidos) volta a `moderno`. **Nenhum tema usa as cores do logo**: cada um
+  define a própria paleta completa em `styles.css` (`--brand*`, `--accent*`, `--danger-*` → `rose-*`, `--ok/--warn/--err`,
+  superfícies e textos), ligadas às utilidades do Tailwind por `@theme inline` (`bg-brand-600`, `bg-accent-600`,
+  `bg-rose-600`...). O padrão fica em `@layer base` (`:root, [data-estilo]`); os demais temas, fora de `@layer` (vencem
+  as utilidades), com variáveis + acabamento pelos ganchos `.btn`/`.btn-<tom>` (de `btn()`), `.card`, `.field`,
+  `.escolha`, `.janela`/`.janela-titulo`, `.barra-app` e `.nova-os`. As variáveis ficam em `[data-estilo=...]` (não só
+  no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema que mostra. Tema novo: id em
+  `ESTILOS`, na regex do script do `<head>` e um bloco de variáveis claro/escuro + acabamento em `styles.css`. O PDF
+  não muda com o tema.
 - Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e

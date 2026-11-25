@@ -3,69 +3,89 @@
 /* Tema escuro ativo quando <html data-theme="dark"> (definido antes da pintura em index.html). */
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
-/* Paleta do logo Energisa (src/assets/energisa.svg): ciano #0fabcc e laranja #f36f23. */
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --color-brand: #0fabcc;
-  --color-accent: #f36f23;
-  /* Tons mais escuros das cores do logo, para texto branco por cima com contraste AA. */
-  --color-brand-600: #087f9a;
-  --color-brand-700: #066a81;
-  /* Ciano do logo bem escuro: texto sobre cinza/branco nos temas retrô (contraste AA). */
-  --color-brand-800: #04505f;
-  --color-accent-600: #c4500d;
-  --color-accent-700: #a5430b;
-  /* Fundos dos avisos rápidos (texto branco por cima, contraste AA para ler ao sol): deu certo, falta algo, erro. */
-  --color-ok: #047857;
-  --color-warn: #b45309;
-  --color-err: #be123c;
 }
 
-/* Cores que mudam com o tema: superfícies, texto e as cores do logo usadas como texto. */
+/*
+ * Tokens 100% dinâmicos: cada tema define sua própria paleta completa de botões (brand, accent, rose/perigo),
+ * superfícies e textos, sem nenhum vínculo com cores de logotipo externo.
+ */
 @theme inline {
   --color-app: var(--app);
   --color-card: var(--card);
   --color-fg: var(--fg);
   --color-muted: var(--muted);
   --color-subtle: var(--subtle);
+  --color-brand: var(--brand);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
   --color-brand-fg: var(--brand-fg);
+  --color-accent: var(--accent);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
   --color-accent-fg: var(--accent-fg);
   --color-danger-fg: var(--danger-fg);
+  --color-rose-500: var(--danger-soft);
+  --color-rose-600: var(--danger-600);
+  --color-rose-700: var(--danger-700);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-err: var(--err);
 }
 
 @layer base {
+  /*
+   * Tema 1 (Padrão): Safira & Violeta — azul safira (#1d4ed8) + violeta real (#6d28d9).
+   * Declarado também em `[data-estilo]` para isolar cada miniatura `.amostra[data-estilo=...]` no modal.
+   */
   :root,
-  [data-estilo='moderno'] {
-    --titulo: var(--color-brand);
-    --app: #eef4f7;
+  [data-estilo] {
+    --brand: #3b82f6;
+    --brand-600: #1d4ed8;
+    --brand-700: #1e40af;
+    --accent: #8b5cf6;
+    --accent-600: #6d28d9;
+    --accent-700: #5b21b6;
+    --danger-soft: #ef4444;
+    --danger-600: #dc2626;
+    --danger-700: #b91c1c;
+    --ok: #15803d;
+    --warn: #a16207;
+    --err: #dc2626;
+    --titulo: linear-gradient(90deg, #1d4ed8, #6d28d9);
+    --amostra-raio: 0.35rem;
+    --app: #eef2f9;
     --card: #ffffff;
-    --field: #ffffff;
-    --fg: #0b2230;
-    --muted: #4a6573;
-    --subtle: #6b8592;
-    --brand-fg: #087f9a;
-    --accent-fg: #c4500d;
-    --danger-fg: #be123c;
+    --field: #f8fafd;
+    --fg: #0f172a;
+    --muted: #3b4a63;
+    --subtle: #596985;
+    --brand-fg: #1d4ed8;
+    --accent-fg: #6d28d9;
+    --danger-fg: #b91c1c;
+    --brilho-topo: color-mix(in oklab, var(--brand) 15%, transparent);
     color-scheme: light;
   }
 
   :root[data-theme='dark'],
-  [data-estilo='moderno'][data-theme='dark'] {
-    --app: #06141c;
-    --card: #0c212c;
-    --field: #06141c;
-    --fg: #e8f4f8;
-    --muted: #9fb8c3;
-    --subtle: #6d8b97;
-    --brand-fg: #3cc4e2;
-    --accent-fg: #ff8a4c;
-    --danger-fg: #fda4af;
+  [data-estilo][data-theme='dark'] {
+    --app: #090d16;
+    --card: #111827;
+    --field: #0b101b;
+    --fg: #eef2ff;
+    --muted: #9ca9c4;
+    --subtle: #7888a8;
+    --brand-fg: #60a5fa;
+    --accent-fg: #c084fc;
+    --danger-fg: #fca5a5;
+    --brilho-topo: color-mix(in oklab, var(--brand) 18%, transparent);
     color-scheme: dark;
   }
 
   /* Sem "fixed": no Chrome do Android o fundo fixo é repintado a cada quadro de rolagem. */
   body {
-    background: radial-gradient(1200px 500px at 50% -10%, rgb(15 171 204 / 0.16) 0%, transparent 60%) no-repeat var(--app);
+    background: radial-gradient(1200px 500px at 50% -10%, var(--brilho-topo) 0%, transparent 60%) no-repeat var(--app);
     color: var(--fg);
   }
 
@@ -88,7 +108,14 @@
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
-  /* Texto sempre em maiúsculas na tela, mesmo durante a composição do teclado (forceUppercase converte o valor). */
+  .field[readonly] {
+    background: color-mix(in oklab, var(--fg) 4%, var(--field));
+    cursor: default;
+  }
+  select.field option {
+    background: var(--card);
+    color: var(--fg);
+  }
   input.field:not([type]),
   input.field[type='text'],
   textarea.field {
@@ -99,29 +126,39 @@
     font-weight: 500;
     text-transform: none;
   }
-  .field:focus {
-    border-color: var(--color-brand);
-    box-shadow: 0 0 0 3px rgb(15 171 204 / 0.2);
+  .field:focus:not([readonly]) {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 22%, transparent);
   }
-  /* Falta preencher (marcarFaltando, dom.ts): vermelho até a pessoa mexer no campo. */
   .field.faltando,
   .field.faltando:focus {
-    border-color: var(--color-err);
-    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-err) 30%, transparent);
+    border-color: var(--err);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--err) 30%, transparent);
   }
   .card.faltando {
-    box-shadow: 0 0 0 2px var(--color-err);
+    box-shadow: 0 0 0 2px var(--err);
   }
 
-  /* Miniatura de um tema na janela de escolha (theme.ts): o elemento leva data-estilo/data-theme do tema mostrado. */
+  /* Miniatura de um tema na janela de escolha (theme.ts). */
   .amostra {
     background: var(--app);
+    border-radius: var(--amostra-raio);
   }
   .amostra-janela {
     background: var(--card);
+    border: 1px solid color-mix(in oklab, var(--fg) 18%, transparent);
+    border-radius: calc(var(--amostra-raio) * 0.75);
   }
   .amostra-titulo {
     background: var(--titulo);
+  }
+  .amostra-brand {
+    background: var(--brand-600);
+    border-radius: calc(var(--amostra-raio) * 0.5);
+  }
+  .amostra-accent {
+    background: var(--accent-600);
+    border-radius: calc(var(--amostra-raio) * 0.5);
   }
 
   .lbl {
@@ -142,207 +179,733 @@
   }
 }
 
-/*
- * Temas retrô: Tema 2 "Retrô 98" (data-estilo="retro") e Tema 3 "Windows 3.1" (data-estilo="win31"), cada um com
- * variante clara e escura (src/theme.ts). Azuis e laranja são os do logo Energisa (tokens do @theme).
- * Fora de @layer de propósito: regra sem camada vence as utilidades do Tailwind (bg-*, rounded-*, shadow-*), então o
- * tema troca o acabamento sem mexer nas telas. Ganchos: .btn/.btn-<tom> (btn() em dom.ts), .card, .field, .escolha,
- * .janela/.janela-titulo (feedback.ts), .barra-app (index.html) e .nova-os (os "+" do painel).
- * As variáveis ficam em [data-estilo=...] (não só no :root) para a miniatura da janela de temas mostrar as cores certas.
- * Tema novo: um bloco de variáveis (--app, --card, --face, --titulo...) e só o acabamento que muda; o comum já vale.
- */
+/* ==========================================================================
+ * PALETAS MODERNAS INDEPENDENTES
+ * ========================================================================== */
 
-/* --- Comum a todo tema que não é o Moderno --- */
-[data-estilo]:not([data-estilo='moderno']) {
-  --radius-sm: 0;
+/* --- Tema 2: Esmeralda & Ouro (Natureza / Campo) --- */
+[data-estilo='floresta'] {
+  --brand: #10b981;
+  --brand-600: #047857;
+  --brand-700: #065f46;
+  --accent: #eab308;
+  --accent-600: #a16207;
+  --accent-700: #854d0e;
+  --danger-soft: #e11d48;
+  --danger-600: #be123c;
+  --danger-700: #9f1239;
+  --err: #be123c;
+  --titulo: linear-gradient(90deg, #047857, #a16207);
+  --app: #e9f2ed;
+  --card: #ffffff;
+  --field: #f6faf8;
+  --fg: #0a2419;
+  --muted: #355748;
+  --subtle: #4e7060;
+  --brand-fg: #046c4e;
+  --accent-fg: #854d0e;
+  --danger-fg: #be123c;
+}
+[data-estilo='floresta'][data-theme='dark'] {
+  --app: #06140e;
+  --card: #0d241a;
+  --field: #081912;
+  --fg: #e6f5ee;
+  --muted: #9ab8aa;
+  --subtle: #739686;
+  --brand-fg: #34d399;
+  --accent-fg: #facc15;
+  --danger-fg: #fda4af;
+}
+
+/* --- Tema 3: Alto Contraste (Sol Forte / Preto OLED Puro, contornos de 2 px) --- */
+[data-estilo='sol-forte'] {
+  --brand: #005ce6;
+  --brand-600: #0044aa;
+  --brand-700: #00307a;
+  --accent: #9333ea;
+  --accent-600: #6b21a8;
+  --accent-700: #581c87;
+  --danger-soft: #dc2626;
+  --danger-600: #b91c1c;
+  --danger-700: #991b1b;
+  --err: #b91c1c;
+  --titulo: linear-gradient(90deg, #0044aa, #6b21a8);
+  --app: #ffffff;
+  --card: #f8fafc;
+  --field: #ffffff;
+  --fg: #000000;
+  --muted: #18181b;
+  --subtle: #334155;
+  --brand-fg: #003d99;
+  --accent-fg: #581c87;
+  --danger-fg: #990000;
+  --brilho-topo: transparent;
+}
+[data-estilo='sol-forte'][data-theme='dark'] {
+  --brand-600: #1d4ed8;
+  --brand-700: #1e40af;
+  --accent-600: #7e22ce;
+  --accent-700: #6b21a8;
+  --app: #000000;
+  --card: #0c0c0e;
+  --field: #000000;
+  --fg: #ffffff;
+  --muted: #e4e4e7;
+  --subtle: #b4b4bd;
+  --brand-fg: #66b2ff;
+  --accent-fg: #d8b4fe;
+  --danger-fg: #ff8585;
+  --brilho-topo: transparent;
+}
+[data-estilo='sol-forte'] :is(.card, .janela, .field) {
+  border-width: 2px;
+}
+[data-estilo='sol-forte'] :is(.card, .janela, .field):not(.faltando) {
+  border-color: color-mix(in oklab, var(--fg) 38%, transparent);
+  box-shadow: none;
+}
+[data-estilo='sol-forte'] .barra-app {
+  background: var(--card);
+  border-bottom-width: 2px;
+  border-color: color-mix(in oklab, var(--fg) 35%, transparent);
+}
+[data-estilo='sol-forte'] .btn-outline {
+  border-width: 2px;
+  border-color: color-mix(in oklab, var(--fg) 35%, transparent);
+}
+[data-estilo='sol-forte'].amostra .amostra-janela {
+  border-width: 1.5px;
+  border-color: color-mix(in oklab, var(--fg) 55%, transparent);
+}
+
+/* ==========================================================================
+ * TEMAS ESPECIAIS E CLÁSSICOS (Windows 98, XP, 3.1 e 10)
+ * ========================================================================== */
+
+/* --- Tema 4: Windows 98 (98.css: desktop teal, #c0c0c0 chanfrado 2px e barra azul marinho) --- */
+[data-estilo='win98'] {
+  --brand: #1084d0;
+  --brand-600: #000080;
+  --brand-700: #000060;
+  --accent: #008080;
+  --accent-600: #006666;
+  --accent-700: #004d4d;
+  --danger-soft: #cc0000;
+  --danger-600: #a80000;
+  --danger-700: #800000;
+  --ok: #006600;
+  --warn: #8a5200;
+  --err: #a80000;
+  --titulo: linear-gradient(90deg, #000080, #0e74b8);
+  --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
-  --radius-3xl: 0;
-  --fg: #000000;
-  --brand-fg: var(--color-brand-800);
-  --accent-fg: #7a3300;
-  --danger-fg: #9b0000;
-}
-[data-estilo]:not([data-estilo='moderno'])[data-theme='dark'] {
-  --fg: #f2f2f2;
-  --brand-fg: #3cc4e2;
-  --accent-fg: #ffb784;
-  --danger-fg: #ff9e9e;
-}
-[data-estilo]:not([data-estilo='moderno']) body {
-  background: var(--app);
-}
-/* Pílulas, selos e os "+" viram retângulos (os rounded-* do Tailwind já vêm de --radius-*). */
-[data-estilo]:not([data-estilo='moderno']) :is(.rounded-full, .card, .field) {
-  border-radius: 0;
-}
-[data-estilo]:not([data-estilo='moderno']) .janela-titulo {
-  background: var(--titulo);
-  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
-}
-[data-estilo]:not([data-estilo='moderno']) .janela-titulo h3 {
-  color: #ffffff;
-  font-size: 1rem;
-}
-[data-estilo]:not([data-estilo='moderno']) .barra-app {
-  background: var(--card);
-}
-[data-estilo]:not([data-estilo='moderno']) :is(.btn-neutral, .btn-outline, .janela-titulo .btn) {
-  background: var(--face);
-  color: var(--fg);
-}
-[data-estilo]:not([data-estilo='moderno']) .btn-ghost {
-  border: none;
-  box-shadow: none;
-}
-[data-estilo]:not([data-estilo='moderno']) .btn:active:not(:disabled) {
-  transform: translate(1px, 1px);
-}
-[data-estilo]:not([data-estilo='moderno']) .btn:focus-visible {
-  outline: 1px dotted var(--fg);
-  outline-offset: -5px;
-}
-[data-estilo]:not([data-estilo='moderno']) .field:focus {
-  outline: 2px solid var(--brand-fg);
-  outline-offset: 0;
-}
-[data-estilo]:not([data-estilo='moderno']) .field.faltando {
-  outline: none;
-}
-
-/* --- Tema 2: Retrô 98 --- */
-/* Área de trabalho verde-azulada, superfícies cinza em relevo 3D, barra de título em degradê. */
-[data-estilo='retro'] {
   --app: #008080;
   --card: #c0c0c0;
-  --face: var(--card);
   --field: #ffffff;
-  --muted: #2e2e2e;
-  --subtle: #4a4a4a;
-  /* Relevo: luz em cima e à esquerda, sombra embaixo e à direita. */
-  --luz: #ffffff;
-  --luz2: #dfdfdf;
-  --sombra: #808080;
-  --sombra2: #0a0a0a;
-  --relevo: inset -1px -1px var(--sombra2), inset 1px 1px var(--luz), inset -2px -2px var(--sombra), inset 2px 2px var(--luz2);
-  --afundado: inset 1px 1px var(--sombra), inset -1px -1px var(--luz), inset 2px 2px var(--sombra2), inset -2px -2px var(--luz2);
-  --titulo: linear-gradient(90deg, var(--color-brand-700), var(--color-brand-600)); /* texto branco: AA nos dois tons */
-  --font-sans: Tahoma, Verdana, 'Segoe UI', ui-sans-serif, sans-serif;
-  color-scheme: light;
+  --fg: #111111;
+  --muted: #2f2f2f;
+  --subtle: #444444;
+  --brand-fg: #000080;
+  --accent-fg: #004747;
+  --danger-fg: #780000;
+  --w98-luz-ext: #ffffff;
+  --w98-luz-int: #dfdfdf;
+  --w98-sombra-int: #808080;
+  --w98-sombra-ext: #0a0a0a;
+  --w98-elevado: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-ext), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-int);
+  --w98-janela: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-int), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-ext);
+  --w98-afundado: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-int), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-ext);
+  --w98-ativo: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-ext), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-int);
+  --font-sans: 'Pixelated MS Sans Serif', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
 }
-[data-estilo='retro'][data-theme='dark'] {
-  --app: #003535;
-  --card: #3b3b3b;
-  --field: #161616;
-  --muted: #d0d0d0;
-  --subtle: #ababab;
-  --luz: #8c8c8c;
-  --luz2: #5c5c5c;
-  --sombra: #1f1f1f;
-  --sombra2: #000000;
-  --titulo: linear-gradient(90deg, var(--color-brand-800), var(--color-brand-600));
-  color-scheme: dark;
+[data-estilo='win98'][data-theme='dark'] {
+  --brand: #3898e0;
+  --brand-600: #105aa8;
+  --brand-700: #0c4785;
+  --accent: #20b2aa;
+  --accent-600: #0e6b6b;
+  --accent-700: #095252;
+  --danger-soft: #ef4444;
+  --danger-600: #b91c1c;
+  --danger-700: #991b1b;
+  --ok: #16803c;
+  --warn: #b45309;
+  --err: #dc2626;
+  --titulo: linear-gradient(90deg, #0a246a, #1064a3);
+  --app: #0b1c20;
+  --card: #2a2d32;
+  --field: #14171c;
+  --fg: #eef2f5;
+  --muted: #b4bcc4;
+  --subtle: #939da7;
+  --brand-fg: #6bb8ff;
+  --accent-fg: #4dd0d0;
+  --danger-fg: #ff8f8f;
+  --w98-luz-ext: #5a606a;
+  --w98-luz-int: #40454e;
+  --w98-sombra-int: #181a1e;
+  --w98-sombra-ext: #050608;
 }
-[data-estilo='retro'] :is(.card, .janela) {
+[data-estilo='win98'] body {
+  background: var(--app);
+}
+[data-estilo='win98']:not([data-theme='dark']) :is(footer > p, #btn-check-update, #btn-new-comercial > span:last-child, #btn-new-ocorrencia > span:last-child, #screen-dashboard > div:last-child > p) {
+  color: #ffffff;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.65);
+}
+[data-estilo='win98'] :is(.rounded-full, .card, .field, .janela, .btn, .escolha, .nova-os) {
+  border-radius: 0;
+}
+[data-estilo='win98'] .barra-app {
+  background: var(--card);
+  border-bottom: none;
+  box-shadow: var(--w98-elevado);
+}
+[data-estilo='win98'] .card {
   background: var(--card);
   border: none;
-  box-shadow: var(--relevo);
 }
-[data-estilo='retro'] .janela {
-  box-shadow: var(--relevo), 6px 6px 0 rgb(0 0 0 / 0.35);
+[data-estilo='win98'] .card:not(.faltando) {
+  box-shadow: var(--w98-janela);
 }
-[data-estilo='retro'] .janela-titulo {
-  margin: 3px 3px 0;
-}
-[data-estilo='retro'] :is(.janela-titulo, .barra-app) {
+[data-estilo='win98'] .janela {
+  background: var(--card);
   border: none;
+  padding: 3px;
+  box-shadow: var(--w98-janela);
 }
-[data-estilo='retro'] :is(.barra-app, .nova-os, .escolha) {
-  box-shadow: var(--relevo);
+[data-estilo='win98'] .janela-titulo {
+  background: var(--titulo);
+  border-bottom: none;
+  padding: 0.3rem 0.35rem 0.3rem 0.5rem;
 }
-[data-estilo='retro'] .btn {
+[data-estilo='win98'] .janela-titulo h3 {
+  color: #ffffff;
+  font-size: 0.95rem;
+}
+[data-estilo='win98'] .janela-titulo .btn {
+  margin: 0;
+  background: var(--card);
+  color: var(--fg);
+}
+[data-estilo='win98'] .field:not(.faltando) {
+  background: var(--field);
   border: none;
-  border-radius: 0;
-  box-shadow: var(--relevo);
+  box-shadow: var(--w98-afundado);
 }
-[data-estilo='retro'] :is(.btn:active:not(:disabled), .escolha[aria-pressed='true']) {
-  box-shadow: var(--afundado);
+[data-estilo='win98'] .field[readonly] {
+  background: var(--card);
+  color: var(--subtle);
 }
-[data-estilo='retro'] .field {
+[data-estilo='win98'] .field:focus:not([readonly]):not(.faltando) {
+  outline: 1px dotted var(--fg);
+  outline-offset: -3px;
+  box-shadow: var(--w98-afundado);
+}
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
   border: none;
-  box-shadow: var(--afundado);
+  box-shadow: var(--w98-elevado);
 }
-[data-estilo='retro'] .field.faltando {
-  box-shadow: var(--afundado), 0 0 0 2px var(--color-err);
+[data-estilo='win98'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
+  background: var(--card);
 }
-[data-estilo='retro'] .card.faltando {
-  box-shadow: var(--relevo), 0 0 0 2px var(--color-err);
+[data-estilo='win98'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
+  color: var(--fg);
+}
+[data-estilo='win98'] :is(.btn:not(.btn-ghost):active:not(:disabled), .janela-titulo .btn:active, .escolha[aria-pressed='true']) {
+  box-shadow: var(--w98-ativo);
+}
+[data-estilo='win98'] .btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+[data-estilo='win98'] :is(.btn, .escolha):focus-visible {
+  outline: 1px dotted var(--fg);
+  outline-offset: -4px;
+}
+[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: color-mix(in oklab, var(--brand) 16%, var(--card));
+  outline: 1px dotted var(--fg);
+  outline-offset: -4px;
+}
+[data-estilo='win98'] .nova-os {
+  border: none;
+  box-shadow: var(--w98-elevado);
+}
+[data-estilo='win98'].amostra .amostra-janela {
+  border: none;
+  box-shadow: var(--w98-janela);
 }
 
-/* --- Tema 3: Windows 3.1 --- */
-/* Área de trabalho cinza, janelas brancas com moldura preta, botões cinza de canto levemente arredondado com relevo
-   e barra de título sólida (ciano do logo) com o título centralizado. */
+/* --- Tema 5: Windows XP (XP.css: Luna no claro / Royale Noir no escuro) --- */
+[data-estilo='xp'] {
+  --brand: #0050ee;
+  --brand-600: #0050ee;
+  --brand-700: #003dd7;
+  --accent: #2ed330;
+  --accent-600: #227a1e;
+  --accent-700: #195e16;
+  --danger-soft: #e5482e;
+  --danger-600: #c42b1c;
+  --danger-700: #9e1f12;
+  --ok: #227a1e;
+  --warn: #9c5700;
+  --err: #c42b1c;
+  --titulo: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #005bff 95%, #003dd7 96%, #003dd7 100%);
+  --amostra-raio: 0.25rem;
+  --radius-md: 0.2rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.45rem;
+  --app: #d8e4f8;
+  --card: #ece9d8;
+  --field: #ffffff;
+  --fg: #0b192c;
+  --muted: #344256;
+  --subtle: #4f5f75;
+  --brand-fg: #0046d5;
+  --accent-fg: #195e16;
+  --danger-fg: #a81c0e;
+  --xp-moldura: #0831d9;
+  --xp-borda-card: #919b9c;
+  --xp-borda-campo: #7f9db9;
+  --xp-borda-btn: #003c74;
+  --xp-hover: #e5a01a;
+  --xp-focus: #89ade4;
+  --xp-btn-face: linear-gradient(180deg, #ffffff 0%, #ecebe5 86%, #d8d0c4 100%);
+  --xp-btn-ativo: linear-gradient(180deg, #cdcac3 0%, #e3e3db 8%, #e5e5de 94%, #f2f2f1 100%);
+  --xp-btn-brand: linear-gradient(180deg, #4b8df8 0%, var(--brand-600) 52%, var(--brand-700) 100%);
+  --xp-btn-accent: linear-gradient(180deg, #4cb848 0%, var(--accent-600) 52%, var(--accent-700) 100%);
+  --xp-btn-danger: linear-gradient(180deg, #e55c47 0%, var(--danger-600) 52%, var(--danger-700) 100%);
+  --xp-close: linear-gradient(180deg, #cc3f1d 0%, #c03917 45%, #a6280c 100%);
+  --xp-barra: linear-gradient(180deg, #f9f8f3 0%, #ece9d8 86%, #d8d2bd 100%);
+  --font-sans: Tahoma, 'Trebuchet MS', Arial, ui-sans-serif, sans-serif;
+}
+[data-estilo='xp'][data-theme='dark'] {
+  --brand: #3b82f6;
+  --brand-600: #1a56c4;
+  --brand-700: #15459e;
+  --accent: #4ade80;
+  --accent-600: #237a20;
+  --accent-700: #1a5e18;
+  --danger-soft: #ef5350;
+  --danger-600: #b8281c;
+  --danger-700: #8f1d14;
+  --ok: #237a20;
+  --warn: #b45309;
+  --err: #c42b1c;
+  --titulo: linear-gradient(180deg, #435574 0%, #242f42 46%, #131a26 52%, #1d2738 100%);
+  --app: #0f131a;
+  --card: #1e222b;
+  --field: #12161f;
+  --fg: #eef2f8;
+  --muted: #a8b4c8;
+  --subtle: #8391a8;
+  --brand-fg: #6cb2ff;
+  --accent-fg: #6ee768;
+  --danger-fg: #ff948a;
+  --xp-moldura: #334e7d;
+  --xp-borda-card: #3b4963;
+  --xp-borda-campo: #4b5e80;
+  --xp-borda-btn: #5d7399;
+  --xp-hover: #4da3ff;
+  --xp-focus: #60a5fa;
+  --xp-btn-face: linear-gradient(180deg, #353f50 0%, #252c38 52%, #1a2029 100%);
+  --xp-btn-ativo: linear-gradient(180deg, #171c24 0%, #242b37 100%);
+  --xp-btn-brand: linear-gradient(180deg, #2b65d1 0%, var(--brand-600) 52%, var(--brand-700) 100%);
+  --xp-btn-accent: linear-gradient(180deg, #2d8f29 0%, var(--accent-600) 52%, var(--accent-700) 100%);
+  --xp-btn-danger: linear-gradient(180deg, #cf392c 0%, var(--danger-600) 52%, var(--danger-700) 100%);
+  --xp-close: linear-gradient(180deg, #b84232 0%, #99291c 50%, #751a10 100%);
+  --xp-barra: linear-gradient(180deg, #2b3445 0%, #1e222b 86%, #141922 100%);
+}
+[data-estilo='xp'] body {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 16%, var(--app)) 0%, var(--app) 320px) no-repeat var(--app);
+}
+[data-estilo='xp'] .barra-app {
+  background: var(--xp-barra);
+  border-bottom: 2px solid var(--xp-moldura);
+}
+[data-estilo='xp'] .card {
+  background: var(--card);
+  border: 1px solid var(--xp-borda-card);
+  border-radius: 0.45rem;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 3px rgb(0 0 0 / 0.12);
+}
+[data-estilo='xp'] .janela {
+  background: var(--card);
+  border: 3px solid var(--xp-moldura);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+}
+[data-estilo='xp'] .janela-titulo {
+  background: var(--titulo);
+  border-bottom: 1px solid var(--xp-moldura);
+  padding: 0.4rem 0.5rem 0.4rem 0.85rem;
+}
+[data-estilo='xp'] .janela-titulo h3 {
+  color: #ffffff;
+  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-size: 1rem;
+  text-shadow: 1px 1px 1px rgb(0 0 0 / 0.65);
+}
+[data-estilo='xp'] .janela-titulo .btn {
+  margin: 0;
+  background: var(--xp-close);
+  border: 1px solid #ffffff;
+  border-radius: 0.25rem;
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
+}
+[data-estilo='xp'] :is(.btn:not(.btn-ghost), .escolha) {
+  border-radius: 3px;
+}
+[data-estilo='xp'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
+  background: var(--xp-btn-face);
+  border: 1px solid var(--xp-borda-btn);
+}
+[data-estilo='xp'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
+  color: var(--fg);
+}
+[data-estilo='xp'] :is(.btn-primary, .nova-os.bg-brand-600, .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao])) {
+  background: var(--xp-btn-brand);
+  border: 1px solid var(--xp-borda-btn);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+[data-estilo='xp'] :is(.btn-accent, .nova-os.bg-accent-600) {
+  background: var(--xp-btn-accent);
+  border: 1px solid var(--accent-700);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+[data-estilo='xp'] .btn-danger {
+  background: var(--xp-btn-danger);
+  border: 1px solid var(--danger-700);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
+}
+@media (hover: hover) {
+  [data-estilo='xp'] :is(.btn:not(.btn-ghost), .escolha):hover:not(:disabled) {
+    box-shadow: inset 0 0 0 2px var(--xp-hover);
+  }
+}
+[data-estilo='xp'] :is(.btn, .escolha):focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--xp-focus);
+}
+[data-estilo='xp'] :is(.btn-neutral, .btn-outline):active:not(:disabled) {
+  background: var(--xp-btn-ativo);
+}
+[data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: color-mix(in oklab, var(--brand) 16%, var(--card));
+  border: 2px solid var(--xp-moldura);
+}
+[data-estilo='xp'].amostra .amostra-janela {
+  border: 1.5px solid var(--xp-moldura);
+  border-radius: 0.35rem 0.35rem 0.15rem 0.15rem;
+}
+[data-estilo='xp'] .field {
+  border: 1px solid var(--xp-borda-campo);
+  border-radius: 0;
+  box-shadow: inset 1px 1px 2px rgb(0 0 0 / 0.06);
+}
+[data-estilo='xp'] .field:focus:not([readonly]) {
+  border-color: var(--xp-moldura);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--xp-focus) 45%, transparent);
+}
+
+/* --- Tema 6: Windows 3.1 (Win31: cantos 0px estritos, moldura 16-bit e Alto Contraste VGA) --- */
 [data-estilo='win31'] {
+  --brand: #0000a8;
+  --brand-600: #000080;
+  --brand-700: #00005c;
+  --accent: #800080;
+  --accent-600: #6b006b;
+  --accent-700: #4d004d;
+  --danger-soft: #cc0000;
+  --danger-600: #990000;
+  --danger-700: #730000;
+  --ok: #006600;
+  --warn: #805000;
+  --err: #990000;
+  --titulo: #000080;
+  --titulo-fg: #ffffff;
+  --amostra-raio: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
   --app: #c0c0c0;
   --card: #ffffff;
   --face: #c0c0c0;
   --field: #ffffff;
-  --muted: #333333;
-  --subtle: #555555;
+  --fg: #000000;
+  --muted: #2b2b2b;
+  --subtle: #424242;
+  --brand-fg: #000080;
+  --accent-fg: #6b006b;
+  --danger-fg: #990000;
   --moldura: #000000;
   --luz: #ffffff;
+  --luz2: #dfdfdf;
   --sombra: #808080;
-  --titulo: var(--color-brand-600);
-  --font-sans: Arial, Helvetica, ui-sans-serif, sans-serif;
-  color-scheme: light;
+  --font-sans: 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
 }
 [data-estilo='win31'][data-theme='dark'] {
-  --app: #262626;
+  --brand: #3b82f6;
+  --brand-600: #1d4ed8;
+  --brand-700: #1e40af;
+  --accent: #a855f7;
+  --accent-600: #7e22ce;
+  --accent-700: #6b21a8;
+  --danger-soft: #ef4444;
+  --danger-600: #b91c1c;
+  --danger-700: #991b1b;
+  --ok: #15803d;
+  --warn: #b45309;
+  --err: #b91c1c;
+  --titulo: #800080;
+  --titulo-fg: #ffff00;
+  --app: #181818;
   --card: #000000;
-  --face: #4a4a4a;
+  --face: #2a2a2a;
   --field: #000000;
-  --muted: #d0d0d0;
-  --subtle: #a8a8a8;
+  --fg: #f5f5f5;
+  --muted: #cccccc;
+  --subtle: #a3a3a3;
+  --brand-fg: #70b5ff;
+  --accent-fg: #e09eff;
+  --danger-fg: #ff9e9e;
   --moldura: #c0c0c0;
-  --luz: #9a9a9a;
-  --sombra: #262626;
-  --titulo: var(--color-brand-700);
-  color-scheme: dark;
+  --luz: #707070;
+  --luz2: #4a4a4a;
+  --sombra: #101010;
+}
+[data-estilo='win31'] body {
+  background: var(--app);
+}
+[data-estilo='win31'] :is(.rounded-full, .card, .field, .janela, .btn, .escolha, .nova-os) {
+  border-radius: 0;
 }
 [data-estilo='win31'] :is(.card, .field) {
   border: 1px solid var(--moldura);
   box-shadow: none;
 }
+[data-estilo='win31'] .field {
+  background: var(--field);
+  box-shadow: inset 1px 1px var(--sombra);
+}
+[data-estilo='win31'] .barra-app {
+  background: var(--card);
+  border-bottom: 1px solid var(--moldura);
+}
 [data-estilo='win31'] .janela {
   background: var(--card);
-  border: 4px solid var(--face);
-  box-shadow: 0 0 0 5px var(--moldura);
+  border: 1px solid var(--moldura);
+  box-shadow: 0 0 0 3px var(--face), 0 0 0 4px var(--moldura);
 }
-[data-estilo='win31'] :is(.janela-titulo, .barra-app) {
+[data-estilo='win31'] .janela-titulo {
+  background: var(--titulo);
   border-bottom: 1px solid var(--moldura);
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
 }
 [data-estilo='win31'] .janela-titulo h3 {
   flex: 1;
   text-align: center;
+  color: var(--titulo-fg);
+  font-size: 1rem;
 }
-[data-estilo='win31'] :is(.btn, .escolha) {
+[data-estilo='win31'] .janela-titulo .btn {
+  margin: 0;
+}
+[data-estilo='win31'] :is(.btn-neutral, .btn-outline, .janela-titulo .btn, .escolha:not([aria-pressed='true'])) {
+  background: var(--face);
+}
+[data-estilo='win31'] :is(.btn-neutral, .janela-titulo .btn, .escolha:not([aria-pressed='true'])) {
+  color: var(--fg);
+}
+[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
   border: 1px solid var(--moldura);
-  border-radius: 3px;
-  box-shadow: inset 2px 2px var(--luz), inset -2px -2px var(--sombra);
+  box-shadow: inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
 }
-[data-estilo='win31'] :is(.btn:active:not(:disabled), .escolha[aria-pressed='true']) {
+[data-estilo='win31'] :is(.btn:not(.btn-ghost):active:not(:disabled), .janela-titulo .btn:active, .escolha[aria-pressed='true']) {
   box-shadow: inset 2px 2px var(--sombra);
+}
+[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: color-mix(in oklab, var(--brand) 16%, var(--card));
+  border: 2px solid var(--brand-600);
+}
+[data-estilo='win31'] .btn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+}
+[data-estilo='win31'] .btn:focus-visible {
+  outline: 1px dotted var(--fg);
+  outline-offset: -5px;
+}
+[data-estilo='win31'].amostra .amostra-janela {
+  border: 1px solid var(--moldura);
+  box-shadow: inset 0 0 0 1.5px var(--face);
 }
 [data-estilo='win31'] .nova-os {
   border: 1px solid var(--moldura);
-  box-shadow: inset 2px 2px rgb(255 255 255 / 0.5), inset -2px -2px rgb(0 0 0 / 0.35);
+  box-shadow: inset 2px 2px rgb(255 255 255 / 0.45), inset -2px -2px rgb(0 0 0 / 0.35);
 }
-[data-estilo='win31'] .field.faltando {
-  border-color: var(--color-err);
-  box-shadow: 0 0 0 2px var(--color-err);
+[data-estilo='win31'] .field:focus:not([readonly]) {
+  box-shadow: none;
+  outline: 2px solid var(--brand-fg);
+  outline-offset: 0;
 }
-[data-estilo='win31'] .card.faltando {
-  box-shadow: 0 0 0 2px var(--color-err);
+
+/* --- Tema 7: Windows 10 (windows-ui: Segoe UI, Fluent Day/Night, foco inferior) --- */
+[data-estilo='win10'] {
+  --brand: #0078d7;
+  --brand-600: #0072cc;
+  --brand-700: #0067c0;
+  --accent: #107c10;
+  --accent-600: #107c10;
+  --accent-700: #0b5a0b;
+  --danger-soft: #e84756;
+  --danger-600: #c50500;
+  --danger-700: #9e0400;
+  --ok: #107c10;
+  --warn: #9d5d00;
+  --err: #c50500;
+  --titulo: #0072cc;
+  --amostra-raio: 0.25rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.5rem;
+  --app: #f3f3f3;
+  --card: #ffffff;
+  --field: #fbfbfb;
+  --fg: #000000;
+  --muted: #4b4b4b;
+  --subtle: #666666;
+  --brand-fg: #0060b3;
+  --accent-fg: #0d6e0d;
+  --danger-fg: #c50500;
+  --w10-barra: #f3f3f3;
+  --w10-borda: #e3e3e3;
+  --w10-borda-campo: #8a8a8a;
+  --w10-borda-btn: #c8c8c8;
+  --w10-btn: #fefefedd;
+  --w10-hover: #eeeeee;
+  --font-sans: 'Segoe UI', system-ui, ui-sans-serif, sans-serif;
+}
+[data-estilo='win10'][data-theme='dark'] {
+  --brand: #60cdff;
+  --brand-600: #006cbe;
+  --brand-700: #005a9e;
+  --accent: #6acb5d;
+  --accent-600: #1e7e34;
+  --accent-700: #166328;
+  --danger-soft: #ff99a3;
+  --danger-600: #c50500;
+  --danger-700: #9e0400;
+  --ok: #107c10;
+  --warn: #b45309;
+  --err: #c50500;
+  --titulo: #202020;
+  --app: #111111;
+  --card: #202020;
+  --field: #2b2b2b;
+  --fg: #ffffff;
+  --muted: #c2c2c2;
+  --subtle: #9e9e9e;
+  --brand-fg: #60cdff;
+  --accent-fg: #6acb5d;
+  --danger-fg: #ff99a3;
+  --w10-barra: #202020;
+  --w10-borda: #333333;
+  --w10-borda-campo: #777777;
+  --w10-borda-btn: #4a4a4a;
+  --w10-btn: #3e3e3edd;
+  --w10-hover: #353535;
+}
+[data-estilo='win10'] body {
+  background: var(--app);
+}
+[data-estilo='win10'] .barra-app {
+  background: var(--w10-barra);
+  border-bottom: 1px solid var(--w10-borda);
+}
+[data-estilo='win10'] .card {
+  background: var(--card);
+  border: 1px solid var(--w10-borda);
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
+}
+[data-estilo='win10'] .janela {
+  background: var(--card);
+  border: 1px solid var(--w10-borda);
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+}
+[data-estilo='win10'] .janela-titulo {
+  background: var(--titulo);
+  border-bottom: 1px solid var(--w10-borda);
+}
+[data-estilo='win10']:not([data-theme='dark']) .janela-titulo :is(h3, .btn) {
+  color: #ffffff;
+}
+[data-estilo='win10'][data-theme='dark'] .janela-titulo {
+  border-bottom: 2px solid var(--brand);
+}
+[data-estilo='win10'] .field {
+  background: var(--field);
+  border: 1px solid var(--w10-borda);
+  border-bottom: 1px solid var(--w10-borda-campo);
+  border-radius: 0.25rem;
+}
+[data-estilo='win10'] .field:focus:not([readonly]) {
+  border-color: var(--w10-borda);
+  border-bottom: 2px solid var(--brand);
+  box-shadow: none;
+}
+[data-estilo='win10'] :is(.btn:not(.btn-ghost), .escolha) {
+  border-radius: 0.25rem;
+}
+[data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
+  background: var(--w10-btn);
+  border: 1px solid var(--w10-borda-btn);
+  border-bottom-color: var(--w10-borda-campo);
+}
+[data-estilo='win10'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
+  color: var(--fg);
+}
+@media (hover: hover) {
+  [data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])):hover:not(:disabled) {
+    background: var(--w10-hover);
+  }
+}
+[data-estilo='win10'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: color-mix(in oklab, var(--brand) 14%, var(--card));
+  border: 1.5px solid var(--brand);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+[data-estilo='win10'].amostra .amostra-janela {
+  border: 1px solid var(--w10-borda-btn);
+  border-radius: 0.35rem;
+}
+[data-estilo='win10'][data-theme='dark'].amostra .amostra-titulo {
+  border-bottom: 1.5px solid var(--brand);
+}
+
+/* Regras compartilhadas entre os temas Windows (contraste do botão "Não" e destaque .faltando). */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) .escolha[data-choice='Não'][aria-pressed='true'] {
+  color: #ffffff;
+}
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'])[data-theme='dark'] .escolha[data-choice='Não'][aria-pressed='true'] {
+  color: var(--app);
+}
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando,
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando:focus {
+  outline: none;
+  border-color: var(--err);
+  box-shadow: 0 0 0 2px var(--err);
+}
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .card.faltando {
+  border-color: var(--err);
+  box-shadow: 0 0 0 2px var(--err);
 }

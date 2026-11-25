@@ -677,7 +677,7 @@ test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {
   await expect(html).toHaveAttribute('data-theme', trocado);
 });
 
-test('temas: o botão abre a lista (Moderno, Retrô 98, Windows 3.1); escolha fica salva e combina com claro/escuro', async ({ page }) => {
+test('temas: o botão abre a lista (3 paletas modernas e 4 Windows); escolha fica salva e combina com claro/escuro', async ({ page }) => {
   await page.goto('/');
   const html = page.locator('html');
   const card = page.locator('#screen-header .card').first();
@@ -688,32 +688,32 @@ test('temas: o botão abre a lista (Moderno, Retrô 98, Windows 3.1); escolha fi
     await page.getByRole('dialog').getByRole('button', { name: new RegExp(nome) }).click();
     await expect(page.getByRole('dialog')).toHaveCount(0);
   };
-  // Padrão: Tema 1, cantos arredondados; a lista mostra os 3 e marca o atual.
+  // Padrão: Tema 1, cantos arredondados; a lista mostra os 7 e marca o atual.
   await expect(html).toHaveAttribute('data-estilo', 'moderno');
   expect(await estilo('border-radius')).not.toBe('0px');
   await page.locator('#estilo-toggle').click();
-  await expect(page.locator('[data-estilo-opcao]')).toHaveCount(3);
+  await expect(page.locator('[data-estilo-opcao]')).toHaveCount(7);
   await expect(page.locator('[data-estilo-opcao="moderno"]')).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
   await expect(html).toHaveAttribute('data-estilo', 'moderno'); // abrir a lista não troca nada
 
-  // Tema 2: cantos retos e relevo; o claro/escuro continua independente.
-  await escolher('Tema 2: Retrô 98');
-  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  // Windows 98: cantos retos e relevo; o claro/escuro continua independente.
+  await escolher('Tema 4: Windows 98');
+  await expect(html).toHaveAttribute('data-estilo', 'win98');
   expect(await estilo('border-radius')).toBe('0px');
   expect(await estilo('box-shadow')).toContain('inset');
   const fundoClaro = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   await page.locator('#theme-toggle').click();
-  await expect(html).toHaveAttribute('data-estilo', 'retro');
+  await expect(html).toHaveAttribute('data-estilo', 'win98');
   expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(fundoClaro);
 
-  // Tema 3: moldura sólida, sem relevo no cartão.
-  await escolher('Tema 3: Windows 3.1');
+  // Windows 3.1: moldura sólida, sem relevo no cartão.
+  await escolher('Tema 6: Windows 3.1');
   await expect(html).toHaveAttribute('data-estilo', 'win31');
   expect(await estilo('border-radius')).toBe('0px');
   expect(await estilo('border-top-width')).toBe('1px');
   expect(await estilo('box-shadow')).toBe('none');
-  // Barra de título com a moldura embaixo (o bloco comum não pode apagar a borda do Windows 3.1).
+  // Barra de título com a moldura embaixo.
   await page.locator('#estilo-toggle').click();
   expect(await page.locator('.janela-titulo').evaluate((el) => getComputedStyle(el).borderBottomWidth)).toBe('1px');
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
@@ -723,8 +723,22 @@ test('temas: o botão abre a lista (Moderno, Retrô 98, Windows 3.1); escolha fi
   await page.reload();
   await expect(html).toHaveAttribute('data-estilo', 'win31');
   await expect(html).toHaveAttribute('data-theme', tema!);
-  await escolher('Tema 1: Moderno');
+  await escolher('Tema 1: Safira');
   await expect(html).toHaveAttribute('data-estilo', 'moderno');
+});
+
+test('temas: id antigo "retro" vira Windows 98 e tema removido volta ao padrão', async ({ page }) => {
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem('semeado')) {
+      sessionStorage.setItem('semeado', '1');
+      localStorage.setItem('ferracine_prod:estilo', 'retro');
+    }
+  });
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveAttribute('data-estilo', 'win98');
+  await page.evaluate(() => localStorage.setItem('ferracine_prod:estilo', 'diagrama'));
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-estilo', 'moderno');
 });
 
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {

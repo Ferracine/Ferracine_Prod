@@ -20,7 +20,7 @@ houver, só serve para o app se atualizar.
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
-2. **Painel**: dois botões **+**, um **Comercial** (ciano) e um **Ocorrência** (laranja). Cada um abre a tela da OS em
+2. **Painel**: dois botões **+**, um **Comercial** (cor principal do tema) e um **Ocorrência** (cor de destaque do tema). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
    o do código do serviço. Qualquer código vale nos dois tipos (são muitos serviços; a folha pode ser corrigida
    depois).
@@ -67,16 +67,18 @@ produção total e os técnicos saem na última. Embaixo de toda folha: data, eq
 
 ### Aparência
 
-Três temas, cada um com variante clara e escura. O botão da paleta, no topo, abre a lista para escolher o tema; o do
-sol/lua troca claro e escuro (sem escolha, segue o celular):
-- **Tema 1 – Moderno** (padrão): cantos arredondados, com as cores do logo: ciano para Comercial e ações
-  principais, laranja para Ocorrência e encerramento.
-- **Tema 2 – Retrô 98**: visual de janela dos anos 90, com área de trabalho verde-azulada, superfícies cinza,
-  cantos retos, botões e campos em relevo e barra de título em degradê nas janelas.
-- **Tema 3 – Windows 3.1**: janelas brancas com moldura preta, botões cinza em relevo e barra de título sólida.
+Sete temas, cada um com variante clara e escura e paleta própria (nenhum usa as cores do logo). O botão da paleta,
+no topo, abre a lista com prévia de cada tema e um seletor Claro/Escuro; o do sol/lua troca claro e escuro (sem
+escolha, segue o celular):
+- **Paletas modernas**: **Tema 1 – Safira & Violeta** (padrão), **Tema 2 – Esmeralda & Ouro** e **Tema 3 – Alto
+  Contraste** (branco para sol forte, preto OLED no escuro, bordas de 2 px).
+- **Tema 4 – Windows 98** (98.css): área de trabalho verde-azulada, cinza em relevo 3D e barra azul marinho.
+- **Tema 5 – Windows XP** (XP.css): Luna no claro e Royale Noir no escuro, barra de título brilhante e botões perolados.
+- **Tema 6 – Windows 3.1**: moldura 16-bit de cantos retos e título centralizado.
+- **Tema 7 – Windows 10**: visual Fluent em Segoe UI, azul `#0078D7` e foco com linha inferior.
 
-Nos temas retrô os azuis são os do logo Energisa. O logo do Grupo Energisa aparece no topo do app e no
-PDF; a prancheta é o ícone do app (aba do navegador, PWA e APK).
+O logo do Grupo Energisa aparece no topo do app e no PDF (o PDF não muda com o tema); a prancheta é o ícone do app
+(aba do navegador, PWA e APK).
 
 ## Desenvolvimento
 
