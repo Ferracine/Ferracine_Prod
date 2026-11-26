@@ -16,7 +16,8 @@
     "icons": "pwa-assets-generator --preset minimal-2023 public/icon.png",
     "logo": "node scripts/render-logo.mjs",
     "android:icons": "node scripts/android-icons.mjs",
-    "apk": "vite build && node scripts/apk.mjs"
+    "apk": "vite build && node scripts/apk.mjs",
+    "release": "node scripts/release.mjs"
   },
   "engines": {
     "node": ">=22"

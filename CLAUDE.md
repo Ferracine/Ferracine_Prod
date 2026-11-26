@@ -19,6 +19,7 @@ pnpm build             # dist/ + service worker (vite-plugin-pwa, generateSW)
 pnpm test:e2e          # Playwright contra o build (pnpm preview :4173), Chrome instalado, viewport Pixel 7
 pnpm check             # lint + test + build + e2e: rode antes de commitar
 pnpm apk               # build web + APK release assinado em release/FerracineProd-<versão>.apk (scripts/apk.mjs)
+pnpm release           # sobe a versão, roda pnpm check, gera o APK, faz commit + push e publica a Release no GitHub
 pnpm logo              # regenera src/assets/energisa-pdf.png (logo do PDF) a partir de src/assets/energisa.svg
 pnpm icons             # regenera favicon/ícones do PWA a partir de public/icon.png (prancheta)
 pnpm android:icons     # regenera os mipmaps do APK a partir de public/icon.png

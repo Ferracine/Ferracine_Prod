@@ -89,6 +89,7 @@ pnpm install
 pnpm dev          # http://localhost:5173 (também na rede local, para abrir no celular)
 pnpm check        # tipos + testes unitários + build + testes ponta a ponta
 pnpm apk          # build web + APK assinado em release/FerracineProd-<versão>.apk
+pnpm release      # sobe a versão, roda o check, gera o APK, faz commit/push e cria a Release no GitHub
 ```
 
 | Comando | O que faz |
