@@ -699,7 +699,7 @@ test('OSs concluídas: o botão inverte a ordem (crescente ↔ decrescente), man
 test('temas Windows: Cancelar turno mantém o texto vermelho do esquema ao lado do Encerrar (botões da mesma face)', async ({ page }) => {
   await iniciarTurno(page);
   const cor = (sel: string) => page.locator(sel).evaluate((el) => getComputedStyle(el).color);
-  for (const [estilo, perigo] of [['win98', 'rgb(128, 0, 0)'], ['xp', 'rgb(176, 38, 11)'], ['win10', 'rgb(197, 5, 0)']] as const) {
+  for (const [estilo, perigo] of [['win98', 'rgb(128, 0, 0)'], ['xp', 'rgb(176, 38, 11)'], ['win10', 'rgb(158, 4, 0)']] as const) {
     await page.evaluate((e) => localStorage.setItem('ferracine_prod:estilo', e), estilo);
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('data-estilo', estilo);
@@ -793,7 +793,7 @@ test('temas: o botão abre a lista (3 paletas modernas e 3 Windows, em ordem cro
   expect(await estilo('border-top-width')).toBe('1px');
   expect(await estilo('box-shadow')).toBe('none');
   await page.locator('#estilo-toggle').click();
-  expect(await page.locator('.janela').evaluate((el) => getComputedStyle(el).borderTopColor)).toBe('rgb(0, 120, 215)');
+  expect(await page.locator('.janela').evaluate((el) => getComputedStyle(el).borderTopColor)).toBe('rgb(0, 119, 214)');
   await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
 
   // Fica salvo (o script do <head> aplica antes da pintura).

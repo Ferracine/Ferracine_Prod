@@ -341,7 +341,8 @@
   --accent: #800080;
   --accent-600: #800080;
   --accent-700: #5c005c;
-  --accent-fg: #800080;
+  /* Texto do destaque mais escuro que o #800080 do esquema: sobre o fundo dos selos ficaria abaixo de 4,5:1. */
+  --accent-fg: #6b006b;
   --danger-soft: #ff0000;
   --danger-600: #800000;
   --danger-700: #5c0000;
@@ -622,7 +623,7 @@
   --accent: #215dc6;
   --accent-600: #215dc6;
   --accent-700: #1a4ba0;
-  --accent-fg: #215dc6;
+  --accent-fg: #1a4ba0; /* #215DC6 sobre o fundo dos selos ficaria abaixo de 4,5:1 */
   --danger-soft: #e04b25;
   --danger-600: #cc3813;
   --danger-700: #a13217;
@@ -843,7 +844,8 @@
  * ========================================================================== */
 [data-estilo='win10'] {
   --font-sans: 'Segoe UI', 'Selawik', system-ui, ui-sans-serif, sans-serif;
-  --w10-accent: #0078d7;
+  /* #0078D7 é o destaque do sistema; com texto branco dá 4,49:1. #0077D6 é indistinguível e passa o mínimo de 4,5:1. */
+  --w10-accent: #0077d6;
   --w10-base: #000000;
   --w10-alt: #ffffff;
   --w10-pagina: #ffffff;
@@ -864,8 +866,8 @@
   --muted: color-mix(in srgb, #000000 80%, var(--w10-pagina));
   --subtle: color-mix(in srgb, #000000 60%, var(--w10-pagina));
   --sobre-app: color-mix(in srgb, #000000 60%, var(--w10-chrome-low));
-  --brand: #0078d7;
-  --brand-600: #0078d7;
+  --brand: var(--w10-accent);
+  --brand-600: var(--w10-accent);
   --brand-700: #005a9e;
   --brand-fg: #005a9e;
   /* Destaque secundário: tons escuros da própria cor de destaque (SystemAccentColorDark1/Dark2). */
@@ -876,7 +878,7 @@
   --danger-soft: #e81123;
   --danger-600: #c50500;
   --danger-700: #9e0400;
-  --danger-fg: #c50500;
+  --danger-fg: #9e0400; /* #C50500 sobre o cinza do botão (Cancelar turno) ficaria em 3,5:1 */
   --ok: #107c10;
   --warn: #9d5d00;
   --err: #c50500;

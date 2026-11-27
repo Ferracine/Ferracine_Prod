@@ -145,7 +145,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       h(
         'div',
         { class: 'flex items-center justify-between border-b border-fg/10 pb-3' },
-        h('div', { class: 'flex items-center gap-2' }, icon(ClipboardList, 'w-5 h-5 text-brand-fg'), h('h3', { class: 'font-extrabold text-fg text-base' }, 'OSs concluídas no turno')),
+        h('div', { class: 'flex items-center gap-2' }, icon(ClipboardList, 'w-5 h-5 text-brand-fg'), h('h2', { class: 'font-extrabold text-fg text-base' }, 'OSs concluídas no turno')),
         h(
           'div',
           { class: 'flex items-center gap-2' },
