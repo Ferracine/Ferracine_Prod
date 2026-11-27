@@ -457,7 +457,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** A folha vai para o topo do histórico com "PDF não baixado" até o eletricista baixar (`encerrarDados`). */
   function encerrar(): void {
     update((d) => encerrarDados(d, new Date().toISOString()));
-    pausarToques(); // o 2º toque de um toque duplo cairia na tela do cabeçalho ou na janela "Produção encerrada"
+    pausarToques();
     // Só a produção que acabou de ser encerrada (as anteriores ficam no histórico do topo).
     const sheet = data.sheets[0];
     if (sheet) abrirFolhas(sheet);

@@ -122,17 +122,21 @@ const BTN_TAMANHO = {
   sm: 'min-h-11 px-3 py-1.5 text-xs font-bold', // 44 px: ação pequena dentro de um cartão
   icon: 'size-11 shrink-0', // 44 x 44, só ícone (ícone w-5)
 } as const;
+/** Botão sem moldura (só o texto/ícone; fundo ao passar o dedo). */
+const SEM_MOLDURA = 'text-muted hover:bg-fg/10 hover:text-fg';
 const BTN_TOM = {
   primary: 'bg-brand-600 hover:bg-brand-700 text-white',
   neutral: 'bg-fg/10 hover:bg-fg/15 text-fg',
   danger: 'bg-rose-600 hover:bg-rose-700 text-white',
   accent: 'bg-accent-600 hover:bg-accent-700 text-white',
   outline: 'bg-fg/5 border border-fg/10 hover:bg-fg/10', // cor do texto/ícone fica com quem usa
-  ghost: 'text-muted hover:bg-fg/10 hover:text-fg',
-  /** X das janelas: igual ao ghost, mas com gancho próprio (`btn-fechar`): os temas Windows o desenham como botão da barra de título. */
-  fechar: 'text-muted hover:bg-fg/10 hover:text-fg',
+  ghost: SEM_MOLDURA,
+  /** X das janelas: igual ao ghost, com gancho próprio (`btn-fechar`) para os temas Windows o desenharem como botão da barra de título. */
+  fechar: SEM_MOLDURA,
 } as const;
 export type BtnTom = keyof typeof BTN_TOM;
+/** Tons das ações de uma janela (os sem moldura não servem de ação). */
+export type TomAcao = 'primary' | 'neutral' | 'danger' | 'accent';
 
 export function btn(tom: BtnTom, tamanho: keyof typeof BTN_TAMANHO = 'md'): string {
   return `${BTN_BASE} btn-${tom} ${BTN_TAMANHO[tamanho]} ${BTN_TOM[tom]}`;
@@ -144,23 +148,24 @@ export const BTN_PRIMARY_LG = `${btn('primary', 'lg')} shadow-lg shadow-brand/20
 /** Link de ação ("Adicionar / excluir ...", "Procurar atualização"): texto pequeno, mas com 44 px de toque. */
 export const BTN_LINK = 'inline-flex items-center gap-1.5 min-h-11 text-xs font-bold text-brand-fg hover:underline whitespace-nowrap';
 
-/** Cores de uma opção de BTN_CHOICE: marcada (destaque do logo) e desmarcada. */
+/** Cores de BTN_CHOICE marcada e desmarcada (a desmarcada vale também para BTN_OPCAO). */
 export const ESCOLHA_ON = 'border-brand bg-brand-600 text-white';
 export const ESCOLHA_OFF = 'border-fg/15 bg-fg/5 text-fg';
 
 /** Escolha entre opções (SIM/NÃO, Solo/Dupla): cor de fundo e borda vêm de quem usa, conforme o estado. */
 export const BTN_CHOICE = 'escolha flex items-center justify-center gap-2 rounded-xl border-2 font-extrabold transition-all';
 
-/** Item de uma lista de opções numa janela (ex.: a lista de temas): `aria-pressed` marca o escolhido. */
-export const BTN_OPCAO = 'opcao flex items-center gap-2 rounded-xl border-2 font-extrabold transition-all';
+/** Item de uma lista de opções numa janela (ex.: a lista de temas): `aria-pressed` marca o escolhido (OPCAO_ON). */
+export const BTN_OPCAO = 'opcao flex items-center gap-3 rounded-xl border-2 transition-all';
+export const OPCAO_ON = 'border-brand bg-brand/10 text-fg';
 
-/**
- * Pausa os toques na página por `ms` (toque duplo: o 2º toque cairia na tela ou na janela que acabou de aparecer).
- * Os avisos (toasts) continuam tocáveis; não fazem nada ao toque.
- */
-export function pausarToques(ms = 400): void {
+let retomarToques: ReturnType<typeof setTimeout> | undefined;
+
+/** Pausa os toques na página por 400 ms: o 2º toque de um toque duplo cairia na tela ou janela que acabou de aparecer. */
+export function pausarToques(): void {
+  clearTimeout(retomarToques);
   document.body.style.pointerEvents = 'none';
-  setTimeout(() => (document.body.style.pointerEvents = ''), ms);
+  retomarToques = setTimeout(() => (document.body.style.pointerEvents = ''), 400);
 }
 
 /** Botão do topo (histórico, tema...) no lugar reservado no index.html: o `<span>` com o id já guarda o espaço. */

@@ -1,5 +1,5 @@
 import { X } from 'lucide';
-import { btn, type BtnTom, byId, h, icon } from './dom';
+import { btn, byId, h, icon, type TomAcao } from './dom';
 
 export type ToastType = 'info' | 'success' | 'warning' | 'error';
 
@@ -33,7 +33,7 @@ export function showToast(message: string, type: ToastType = 'info'): void {
 
 export interface ModalAction {
   label: string;
-  variant: Exclude<BtnTom, 'outline' | 'ghost' | 'fechar'>;
+  variant: TomAcao;
   onClick: () => void;
 }
 

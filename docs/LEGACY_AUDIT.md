@@ -34,7 +34,7 @@ Resolvidos na reescrita dos temas Windows e no /simplify de 27/11 (commits `414e
 - [x] `border-radius` repetido no Win10/XP — tokens `--radius-*` num bloco comum (98, 3.1 e 10); só card, campo e
   `rounded-full` têm regra própria.
 
-Novos (achados no /simplify e no /clear-legacy de 27/11; executados no lote 3, commit abaixo):
+Novos (achados no /simplify e no /clear-legacy de 27/11; executados no lote 3, commit `093a6b8`):
 - [x] `src/styles.css` (`[data-estilo='win98']`) — `--w-borda-btn: none`, `--w-borda-campo: none` e `--w-raio-btn: 0`
   só existiam para alternar entre o 98 e o 3.1; com o 3.1 fora, viraram indireção — consolidar: escrever os valores
   direto nas regras de botão e campo do 98. Evidência: 1 declaração e 1 uso cada (`grep`). Risco Baixo.

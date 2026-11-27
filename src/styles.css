@@ -292,10 +292,10 @@
  * ========================================================================== */
 
 /* --- Comum aos três ----------------------------------------------------- */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha) {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha, .opcao) {
   scale: 1;
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha, .card, .janela) {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha, .opcao, .card, .janela) {
   box-shadow: none;
   transition: none;
 }
@@ -408,7 +408,6 @@
   background: var(--w-window);
   color: var(--w-window-fg);
   border: 1px solid transparent;
-  box-shadow: none;
 }
 [data-estilo='win98'] .opcao[aria-pressed='true'] {
   background: var(--w-sel);
@@ -420,7 +419,7 @@
   color: inherit;
 }
 /* Foco: retângulo pontilhado por dentro do botão. */
-[data-estilo='win98'] :is(.btn, .escolha):focus-visible {
+[data-estilo='win98'] :is(.btn, .escolha, .opcao):focus-visible {
   outline: 1px dotted var(--w-face-fg);
   outline-offset: -4px;
 }
@@ -744,7 +743,7 @@
   background: var(--xp-btn-ativo);
   box-shadow: none;
 }
-[data-estilo='xp'] :is(.btn:where(:not(.btn-fechar)), .escolha):focus-visible {
+[data-estilo='xp'] :is(.btn:where(:not(.btn-fechar)), .escolha, .opcao):focus-visible {
   outline: 1px dotted #000000;
   outline-offset: -4px;
   box-shadow: var(--xp-foco);
@@ -976,7 +975,7 @@
   color: var(--w10-base-medium-low);
   cursor: default;
 }
-[data-estilo='win10'] :is(.btn, .escolha):focus-visible {
+[data-estilo='win10'] :is(.btn, .escolha, .opcao):focus-visible {
   outline: 2px solid var(--fg);
   outline-offset: 1px;
   box-shadow: inset 0 0 0 1px var(--w10-alt-medium);
@@ -1011,7 +1010,7 @@
 /* Lista de temas: item escolhido = seleção de lista (destaque a 60%). */
 [data-estilo='win10'] .opcao {
   background: transparent;
-  border: 2px solid transparent;
+  border-color: transparent;
   color: var(--fg);
 }
 @media (hover: hover) {
