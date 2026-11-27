@@ -696,7 +696,7 @@ test('OSs concluídas: o botão inverte a ordem (crescente ↔ decrescente), man
   await expect(itens).toHaveText([/#1 • OS 1/, /#2 • OS 2/, /#3 • OS 3/]);
 });
 
-test('cancelar turno: pede confirmação, descarta sem ir ao histórico; folha reaberta volta como estava', async ({ page }) => {
+test('cancelar turno: pede confirmação, descarta sem ir ao histórico; folha reaberta volta como estava (mesmo depois de recarregar)', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '709', '10');
   await salvar(page);
@@ -722,6 +722,7 @@ test('cancelar turno: pede confirmação, descarta sem ir ao histórico; folha r
   await page.getByRole('button', { name: 'Editar folha' }).click();
   await novaOS(page, 'comercial', '709', '21');
   await salvar(page);
+  await page.reload(); // o app fechou no meio da correção: a folha original continua guardada
   await page.locator('#btn-cancel-turno').click();
   await expect(page.getByRole('dialog')).toContainText('volta ao histórico como estava');
   await page.getByRole('button', { name: 'Sim, cancelar turno' }).click();

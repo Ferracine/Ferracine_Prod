@@ -121,11 +121,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** OS aberta na tela de edição (lápis). Só em memória: a OS salva muda apenas em "Salvar alterações". */
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
   let shownScreen: Screen | null = null;
-  /**
-   * Folha reaberta pelo "Editar" do histórico, como estava: o turno aberto é a correção dela. Corrigir o cabeçalho não
-   * muda o "próximo turno" (lastHeader), e "Cancelar turno" devolve a folha ao histórico.
-   */
-  let folhaReaberta: ClosedSheet | null = null;
   let decrescente = lerOrdem();
   const shareSupported = canShareFiles();
 
@@ -228,8 +223,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     if (screen !== shownScreen) window.scrollTo({ top: 0, behavior: 'smooth' });
     shownScreen = screen;
     syncBackButton(screen);
-    // Abrir/Compartilhar do histórico (tela inicial ou janela do topo, em qualquer tela) precisam agir logo após o toque:
-    // com folhas no histórico, deixa o jsPDF carregado em segundo plano.
+    // Abrir/Compartilhar das janelas de folhas (histórico do topo e "Produção encerrada") precisam agir logo após o
+    // toque: com folhas no histórico, deixa o jsPDF carregado em segundo plano.
     if (!pdfModuleLoading && data.sheets.length) {
       const whenIdle = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 200)); // Safari não tem requestIdleCallback
       whenIdle(() => void loadPdfModule().catch((error) => console.error('Erro ao carregar o gerador de PDF:', error)));
@@ -265,7 +260,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     editingHeader = false;
     update((d) => {
       d.header = header;
-      if (!folhaReaberta) d.lastHeader = header; // preenche o próximo turno
+      if (!d.reaberta) d.lastHeader = header; // corrigir uma folha reaberta não muda o próximo turno // preenche o próximo turno
     });
     showToast(wasEditing ? 'Cabeçalho atualizado.' : 'Turno iniciado! Registro de OSs liberado.', 'success');
   }
@@ -461,11 +456,11 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   /** A folha vai para o topo do histórico com "PDF não baixado" até o eletricista baixar (`encerrarDados`). */
   function encerrar(): void {
-    folhaReaberta = null;
     update((d) => encerrarDados(d, new Date().toISOString()));
-    // Toque duplo: o 2º toque cairia num botão da tela do cabeçalho, que acabou de aparecer no lugar do painel.
-    root.style.pointerEvents = 'none';
-    setTimeout(() => (root.style.pointerEvents = ''), 400);
+    // Toque duplo: o 2º toque cairia na tela do cabeçalho ou na janela "Produção encerrada", que acabaram de aparecer.
+    const alvos = [root, byId('modal')];
+    for (const el of alvos) el.style.pointerEvents = 'none';
+    setTimeout(() => alvos.forEach((el) => (el.style.pointerEvents = '')), 400);
     // Só a produção que acabou de ser encerrada (as anteriores ficam no histórico do topo).
     const sheet = data.sheets[0];
     if (sheet) abrirFolhas('Produção encerrada', () => (data.sheets.includes(sheet) ? [sheet] : []), false);
@@ -475,7 +470,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** "Cancelar turno": descarta cabeçalho e OSs sem criar folha; uma folha reaberta volta ao histórico como estava. */
   function cancelarTurno(): void {
     const n = data.ordens.length;
-    const reaberta = folhaReaberta;
+    const reaberta = data.reaberta;
     confirmModal(
       'Cancelar turno',
       reaberta
@@ -483,8 +478,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         : `Descartar este turno? O cabeçalho e ${n === 0 ? 'o turno sem OSs' : plural(n, 'OS registrada', 'OSs registradas')} são apagados e não vão para o histórico. Não dá para desfazer.`,
       { label: 'Sim, cancelar turno', variant: 'danger' },
       () => {
-        folhaReaberta = null;
-        update((d) => cancelarDados(d, reaberta));
+        update(cancelarDados);
         showToast(reaberta ? 'Correção descartada: a folha voltou ao histórico.' : 'Turno cancelado.', 'info');
       },
       'Voltar ao turno',
@@ -576,7 +570,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, a folha corrigida volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
       { label: 'Editar folha', variant: 'primary' },
       () => {
-        folhaReaberta = sheet;
         update((d) => {
           reabrirDados(d, sheet);
           d.tecnicos = [...d.tecnicos, ...sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id))];

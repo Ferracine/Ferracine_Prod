@@ -108,6 +108,11 @@ export interface AppData {
   lastHeader: ShiftHeader | null;
   tecnicos: Tecnico[];
   eletricistas: Eletricista[];
+  /**
+   * Folha reaberta pelo "Editar" do histórico, como estava: o turno aberto é a correção dela. Gravada (e não só em
+   * memória) para "Cancelar turno" devolvê-la ao histórico mesmo depois de o app fechar no meio da correção.
+   */
+  reaberta: ClosedSheet | null;
 }
 
 /** Linha pronta para exibir no app ou no PDF. */

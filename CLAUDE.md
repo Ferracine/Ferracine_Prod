@@ -58,7 +58,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
-  eletricistas começam com a dupla dos últimos cabeçalhos). `loadData`: lê, roda as conversões de versões antigas
+  eletricistas começam com a dupla dos últimos cabeçalhos) e `reaberta` (a folha original enquanto ela é corrigida). `loadData`: lê, roda as conversões de versões antigas
   sobre o JSON cru (bloco `// --- Conversões de versões antigas` no fim do arquivo: `lastSheet`, eletricistas,
   número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4, a cópia escondida do número
   em `answers.os` e a pergunta de dificuldade até a 1.4.12, que vira "Informações adicionais"), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
@@ -93,9 +93,10 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   encerrada" mostra só a folha encerrada (`abrirFolhas` com uma lista de uma folha). Histórico (`src/ui/folhas.ts`,
   `listaFolhas`): só na janela do botão `#historico-toggle` do topo (a tela do cabeçalho não mostra mais o cartão);
   ações Baixar/Abrir/Compartilhar/Editar/Excluir. **Editar** (`reabrirFolha`) devolve a folha ao turno aberto
-  (cabeçalho e OSs) e a tira de `sheets`, guardando a original em `folhaReaberta` (memória); só sem turno aberto.
+  (cabeçalho e OSs) e a tira de `sheets`, guardando a original em `AppData.reaberta` (gravada: sobrevive ao app
+  fechar no meio da correção); só sem turno aberto. Com `reaberta`, corrigir o cabeçalho não muda `lastHeader`.
   **Cancelar turno** (`#btn-cancel-turno`, `cancelarTurno` → `cancelarDados`) descarta cabeçalho/OSs/rascunho
-  depois de confirmar; com `folhaReaberta`, a folha volta ao histórico como estava. A lista "OSs concluídas" tem
+  depois de confirmar; com `reaberta`, a folha volta ao histórico como estava. A lista "OSs concluídas" tem
   `#btn-ordem-os` (Crescente/Decrescente, chave `ferracine_prod:ordem-os`; o # é a posição na folha). Não há
   planilha: o app só gera PDF.
 - Campo que falta: `marcarFaltando(el)` (dom.ts) põe `.faltando` (borda vermelha, styles.css) até a pessoa mexer;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { questionsFor } from '../../src/domain/catalog';
+import { perguntasDaTela, questionsFor } from '../../src/domain/catalog';
 import type { Answer, OSDraft } from '../../src/domain/types';
 import * as ordem from '../../src/domain/ordem';
 import { espelhoRows } from '../../src/domain/espelho';
@@ -190,6 +190,14 @@ describe('OS nova (tela da OS)', () => {
 
 describe('edição completa de OS (lápis)', () => {
   const base = () => finishedOS('100', 'OCORRENCIA', '508', { ...DITAIS_NAO, tipo: { kind: 'text', value: 'Falta' } }, 'id-9');
+
+  it('ocorrência salva antes da 1.4.18: a tela do lápis mostra as perguntas antigas respondidas, para corrigir', () => {
+    const answers = { defeito: { kind: 'text', value: 'FUZIVEL' }, callback: { kind: 'text', value: '  ' } } as const;
+    const ids = perguntasDaTela('OCORRENCIA', answers).map((q) => q.id);
+    expect(ids.slice(-2)).toEqual(['defeito', 'infoAdicional']);
+    expect(ids).not.toContain('callback'); // texto em branco não conta como respondida
+    expect(perguntasDaTela('OCORRENCIA', {}).map((q) => q.id)).toEqual(questionsFor('OCORRENCIA').map((q) => q.id));
+  });
 
   it('ocorrência salva antes da 1.4.18: o lápis não apaga callback, defeito e as outras perguntas antigas', () => {
     const os = finishedOS('5', 'OCORRENCIA', '508', { ...DITAIS_NAO, defeito: { kind: 'text', value: 'Fusível' }, callback: { kind: 'choice', choice: 'Não' } });

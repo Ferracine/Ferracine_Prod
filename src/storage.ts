@@ -53,7 +53,7 @@ const TECNICO: Esquema<Tecnico> = { id: textoExato, nome: textoExato, telefone: 
 const ELETRICISTA: Esquema<Eletricista> = { id: textoExato, nome: textoExato, matricula: textoExato };
 
 export function emptyData(): AppData {
-  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [] };
+  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [], reaberta: null };
 }
 
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
@@ -93,6 +93,7 @@ const DADOS: Esquema<AppData> = {
   lastHeader: normalizeHeader,
   tecnicos: (v) => lista(TECNICO, v),
   eletricistas: (v) => lista(ELETRICISTA, v),
+  reaberta: (v) => montar(FOLHA, v) ?? null,
 };
 
 /** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
@@ -111,20 +112,22 @@ export function removerFolha(sheets: readonly ClosedSheet[], sheet: ClosedSheet)
 export function encerrarDados(d: AppData, fechadaEm: string): void {
   if (!d.header) return;
   d.sheets = pushSheet(d.sheets, { header: d.header, ordens: d.ordens, fechadaEm, tecnicos: d.tecnicos, baixadaEm: '' });
+  d.reaberta = null;
   d.header = null;
   d.ordens = [];
   d.draft = null;
 }
 
 /**
- * "Cancelar turno": descarta o cabeçalho, as OSs e o rascunho sem criar folha. `reaberta` = a folha que o "Editar" do
- * histórico tinha tirado de lá: volta como estava antes da correção (no lugar dela pela data de encerramento).
+ * "Cancelar turno": descarta o cabeçalho, as OSs e o rascunho sem criar folha. Se o turno era a correção de uma folha
+ * reaberta (`d.reaberta`), ela volta ao histórico como estava (no lugar dela pela data de encerramento).
  */
-export function cancelarDados(d: AppData, reaberta: ClosedSheet | null): void {
+export function cancelarDados(d: AppData): void {
+  if (d.reaberta) d.sheets = [...d.sheets, d.reaberta].sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm)).slice(0, SHEETS_KEPT);
+  d.reaberta = null;
   d.header = null;
   d.ordens = [];
   d.draft = null;
-  if (reaberta) d.sheets = [...d.sheets, reaberta].sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm)).slice(0, SHEETS_KEPT);
 }
 
 /** "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. */
@@ -133,6 +136,7 @@ export function reabrirDados(d: AppData, sheet: ClosedSheet): void {
   d.ordens = sheet.ordens;
   d.draft = null;
   d.sheets = removerFolha(d.sheets, sheet);
+  d.reaberta = sheet;
 }
 
 /**

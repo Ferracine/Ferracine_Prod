@@ -1,5 +1,5 @@
 import { CircleCheck, CircleX, Save } from 'lucide';
-import { SERVICE_LABEL, isVisible, questionsFor } from '../domain/catalog';
+import { SERVICE_LABEL, isVisible, perguntasDaTela } from '../domain/catalog';
 import { CODE_FIELD, type OSEdit } from '../domain/ordem';
 import type { Answer, Choice, Question, ServiceType } from '../domain/types';
 import { TYPE_BADGE } from './dashboard-screen';
@@ -176,7 +176,8 @@ export function osScreen(p: OSScreenProps): HTMLElement {
       textField('os-number', NUMBER_LABEL[p.serviceType], state.osNumber, { inputmode: 'numeric', placeholder: 'Digite o número do serviço.' }, (v) => (state.osNumber = v)),
       textField('os-code', 'Código do serviço', state.serviceCode, { inputmode: 'numeric', maxlength: '10', placeholder: 'Digite o código do serviço.' }, (v) => (state.serviceCode = v), CODE_FIELD),
     ),
-    questionsFor(p.serviceType).map(questionBlock),
+    // Com as antigas da OS: apagar a resposta não tira a pergunta da tela (a lista sai das respostas de quando abriu).
+    perguntasDaTela(p.serviceType, p.initial.answers).map(questionBlock),
     h(
       'button',
       { type: 'button', id: 'btn-os-save', class: `w-full ${BTN_PRIMARY_LG}`, onClick: () => p.onSave(current()) },

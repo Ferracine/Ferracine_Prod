@@ -73,9 +73,25 @@ const PERGUNTAS_ANTIGAS: readonly Question[] = [
   { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', short: 'Alteração UC' },
 ];
 
-/** Perguntas antigas com resposta nesta OS. */
+/** Perguntas antigas com resposta nesta OS (texto em branco não conta). */
 export function antigasRespondidas(answers: Record<string, Answer>): readonly Question[] {
-  return PERGUNTAS_ANTIGAS.filter((q) => answers[q.id] && answers[q.id]?.kind !== 'skipped');
+  return PERGUNTAS_ANTIGAS.filter((q) => {
+    const a = answers[q.id];
+    return a?.kind === 'choice' || (a?.kind === 'text' && a.value.trim() !== '');
+  });
+}
+
+/** Inclui as perguntas antigas antes de "Informações adicionais", que continua a última. */
+function comAntigas(perguntas: readonly Question[], answers: Record<string, Answer>): readonly Question[] {
+  const antigas = antigasRespondidas(answers);
+  if (!antigas.length) return perguntas;
+  const fim = perguntas.at(-1)?.id === INFO_ADICIONAL.id ? perguntas.length - 1 : perguntas.length;
+  return [...perguntas.slice(0, fim), ...antigas, ...perguntas.slice(fim)];
+}
+
+/** Perguntas da tela da OS (nova e lápis): as do tipo e as antigas que a OS já tinha respondido (para corrigir). */
+export function perguntasDaTela(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
+  return comAntigas(questionsFor(type), answers);
 }
 
 const QUESTIONS: Record<ServiceType, readonly Question[]> = { COMERCIAL, OCORRENCIA };
@@ -91,10 +107,8 @@ export function isVisible(q: Question, answers: Record<string, Answer>): boolean
 
 /** Perguntas que valem com estas respostas (as escondidas por `showIf` ficam de fora). */
 export function visibleQuestions(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
-  const atuais = questionsFor(type).filter((q) => isVisible(q, answers));
-  const antigas = antigasRespondidas(answers);
-  if (!antigas.length) return atuais;
-  // Antes de "Informações adicionais", que continua a última.
-  const fim = atuais.at(-1)?.id === INFO_ADICIONAL.id ? atuais.length - 1 : atuais.length;
-  return [...atuais.slice(0, fim), ...antigas, ...atuais.slice(fim)];
+  return comAntigas(
+    questionsFor(type).filter((q) => isVisible(q, answers)),
+    answers,
+  );
 }

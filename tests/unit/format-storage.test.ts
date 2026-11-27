@@ -70,6 +70,7 @@ describe('armazenamento', () => {
       eletricistas: [{ id: 'e1', nome: 'ANA', matricula: '1' }],
       lastHeader: header,
       tecnicos,
+      reaberta: { header, ordens: [], fechadaEm: '2026-11-18T20:00:00.000Z', tecnicos, baixadaEm: '2026-11-18T21:00:00.000Z' },
     };
     expect(saveData(store, data)).toBe(true);
     expect(store.items.get(STORAGE_KEY)).toContain('"version":3');
@@ -194,14 +195,23 @@ describe('armazenamento', () => {
     const nova = { header, ordens: [os], fechadaEm: '2026-11-21T18:00:00.000Z', tecnicos: [], baixadaEm: '' };
     const velha = { ...nova, fechadaEm: '2026-11-19T18:00:00.000Z' };
     const meio = { ...nova, fechadaEm: '2026-11-20T18:00:00.000Z', baixadaEm: '2026-11-20T19:00:00.000Z' };
-    const d: AppData = { ...emptyData(), header, ordens: [os], draft: startDraft('COMERCIAL'), sheets: [nova, velha] };
-    cancelarDados(d, null);
-    expect(d).toMatchObject({ header: null, ordens: [], draft: null, sheets: [nova, velha] });
-    // "Editar" tirou a do meio do histórico; cancelar a correção devolve como estava (com a marca de baixada).
-    reabrirDados(d, d.sheets[0]!);
-    d.sheets = [velha];
-    cancelarDados(d, meio);
-    expect(d.sheets).toEqual([meio, velha]);
+    const d: AppData = { ...emptyData(), header, ordens: [os], draft: startDraft('COMERCIAL'), sheets: [nova, meio, velha] };
+    cancelarDados(d);
+    expect(d).toMatchObject({ header: null, ordens: [], draft: null, sheets: [nova, meio, velha], reaberta: null });
+    // "Editar" tira a do meio do histórico e a guarda; mesmo depois de fechar e abrir o app, cancelar a correção a
+    // devolve como estava (com a marca de baixada), no lugar dela.
+    reabrirDados(d, meio);
+    expect(d.sheets).toEqual([nova, velha]);
+    const store = memoryStore();
+    saveData(store, d);
+    const reaberto = loadData(store);
+    expect(reaberto.reaberta).toEqual(meio);
+    cancelarDados(reaberto);
+    expect(reaberto).toMatchObject({ header: null, sheets: [nova, meio, velha], reaberta: null });
+    // Encerrar a correção também esquece a original.
+    reabrirDados(d, meio);
+    encerrarDados(d, '2026-11-22T08:00:00.000Z');
+    expect(d.reaberta).toBeNull();
   });
 
   it('até a 1.4.15 encerrar já baixava o PDF: folha antiga (sem baixadaEm) conta como baixada; a nova não', () => {
