@@ -219,4 +219,9 @@ com a chave de sempre. Push, Release e publicação só com OK explícito do Bru
   recebe mais atualização sozinho: instalar uma vez à mão o APK da Release mais recente da conta Ferracine (mesma
   assinatura; os dados do app ficam).
 - Atualizar pelo app mostra o Google Play Protect ("A verificação do app é recomendada"): o APK não vem da Play
-  Store. "Verificar app" analisa e instala (testado no A23 na 1.4.18 → 1.4.19); o eletricista precisa saber disso.
+  Store. "Verificar app" analisa e instala (A23: 1.4.18 → 1.4.19 passou). **A 1.4.20 foi bloqueada como "App nocivo
+  bloqueado"** (27/11/2026), com as mesmas permissões e arquivos da 1.4.19: veredito automático do Play Protect sobre
+  um app que baixa e instala APK. A Release v1.4.20 ficou como pré-lançamento (os aparelhos seguem achando a v1.4.19;
+  o Pages já tem a 1.4.20). Para liberar: pedir revisão ao Google (formulário de contestação do Play Protect, pela
+  conta de desenvolvedor) ou distribuir pela Play Store (teste interno); depois `gh release edit v1.4.20 -R
+  Ferracine/Ferracine_Prod --prerelease=false --latest`. Não contornar o aviso no aparelho.
