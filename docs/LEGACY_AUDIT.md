@@ -17,6 +17,9 @@ Evidências gerais:
 - [x] `CLAUDE.md` — lista de ganchos dos temas desatualizada — atualizada (`.painel`, `.faixa-cabecalho`,
   `.janela-rodape`, `.selo-status`, `.aviso`, `.sobre-app`, variáveis `--w-*`/`--bisel*` e fontes do sistema).
 
+- Aceito (não é legado): a fonte WIN95FA do tema Windows 98 não tem `©` nem `—`; esses dois caracteres saem em Arial,
+  legíveis. Não há fonte livre em pixel com eles.
+
 ## Lote 2 (Risco Baixo/Médio)
 - Nenhum item: não há arquivo, função ou export sem referência (ver evidências gerais).
 
@@ -47,6 +50,9 @@ Novos (achados no /simplify e no /clear-legacy de 27/11; executados no lote 3, c
   a cada troca de tela engoliria toques legítimos rápidos.
 
 ## Lote 4 (Revisão Manual) — não executar sem decisão item a item
+Data combinada para os três itens abaixo: **a partir de 27/12/2026** (30 dias depois da 1.4.18, publicada em
+27/11/2026), se ninguém avisar de aparelho parado em versão antiga. Antes de remover: confirmar com o Bruno/Paulo e
+abrir o app em cada aparelho conhecido (o rodapé mostra a versão).
 - [ ] `src/storage.ts` — bloco "Conversões de versões antigas (1.1.0 a 1.4.17)" e a chamada de `converterDados` em
   `loadData`. Pode sair quando todos os aparelhos tiverem aberto a **1.4.18** ou mais nova (a conversão das perguntas
   que só a ocorrência tinha entrou nela). Não há como comprovar pelo código (sem telemetria): decisão do Bruno/Paulo.

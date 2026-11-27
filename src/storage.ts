@@ -220,6 +220,8 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
 // Rodam antes dos esquemas, sobre o JSON cru. Desde a 1.4.9 o app grava no formato atual ao abrir; a última conversão
 // (perguntas que só a ocorrência tinha) é da 1.4.18. Quando todos os aparelhos já tiverem aberto a 1.4.18 ou mais nova,
 // este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
+// Data combinada (sem telemetria não dá para saber): a partir de 27/12/2026, 30 dias depois da 1.4.18, se ninguém
+// avisar de aparelho parado em versão antiga (ver docs/LEGACY_AUDIT.md, Lote 4).
 
 function converterDados(d: Record<string, unknown>): Record<string, unknown> {
   // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
