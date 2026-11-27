@@ -26,7 +26,7 @@ const ESTILOS = [
   { id: 'floresta', grupo: 'Paletas modernas', nome: 'Tema 2: Esmeralda & Ouro', descricao: 'Superfície sálvia suave com botões esmeralda e ouro velho.' },
   { id: 'sol-forte', grupo: 'Paletas modernas', nome: 'Tema 3: Alto Contraste', descricao: 'Branco solar / preto OLED puro, bordas de 2 px, ultramar e púrpura.' },
   { id: 'win98', grupo: 'Especiais e clássicos', nome: 'Tema 4: Windows 98', descricao: 'Desktop teal, cinza #c0c0c0 com chanfro 3D e barra azul marinho.' },
-  { id: 'xp', grupo: 'Especiais e clássicos', nome: 'Tema 5: Windows XP', descricao: 'Estilo Luna / Royale Noir com barra brilhante, botões perolados e verde Iniciar.' },
+  { id: 'xp', grupo: 'Especiais e clássicos', nome: 'Tema 5: Windows XP', descricao: 'Estilo Luna / Royale Noir com barra brilhante, botões perolados e foco azul/âmbar.' },
   { id: 'win31', grupo: 'Especiais e clássicos', nome: 'Tema 6: Windows 3.1', descricao: 'Moldura 16-bit de cantos retos, título centralizado e alto contraste VGA.' },
   { id: 'win10', grupo: 'Especiais e clássicos', nome: 'Tema 7: Windows 10', descricao: 'Visual Fluent nítido em Segoe UI com azul #0078D7 e foco inferior.' },
 ] as const satisfies readonly EstiloDef[];

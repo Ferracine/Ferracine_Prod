@@ -54,7 +54,7 @@ export function openModal(title: string, body: Node, actions: ModalAction[]): vo
       { class: 'janela bg-card rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-fg/10', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' },
       h('div', { class: 'janela-titulo px-6 py-4 flex justify-between items-center gap-3 border-b border-fg/10' }, h('h3', { id: 'modal-title', class: 'font-bold text-lg text-fg' }, title), close),
       h('div', { class: 'p-6 max-h-[70vh] overflow-y-auto text-sm text-fg space-y-3' }, body),
-      h('div', { class: 'bg-fg/5 px-6 py-4 border-t border-fg/10' }, rodape),
+      h('div', { class: 'janela-rodape bg-fg/5 px-6 py-4 border-t border-fg/10' }, rodape),
     ),
   );
   modal.classList.remove('hidden');

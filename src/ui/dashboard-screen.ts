@@ -52,7 +52,7 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
 
   return h(
     'li',
-    { class: 'flex items-center justify-between p-4 rounded-xl border border-fg/10 bg-fg/[0.03] gap-3', 'data-testid': 'os-item' },
+    { class: 'painel flex items-center justify-between p-4 rounded-xl border border-fg/10 bg-fg/[0.03] gap-3', 'data-testid': 'os-item' },
     h(
       'div',
       { class: 'min-w-0' },

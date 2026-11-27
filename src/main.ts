@@ -1,4 +1,5 @@
 import '@fontsource-variable/inter';
+import './fonts.css';
 import './styles.css';
 import { registerSW } from 'virtual:pwa-register';
 import { startApp } from './app';

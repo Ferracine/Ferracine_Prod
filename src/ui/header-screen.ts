@@ -36,7 +36,7 @@ function field(id: keyof ShiftHeader, label: string, attrs: Record<string, strin
 function group(title: string, node: Parameters<typeof icon>[0], ...children: HTMLElement[]) {
   return h(
     'div',
-    { class: 'bg-fg/[0.03] p-4 rounded-xl border border-fg/10 space-y-4' },
+    { class: 'painel bg-fg/[0.03] p-4 rounded-xl border border-fg/10 space-y-4' },
     h('div', { class: 'flex items-center gap-2 text-brand-fg font-bold text-sm' }, icon(node), title),
     ...children,
   );
@@ -89,7 +89,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
         : itens.map((t) =>
             h(
               'li',
-              { class: 'flex items-center justify-between gap-3 p-3 rounded-xl bg-fg/5 border border-fg/10' },
+              { class: 'painel flex items-center justify-between gap-3 p-3 rounded-xl bg-fg/5 border border-fg/10' },
               h('div', { class: 'min-w-0' }, h('p', { class: 'text-sm font-bold text-fg break-words' }, t.nome), c.extraOf(t) && h('p', { class: 'text-xs text-muted' }, c.extraOf(t))),
               h(
                 'button',
@@ -384,7 +384,7 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
       { class: 'card overflow-hidden' },
       h(
         'div',
-        { class: 'px-6 py-5 border-b border-fg/10 bg-brand/10' },
+        { class: 'faixa-cabecalho px-6 py-5 border-b border-fg/10 bg-brand/10' },
         h('p', { class: 'text-[11px] uppercase tracking-widest text-brand-fg font-bold' }, 'Departamento de Operação'),
         h('h2', { class: 'text-xl font-extrabold mt-0.5 text-fg' }, init ? 'Editar cabeçalho do turno' : 'Identificação da equipe e turno'),
         h(

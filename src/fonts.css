@@ -1,0 +1,53 @@
+/*
+ * Fontes offline dos temas Windows (somente .woff2 latino, para manter o PWA e o APK leves).
+ * Os pacotes @fontsource/win95fa e @fontsource/pt-sans trazem também .woff e outros alfabetos que o app não usa;
+ * declarando apenas os .woff2 latinos aqui, o Vite empacota só o necessário (cacheado pelo service worker e APK).
+ */
+
+/* Windows 98 e Windows 3.1: recriação pixelada da MS Sans Serif com acentuação pt-BR (SIL OFL 1.1). */
+@font-face {
+  font-family: 'WIN95FA';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src: url('@fontsource/win95fa/files/win95fa-latin-400-normal.woff2') format('woff2');
+}
+
+/* Windows XP (fallback offline no Android para Tahoma / Trebuchet MS, SIL OFL 1.1). */
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src: url('@fontsource/pt-sans/files/pt-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'PT Sans';
+  font-style: normal;
+  font-display: block;
+  font-weight: 700;
+  src: url('@fontsource/pt-sans/files/pt-sans-latin-700-normal.woff2') format('woff2');
+}
+
+/* Windows 10 (substituta oficial open-source da Microsoft compatível com Segoe UI, SIL OFL 1.1). */
+@font-face {
+  font-family: 'Selawik';
+  font-style: normal;
+  font-display: block;
+  font-weight: 400;
+  src: url('./assets/fonts/selawk.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Selawik';
+  font-style: normal;
+  font-display: block;
+  font-weight: 600;
+  src: url('./assets/fonts/selawksb.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Selawik';
+  font-style: normal;
+  font-display: block;
+  font-weight: 700;
+  src: url('./assets/fonts/selawkb.woff2') format('woff2');
+}

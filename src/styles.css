@@ -283,6 +283,29 @@
  * TEMAS ESPECIAIS E CLÁSSICOS (Windows 98, XP, 3.1 e 10)
  * ========================================================================== */
 
+/* ==========================================================================
+ * RESET E REGRAS COMPARTILHADAS DOS TEMAS WINDOWS (98, XP, 3.1 e 10)
+ * Remove escala de clique do Tailwind v4, sombras modernas e cantos/desfoque clássicos.
+ * ========================================================================== */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .btn:active, .escolha:active, .group:active .nova-os) {
+  scale: 1;
+}
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn-primary, .btn-accent, .btn-danger, .escolha, .nova-os, .card, .janela) {
+  box-shadow: none;
+}
+:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) body {
+  background: var(--app);
+}
+:is([data-estilo='win98'], [data-estilo='win31']) {
+  --font-sans: 'WIN95FA', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.rounded-full, .rounded-xl, .rounded-lg, .rounded-md, .rounded-2xl, .card, .field, .janela, .btn, .escolha, .nova-os) {
+  border-radius: 0;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) #modal {
+  backdrop-filter: none;
+}
+
 /* --- Tema 4: Windows 98 (98.css: desktop teal, #c0c0c0 chanfrado 2px e barra azul marinho) --- */
 [data-estilo='win98'] {
   --brand: #1084d0;
@@ -297,7 +320,7 @@
   --ok: #006600;
   --warn: #8a5200;
   --err: #a80000;
-  --titulo: linear-gradient(90deg, #000080, #0e74b8);
+  --titulo: linear-gradient(90deg, #000080, #1084d0);
   --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
@@ -306,7 +329,7 @@
   --app: #008080;
   --card: #c0c0c0;
   --field: #ffffff;
-  --fg: #111111;
+  --fg: #222222;
   --muted: #2f2f2f;
   --subtle: #444444;
   --brand-fg: #000080;
@@ -316,60 +339,62 @@
   --w98-luz-int: #dfdfdf;
   --w98-sombra-int: #808080;
   --w98-sombra-ext: #0a0a0a;
+  --w98-disabled-shadow: 1px 1px 0 #ffffff;
   --w98-elevado: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-ext), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-int);
+  --w98-default: inset -2px -2px var(--w98-sombra-ext), inset 1px 1px var(--w98-sombra-ext), inset 2px 2px var(--w98-luz-ext), inset -3px -3px var(--w98-sombra-int), inset 3px 3px var(--w98-luz-int);
+  --w98-default-ativo: inset 2px 2px var(--w98-sombra-ext), inset -1px -1px var(--w98-sombra-ext), inset -2px -2px var(--w98-luz-ext), inset 3px 3px var(--w98-sombra-int), inset -3px -3px var(--w98-luz-int);
   --w98-janela: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-int), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-ext);
   --w98-afundado: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-int), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-ext);
   --w98-ativo: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-ext), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-int);
-  --font-sans: 'Pixelated MS Sans Serif', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
 }
 [data-estilo='win98'][data-theme='dark'] {
-  --brand: #3898e0;
-  --brand-600: #105aa8;
-  --brand-700: #0c4785;
-  --accent: #20b2aa;
-  --accent-600: #0e6b6b;
-  --accent-700: #095252;
-  --danger-soft: #ef4444;
-  --danger-600: #b91c1c;
-  --danger-700: #991b1b;
-  --ok: #16803c;
-  --warn: #b45309;
-  --err: #dc2626;
-  --titulo: linear-gradient(90deg, #0a246a, #1064a3);
-  --app: #0b1c20;
-  --card: #2a2d32;
-  --field: #14171c;
-  --fg: #eef2f5;
-  --muted: #b4bcc4;
-  --subtle: #939da7;
-  --brand-fg: #6bb8ff;
-  --accent-fg: #4dd0d0;
-  --danger-fg: #ff8f8f;
-  --w98-luz-ext: #5a606a;
-  --w98-luz-int: #40454e;
-  --w98-sombra-int: #181a1e;
-  --w98-sombra-ext: #050608;
-}
-[data-estilo='win98'] body {
-  background: var(--app);
+  --brand-600: #004e98;
+  --brand-700: #003970;
+  --accent: #00a0a0;
+  --accent-600: #006b6b;
+  --accent-700: #004f4f;
+  --danger-soft: #cc2929;
+  --danger-600: #9e0000;
+  --danger-700: #780000;
+  --ok: #008000;
+  --warn: #806000;
+  --err: #cc0000;
+  --titulo: linear-gradient(90deg, #000080, #0e5a9e);
+  --app: #000000;
+  --card: #1f1f1f;
+  --field: #000000;
+  --fg: #ffffff;
+  --muted: #d4d4d4;
+  --subtle: #a8a8a8;
+  --brand-fg: #66c2ff;
+  --accent-fg: #00ffff;
+  --danger-fg: #ff8080;
+  --w98-luz-ext: #c0c0c0;
+  --w98-luz-int: #666666;
+  --w98-sombra-int: #0d0d0d;
+  --w98-sombra-ext: #000000;
+  --w98-disabled-shadow: none;
 }
 [data-estilo='win98']:not([data-theme='dark']) :is(footer > p, #btn-check-update, #btn-new-comercial > span:last-child, #btn-new-ocorrencia > span:last-child, #screen-dashboard > div:last-child > p) {
   color: #ffffff;
   text-shadow: 1px 1px 0 rgb(0 0 0 / 0.65);
-}
-[data-estilo='win98'] :is(.rounded-full, .card, .field, .janela, .btn, .escolha, .nova-os) {
-  border-radius: 0;
 }
 [data-estilo='win98'] .barra-app {
   background: var(--card);
   border-bottom: none;
   box-shadow: var(--w98-elevado);
 }
-[data-estilo='win98'] .card {
+[data-estilo='win98'] .barra-app .selo-status {
+  background: var(--card);
+  border: none;
+  box-shadow: var(--w98-afundado);
+  color: var(--fg);
+}
+[data-estilo='win98'] :is(.card, :where(#update-banner > div)) {
   background: var(--card);
   border: none;
 }
-[data-estilo='win98'] .card:not(.faltando) {
+[data-estilo='win98'] :is(.card:not(.faltando), :where(#update-banner > div)) {
   box-shadow: var(--w98-janela);
 }
 [data-estilo='win98'] .janela {
@@ -389,8 +414,6 @@
 }
 [data-estilo='win98'] .janela-titulo .btn {
   margin: 0;
-  background: var(--card);
-  color: var(--fg);
 }
 [data-estilo='win98'] .field:not(.faltando) {
   background: var(--field);
@@ -406,38 +429,93 @@
   outline-offset: -3px;
   box-shadow: var(--w98-afundado);
 }
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
+  background: var(--card);
+  color: var(--btn-fg, var(--fg));
   border: none;
   box-shadow: var(--w98-elevado);
 }
-[data-estilo='win98'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
-  background: var(--card);
+[data-estilo='win98'] :is(.btn-primary, .nova-os.bg-brand-600) {
+  box-shadow: var(--w98-default);
 }
-[data-estilo='win98'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
-  color: var(--fg);
-}
-[data-estilo='win98'] :is(.btn:not(.btn-ghost):active:not(:disabled), .janela-titulo .btn:active, .escolha[aria-pressed='true']) {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
+[data-estilo='win98'] .group:active .nova-os {
   box-shadow: var(--w98-ativo);
-}
-[data-estilo='win98'] .btn:active:not(:disabled) {
   transform: translate(1px, 1px);
 }
-[data-estilo='win98'] :is(.btn, .escolha):focus-visible {
-  outline: 1px dotted var(--fg);
-  outline-offset: -4px;
+[data-estilo='win98'] :is(.btn-primary, .nova-os.bg-brand-600):active:not(:disabled),
+[data-estilo='win98'] .group:active .nova-os.bg-brand-600 {
+  box-shadow: var(--w98-default-ativo);
 }
-[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: color-mix(in oklab, var(--brand) 16%, var(--card));
-  outline: 1px dotted var(--fg);
-  outline-offset: -4px;
-}
-[data-estilo='win98'] .nova-os {
+[data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)) {
   border: none;
+  background: transparent;
+  color: var(--fg);
+  box-shadow: none;
+}
+@media (hover: hover) {
+  [data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+    background: var(--card);
+    box-shadow: var(--w98-elevado);
+  }
+}
+[data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
+  background: var(--card);
+  box-shadow: var(--w98-ativo);
+  transform: translate(1px, 1px);
+}
+[data-estilo='win98'] .escolha[aria-pressed='true'] {
+  box-shadow: var(--w98-ativo);
+  outline: 1px dotted var(--fg);
+  outline-offset: -4px;
+}
+[data-estilo='win98'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+  transform: translate(1px, 1px);
+}
+[data-estilo='win98'] :is(.btn, .escolha):focus-visible,
+[data-estilo='win98'] .group:focus-visible .nova-os {
+  outline: 1px dotted var(--fg);
+  outline-offset: -4px;
+}
+[data-estilo='win98'] :is(.btn, .escolha):disabled {
+  opacity: 1;
+  color: #808080;
+  text-shadow: var(--w98-disabled-shadow);
+  cursor: default;
+}
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha):disabled {
+  background: var(--card);
   box-shadow: var(--w98-elevado);
+}
+[data-estilo='win98'] .painel {
+  background: var(--card);
+  border: 1px solid var(--w98-sombra-int);
+  box-shadow: inset 1px 1px 0 var(--w98-luz-ext), 1px 1px 0 var(--w98-luz-ext);
+}
+[data-estilo='win98'] .faixa-cabecalho {
+  background: var(--card);
+  border-bottom: 1px solid var(--w98-sombra-int);
+  box-shadow: inset 0 -1px 0 var(--w98-luz-ext);
+}
+[data-estilo='win98'] .janela-rodape {
+  background: var(--card);
+  border-top: 1px solid var(--w98-sombra-int);
+  box-shadow: inset 0 1px 0 var(--w98-luz-ext);
+}
+[data-estilo='win98'].amostra {
+  border-color: var(--w98-sombra-int);
 }
 [data-estilo='win98'].amostra .amostra-janela {
   border: none;
   box-shadow: var(--w98-janela);
+}
+[data-estilo='win98'].amostra .amostra-brand {
+  background: var(--card);
+  box-shadow: var(--w98-default);
+}
+[data-estilo='win98'].amostra .amostra-accent {
+  background: var(--card);
+  box-shadow: var(--w98-elevado);
 }
 
 /* --- Tema 5: Windows XP (XP.css: Luna no claro / Royale Noir no escuro) --- */
@@ -454,7 +532,7 @@
   --ok: #227a1e;
   --warn: #9c5700;
   --err: #c42b1c;
-  --titulo: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #005bff 95%, #003dd7 96%, #003dd7 100%);
+  --titulo: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #0066ff 93%, #005bff 95%, #003dd7 96%, #003dd7 100%);
   --amostra-raio: 0.25rem;
   --radius-md: 0.2rem;
   --radius-lg: 0.25rem;
@@ -470,146 +548,234 @@
   --accent-fg: #195e16;
   --danger-fg: #a81c0e;
   --xp-moldura: #0831d9;
+  --xp-janela-borda: inset -1px -1px #00138c, inset 1px 1px #0831d9, inset -2px -2px #001ea0, inset 2px 2px #166aee, inset -3px -3px #003bda, inset 3px 3px #0855dd;
   --xp-borda-card: #919b9c;
   --xp-borda-campo: #7f9db9;
   --xp-borda-btn: #003c74;
-  --xp-hover: #e5a01a;
   --xp-focus: #89ade4;
+  --xp-hover-sombra: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a;
+  --xp-focus-sombra: inset -1px 1px #cee7ff, inset 1px 2px #98b8ea, inset -2px 2px #bcd4f6, inset 1px -1px #89ade4, inset 2px -2px #89ade4;
   --xp-btn-face: linear-gradient(180deg, #ffffff 0%, #ecebe5 86%, #d8d0c4 100%);
   --xp-btn-ativo: linear-gradient(180deg, #cdcac3 0%, #e3e3db 8%, #e5e5de 94%, #f2f2f1 100%);
-  --xp-btn-brand: linear-gradient(180deg, #4b8df8 0%, var(--brand-600) 52%, var(--brand-700) 100%);
-  --xp-btn-accent: linear-gradient(180deg, #4cb848 0%, var(--accent-600) 52%, var(--accent-700) 100%);
-  --xp-btn-danger: linear-gradient(180deg, #e55c47 0%, var(--danger-600) 52%, var(--danger-700) 100%);
-  --xp-close: linear-gradient(180deg, #cc3f1d 0%, #c03917 45%, #a6280c 100%);
+  --xp-close: linear-gradient(180deg, #eb8b73 0%, #dc451f 45%, #a6280c 100%);
+  --xp-close-hover: linear-gradient(180deg, #ff9285 0%, #ff6e5d 45%, #c43618 100%);
+  --xp-close-ativo: linear-gradient(180deg, #822912 0%, #a83316 55%, #c24321 100%);
   --xp-barra: linear-gradient(180deg, #f9f8f3 0%, #ece9d8 86%, #d8d2bd 100%);
-  --font-sans: Tahoma, 'Trebuchet MS', Arial, ui-sans-serif, sans-serif;
+  --xp-painel: linear-gradient(180deg, #fcfcfe 0%, #f4f3ee 100%);
+  --xp-painel-borda: #d0d0bf;
+  --xp-disabled-bg: #f4f4f0;
+  --xp-disabled-border: #c9c7ba;
+  --xp-disabled-fg: #a1a192;
+  --xp-disabled-shadow: 1px 1px 0 #ffffff;
+  --font-sans: Tahoma, 'PT Sans', 'Trebuchet MS', Arial, ui-sans-serif, sans-serif;
 }
 [data-estilo='xp'][data-theme='dark'] {
-  --brand: #3b82f6;
-  --brand-600: #1a56c4;
-  --brand-700: #15459e;
-  --accent: #4ade80;
-  --accent-600: #237a20;
-  --accent-700: #1a5e18;
-  --danger-soft: #ef5350;
-  --danger-600: #b8281c;
-  --danger-700: #8f1d14;
-  --ok: #237a20;
-  --warn: #b45309;
-  --err: #c42b1c;
-  --titulo: linear-gradient(180deg, #435574 0%, #242f42 46%, #131a26 52%, #1d2738 100%);
-  --app: #0f131a;
-  --card: #1e222b;
-  --field: #12161f;
-  --fg: #eef2f8;
-  --muted: #a8b4c8;
-  --subtle: #8391a8;
-  --brand-fg: #6cb2ff;
-  --accent-fg: #6ee768;
+  --brand: #2d5aa6;
+  --brand-600: #2d5aa6;
+  --brand-700: #1c3f7d;
+  --accent: #2d8a2a;
+  --accent-600: #2d8a2a;
+  --accent-700: #1c5e1a;
+  --danger-soft: #c94638;
+  --danger-600: #b83528;
+  --danger-700: #8a1d14;
+  --ok: #257a22;
+  --err: #b83528;
+  --titulo: linear-gradient(180deg, #3a3a3a 0%, #2c2c2c 18%, #1c1c1c 48%, #101010 52%, #1c1c1c 88%, #242424 100%);
+  --app: #141414;
+  --card: #24262b;
+  --field: #16181d;
+  --fg: #f4f4f4;
+  --muted: #c2c5cc;
+  --subtle: #969ba6;
+  --brand-fg: #7fb2ff;
+  --accent-fg: #6bd368;
   --danger-fg: #ff948a;
-  --xp-moldura: #334e7d;
-  --xp-borda-card: #3b4963;
-  --xp-borda-campo: #4b5e80;
-  --xp-borda-btn: #5d7399;
-  --xp-hover: #4da3ff;
-  --xp-focus: #60a5fa;
-  --xp-btn-face: linear-gradient(180deg, #353f50 0%, #252c38 52%, #1a2029 100%);
-  --xp-btn-ativo: linear-gradient(180deg, #171c24 0%, #242b37 100%);
-  --xp-btn-brand: linear-gradient(180deg, #2b65d1 0%, var(--brand-600) 52%, var(--brand-700) 100%);
-  --xp-btn-accent: linear-gradient(180deg, #2d8f29 0%, var(--accent-600) 52%, var(--accent-700) 100%);
-  --xp-btn-danger: linear-gradient(180deg, #cf392c 0%, var(--danger-600) 52%, var(--danger-700) 100%);
-  --xp-close: linear-gradient(180deg, #b84232 0%, #99291c 50%, #751a10 100%);
-  --xp-barra: linear-gradient(180deg, #2b3445 0%, #1e222b 86%, #141922 100%);
+  --xp-moldura: #0f0f0f;
+  --xp-janela-borda: inset -1px -1px #080808, inset 1px 1px #444444, inset -2px -2px #141414, inset 2px 2px #363636, inset -3px -3px #1c1c1c, inset 3px 3px #2b2b2b;
+  --xp-borda-card: #3a3d45;
+  --xp-borda-campo: #4a4e58;
+  --xp-borda-btn: #585c66;
+  --xp-hover-sombra: inset -1px 1px #ffe2a8, inset 1px 2px #e8b349, inset -2px 2px #d99b26, inset 2px -2px #b57a0e;
+  --xp-focus-sombra: inset -1px 1px #b8d8ff, inset 1px 2px #78a5de, inset -2px 2px #96bce8, inset 1px -1px #5f8dc7, inset 2px -2px #5f8dc7;
+  --xp-btn-face: linear-gradient(180deg, #45484f 0%, #2a2d33 56%, #1c1e22 100%);
+  --xp-btn-ativo: linear-gradient(180deg, #14161a 0%, #22252b 55%, #30343b 100%);
+  --xp-close: linear-gradient(180deg, #c94e3f 0%, #a82e20 48%, #7d1b10 100%);
+  --xp-close-hover: linear-gradient(180deg, #e06152 0%, #c43d2d 48%, #992618 100%);
+  --xp-close-ativo: linear-gradient(180deg, #63130a 0%, #8a2318 55%, #a83325 100%);
+  --xp-barra: linear-gradient(180deg, #2e3036 0%, #222429 86%, #181a1e 100%);
+  --xp-painel: linear-gradient(180deg, #212328 0%, #1b1d22 100%);
+  --xp-painel-borda: #343740;
+  --xp-disabled-bg: #1c1e22;
+  --xp-disabled-border: #33363d;
+  --xp-disabled-fg: #6b707a;
+  --xp-disabled-shadow: none;
 }
 [data-estilo='xp'] body {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 16%, var(--app)) 0%, var(--app) 320px) no-repeat var(--app);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 14%, var(--app)) 0%, var(--app) 320px) no-repeat var(--app);
 }
 [data-estilo='xp'] .barra-app {
   background: var(--xp-barra);
   border-bottom: 2px solid var(--xp-moldura);
 }
-[data-estilo='xp'] .card {
+[data-estilo='xp'] .barra-app .selo-status {
+  background: var(--xp-painel);
+  border: 1px solid var(--xp-painel-borda);
+  border-radius: 3px;
+  color: var(--fg);
+}
+[data-estilo='xp'] :is(.card, :where(#update-banner > div)) {
   background: var(--card);
   border: 1px solid var(--xp-borda-card);
   border-radius: 0.45rem;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 3px rgb(0 0 0 / 0.12);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 1px 3px rgb(0 0 0 / 0.14);
 }
 [data-estilo='xp'] .janela {
   background: var(--card);
-  border: 3px solid var(--xp-moldura);
+  border: none;
+  padding: 3px;
   border-radius: 8px 8px 0 0;
-  box-shadow: 0 12px 28px rgb(0 0 0 / 0.45);
+  box-shadow: var(--xp-janela-borda), 0 12px 28px rgb(0 0 0 / 0.45);
 }
 [data-estilo='xp'] .janela-titulo {
   background: var(--titulo);
   border-bottom: 1px solid var(--xp-moldura);
+  border-radius: 5px 5px 0 0;
   padding: 0.4rem 0.5rem 0.4rem 0.85rem;
 }
 [data-estilo='xp'] .janela-titulo h3 {
   color: #ffffff;
-  font-family: 'Trebuchet MS', Tahoma, sans-serif;
+  font-family: 'Trebuchet MS', 'PT Sans', Tahoma, sans-serif;
   font-size: 1rem;
-  text-shadow: 1px 1px 1px rgb(0 0 0 / 0.65);
+  text-shadow: 1px 1px 1px rgb(0 0 0 / 0.75);
 }
 [data-estilo='xp'] .janela-titulo .btn {
   margin: 0;
   background: var(--xp-close);
   border: 1px solid #ffffff;
-  border-radius: 0.25rem;
+  border-radius: 3px;
   color: #ffffff;
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
 }
-[data-estilo='xp'] :is(.btn:not(.btn-ghost), .escolha) {
-  border-radius: 3px;
-}
-[data-estilo='xp'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
-  background: var(--xp-btn-face);
-  border: 1px solid var(--xp-borda-btn);
-}
-[data-estilo='xp'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
-  color: var(--fg);
-}
-[data-estilo='xp'] :is(.btn-primary, .nova-os.bg-brand-600, .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao])) {
-  background: var(--xp-btn-brand);
-  border: 1px solid var(--xp-borda-btn);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
-}
-[data-estilo='xp'] :is(.btn-accent, .nova-os.bg-accent-600) {
-  background: var(--xp-btn-accent);
-  border: 1px solid var(--accent-700);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
-}
-[data-estilo='xp'] .btn-danger {
-  background: var(--xp-btn-danger);
-  border: 1px solid var(--danger-700);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3);
-}
 @media (hover: hover) {
-  [data-estilo='xp'] :is(.btn:not(.btn-ghost), .escolha):hover:not(:disabled) {
-    box-shadow: inset 0 0 0 2px var(--xp-hover);
+  [data-estilo='xp'] .janela-titulo .btn:hover {
+    background: var(--xp-close-hover);
+    color: #ffffff;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.65);
   }
 }
-[data-estilo='xp'] :is(.btn, .escolha):focus-visible {
-  outline: none;
-  box-shadow: inset 0 0 0 2px var(--xp-focus);
+[data-estilo='xp'] .janela-titulo .btn:active {
+  background: var(--xp-close-ativo);
+  color: #ffffff;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.5);
 }
-[data-estilo='xp'] :is(.btn-neutral, .btn-outline):active:not(:disabled) {
+[data-estilo='xp'] :is(.btn:not(.btn-ghost), .nova-os, .escolha) {
+  background: var(--xp-btn-face);
+  border: 1px solid var(--xp-borda-btn);
+  border-radius: 3px;
+  color: var(--btn-fg, var(--fg));
+  box-shadow: none;
+}
+[data-estilo='xp'] :is(.btn-primary, .nova-os.bg-brand-600) {
+  box-shadow: var(--xp-focus-sombra);
+}
+[data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)) {
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+@media (hover: hover) {
+  [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+    background: var(--xp-btn-face);
+    border-color: var(--xp-borda-btn);
+    color: var(--fg);
+    box-shadow: var(--xp-hover-sombra);
+  }
+}
+[data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
   background: var(--xp-btn-ativo);
+  border-color: var(--xp-borda-btn);
+  color: var(--fg);
+  box-shadow: none;
+}
+@media (hover: hover) {
+  [data-estilo='xp'] :is(.btn:not(.janela-titulo .btn):not(.btn-ghost), .escolha:not([aria-pressed='true'])):hover:not(:disabled),
+  [data-estilo='xp'] .group:hover .nova-os {
+    box-shadow: var(--xp-hover-sombra);
+  }
+}
+@media (hover: hover) {
+  [data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]):hover:not(:disabled) {
+    box-shadow: var(--xp-hover-sombra);
+  }
+}
+[data-estilo='xp'] :is(.btn:not(.janela-titulo .btn), .escolha):focus-visible,
+[data-estilo='xp'] .group:focus-visible .nova-os {
+  outline: 1px dotted var(--fg);
+  outline-offset: -4px;
+  box-shadow: var(--xp-focus-sombra);
+}
+[data-estilo='xp'] .janela-titulo .btn:focus-visible {
+  outline: 1px dotted #ffffff;
+  outline-offset: -3px;
+}
+[data-estilo='xp'] :is(.btn:not(.janela-titulo .btn):not(.btn-ghost), .escolha:not([data-estilo-opcao])):active:not(:disabled),
+[data-estilo='xp'] .group:active .nova-os {
+  background: var(--xp-btn-ativo);
+  box-shadow: none;
+}
+[data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+  background: var(--xp-btn-ativo);
+  border: 1px solid var(--xp-borda-btn);
+  box-shadow: var(--xp-focus-sombra);
 }
 [data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: color-mix(in oklab, var(--brand) 16%, var(--card));
+  background: var(--xp-painel);
   border: 2px solid var(--xp-moldura);
+  box-shadow: var(--xp-focus-sombra);
+}
+[data-estilo='xp'] :is(.btn, .escolha):disabled {
+  opacity: 1;
+  background: var(--xp-disabled-bg);
+  border-color: var(--xp-disabled-border);
+  color: var(--xp-disabled-fg);
+  text-shadow: var(--xp-disabled-shadow);
+  box-shadow: none;
+  cursor: default;
+}
+[data-estilo='xp'] .painel {
+  background: var(--xp-painel);
+  border: 1px solid var(--xp-painel-borda);
+}
+[data-estilo='xp'] .faixa-cabecalho {
+  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 10%, var(--card)) 0%, var(--card) 100%);
+  border-bottom: 1px solid var(--xp-borda-card);
+}
+[data-estilo='xp'] .janela-rodape {
+  background: var(--xp-painel);
+  border-top: 1px solid var(--xp-painel-borda);
 }
 [data-estilo='xp'].amostra .amostra-janela {
   border: 1.5px solid var(--xp-moldura);
   border-radius: 0.35rem 0.35rem 0.15rem 0.15rem;
 }
+[data-estilo='xp'].amostra :is(.amostra-brand, .amostra-accent) {
+  background: var(--xp-btn-face);
+  border: 1px solid var(--xp-borda-btn);
+}
+[data-estilo='xp'].amostra .amostra-brand {
+  box-shadow: var(--xp-focus-sombra);
+}
 [data-estilo='xp'] .field {
+  background: var(--field);
   border: 1px solid var(--xp-borda-campo);
   border-radius: 0;
   box-shadow: inset 1px 1px 2px rgb(0 0 0 / 0.06);
 }
-[data-estilo='xp'] .field:focus:not([readonly]) {
+[data-estilo='xp'] .field[readonly] {
+  background: var(--card);
+  color: var(--subtle);
+}
+[data-estilo='xp'] .field:focus:not([readonly]):not(.faltando) {
   border-color: var(--xp-moldura);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--xp-focus) 45%, transparent);
 }
@@ -649,55 +815,63 @@
   --luz: #ffffff;
   --luz2: #dfdfdf;
   --sombra: #808080;
-  --font-sans: 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
+  --w31-disabled-fg: #808080;
+  --w31-disabled-shadow: 1px 1px 0 #ffffff;
+  --w31-bevel: inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
+  --w31-default-bevel: 0 0 0 1px var(--moldura), inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
 }
 [data-estilo='win31'][data-theme='dark'] {
-  --brand: #3b82f6;
-  --brand-600: #1d4ed8;
-  --brand-700: #1e40af;
-  --accent: #a855f7;
-  --accent-600: #7e22ce;
-  --accent-700: #6b21a8;
-  --danger-soft: #ef4444;
-  --danger-600: #b91c1c;
-  --danger-700: #991b1b;
-  --ok: #15803d;
-  --warn: #b45309;
-  --err: #b91c1c;
+  --accent: #008080;
+  --accent-600: #006666;
+  --accent-700: #004d4d;
+  --danger-soft: #aa0000;
+  --danger-600: #800000;
+  --danger-700: #5c0000;
+  --ok: #008000;
+  --warn: #6b6b00;
+  --err: #aa0000;
   --titulo: #800080;
   --titulo-fg: #ffff00;
   --app: #181818;
   --card: #000000;
-  --face: #2a2a2a;
+  --face: #404040;
   --field: #000000;
-  --fg: #f5f5f5;
-  --muted: #cccccc;
-  --subtle: #a3a3a3;
-  --brand-fg: #70b5ff;
-  --accent-fg: #e09eff;
-  --danger-fg: #ff9e9e;
-  --moldura: #c0c0c0;
-  --luz: #707070;
-  --luz2: #4a4a4a;
-  --sombra: #101010;
+  --fg: #ffffff;
+  --muted: #c0c0c0;
+  --subtle: #a0a0a0;
+  --brand-fg: #00ffff;
+  --accent-fg: #ffff00;
+  --danger-fg: #ff5555;
+  --moldura: #a8a8a8;
+  --luz: #787878;
+  --luz2: #585858;
+  --sombra: #141414;
+  --w31-disabled-fg: #8a8a8a;
+  --w31-disabled-shadow: none;
 }
-[data-estilo='win31'] body {
-  background: var(--app);
-}
-[data-estilo='win31'] :is(.rounded-full, .card, .field, .janela, .btn, .escolha, .nova-os) {
-  border-radius: 0;
-}
-[data-estilo='win31'] :is(.card, .field) {
+[data-estilo='win31'] :is(.card, .field, :where(#update-banner > div)) {
   border: 1px solid var(--moldura);
   box-shadow: none;
+}
+[data-estilo='win31'] :is(.card, :where(#update-banner > div)) {
+  background: var(--card);
 }
 [data-estilo='win31'] .field {
   background: var(--field);
   box-shadow: inset 1px 1px var(--sombra);
 }
+[data-estilo='win31'] .field[readonly] {
+  background: var(--face);
+  color: var(--fg);
+}
 [data-estilo='win31'] .barra-app {
   background: var(--card);
   border-bottom: 1px solid var(--moldura);
+}
+[data-estilo='win31'] .barra-app .selo-status {
+  background: var(--face);
+  border: 1px solid var(--moldura);
+  color: var(--fg);
 }
 [data-estilo='win31'] .janela {
   background: var(--card);
@@ -718,40 +892,101 @@
 [data-estilo='win31'] .janela-titulo .btn {
   margin: 0;
 }
-[data-estilo='win31'] :is(.btn-neutral, .btn-outline, .janela-titulo .btn, .escolha:not([aria-pressed='true'])) {
+[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
   background: var(--face);
-}
-[data-estilo='win31'] :is(.btn-neutral, .janela-titulo .btn, .escolha:not([aria-pressed='true'])) {
-  color: var(--fg);
-}
-[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
+  color: var(--btn-fg, var(--fg));
   border: 1px solid var(--moldura);
-  box-shadow: inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
+  box-shadow: var(--w31-bevel);
 }
-[data-estilo='win31'] :is(.btn:not(.btn-ghost):active:not(:disabled), .janela-titulo .btn:active, .escolha[aria-pressed='true']) {
+[data-estilo='win31'] :is(.btn-primary, .nova-os.bg-brand-600) {
+  box-shadow: var(--w31-default-bevel);
+}
+[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
+[data-estilo='win31'] .group:active .nova-os,
+[data-estilo='win31'] .escolha[aria-pressed='true'] {
   box-shadow: inset 2px 2px var(--sombra);
 }
-[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: color-mix(in oklab, var(--brand) 16%, var(--card));
-  border: 2px solid var(--brand-600);
-}
-[data-estilo='win31'] .btn:active:not(:disabled) {
+[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
+[data-estilo='win31'] .group:active .nova-os,
+[data-estilo='win31'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
   transform: translate(1px, 1px);
 }
-[data-estilo='win31'] .btn:focus-visible {
+[data-estilo='win31'] :is(.btn-primary, .nova-os.bg-brand-600):active:not(:disabled),
+[data-estilo='win31'] .group:active .nova-os.bg-brand-600,
+[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  box-shadow: 0 0 0 1px var(--moldura), inset 2px 2px var(--sombra);
+}
+[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
   outline: 1px dotted var(--fg);
   outline-offset: -5px;
+}
+[data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)) {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--fg);
+}
+@media (hover: hover) {
+  [data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+    background: var(--face);
+    border-color: var(--moldura);
+    box-shadow: var(--w31-bevel);
+  }
+}
+[data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
+  background: var(--face);
+  border-color: var(--moldura);
+  box-shadow: inset 2px 2px var(--sombra);
+  transform: translate(1px, 1px);
+}
+[data-estilo='win31'] :is(.btn, .escolha):focus-visible,
+[data-estilo='win31'] .group:focus-visible .nova-os {
+  outline: 1px dotted var(--fg);
+  outline-offset: -5px;
+}
+[data-estilo='win31'] :is(.btn, .escolha):disabled {
+  opacity: 1;
+  color: var(--w31-disabled-fg);
+  text-shadow: var(--w31-disabled-shadow);
+  cursor: default;
+}
+[data-estilo='win31'] :is(.btn:not(.btn-ghost), .escolha):disabled {
+  background: var(--face);
+  box-shadow: var(--w31-bevel);
+}
+[data-estilo='win31'] .painel {
+  background: var(--card);
+  border: 1px solid var(--moldura);
+}
+[data-estilo='win31'] .faixa-cabecalho {
+  background: var(--face);
+  border-bottom: 1px solid var(--moldura);
+}
+[data-estilo='win31'] .janela-rodape {
+  background: var(--face);
+  border-top: 1px solid var(--moldura);
+}
+[data-estilo='win31'].amostra {
+  border-color: var(--moldura);
 }
 [data-estilo='win31'].amostra .amostra-janela {
   border: 1px solid var(--moldura);
   box-shadow: inset 0 0 0 1.5px var(--face);
 }
-[data-estilo='win31'] .nova-os {
-  border: 1px solid var(--moldura);
-  box-shadow: inset 2px 2px rgb(255 255 255 / 0.45), inset -2px -2px rgb(0 0 0 / 0.35);
+[data-estilo='win31'].amostra .amostra-titulo {
+  border-bottom: 1px solid var(--moldura);
 }
-[data-estilo='win31'] .field:focus:not([readonly]) {
-  box-shadow: none;
+[data-estilo='win31'].amostra :is(.amostra-brand, .amostra-accent) {
+  background: var(--face);
+  border: 1px solid var(--moldura);
+}
+[data-estilo='win31'].amostra .amostra-brand {
+  box-shadow: var(--w31-default-bevel);
+}
+[data-estilo='win31'].amostra .amostra-accent {
+  box-shadow: var(--w31-bevel);
+}
+[data-estilo='win31'] .field:focus:not([readonly]):not(.faltando) {
+  box-shadow: inset 1px 1px var(--sombra);
   outline: 2px solid var(--brand-fg);
   outline-offset: 0;
 }
@@ -759,8 +994,8 @@
 /* --- Tema 7: Windows 10 (windows-ui: Segoe UI, Fluent Day/Night, foco inferior) --- */
 [data-estilo='win10'] {
   --brand: #0078d7;
-  --brand-600: #0072cc;
-  --brand-700: #0067c0;
+  --brand-600: #0078d7;
+  --brand-700: #0063b1;
   --accent: #107c10;
   --accent-600: #107c10;
   --accent-700: #0b5a0b;
@@ -770,42 +1005,39 @@
   --ok: #107c10;
   --warn: #9d5d00;
   --err: #c50500;
-  --titulo: #0072cc;
+  --titulo: #0078d7;
   --amostra-raio: 0.25rem;
   --radius-md: 0.25rem;
   --radius-lg: 0.25rem;
   --radius-xl: 0.25rem;
-  --radius-2xl: 0.5rem;
+  --radius-2xl: 0.25rem;
   --app: #f3f3f3;
   --card: #ffffff;
-  --field: #fbfbfb;
+  --field: #ffffff;
   --fg: #000000;
   --muted: #4b4b4b;
   --subtle: #666666;
-  --brand-fg: #0060b3;
+  --brand-fg: #0063b1;
   --accent-fg: #0d6e0d;
   --danger-fg: #c50500;
   --w10-barra: #f3f3f3;
-  --w10-borda: #e3e3e3;
+  --w10-borda: #cccccc;
   --w10-borda-campo: #8a8a8a;
-  --w10-borda-btn: #c8c8c8;
-  --w10-btn: #fefefedd;
-  --w10-hover: #eeeeee;
-  --font-sans: 'Segoe UI', system-ui, ui-sans-serif, sans-serif;
+  --w10-borda-btn: #adadad;
+  --w10-btn: #ededed;
+  --w10-hover: #e2e2e2;
+  --w10-ativo: #d4d4d4;
+  --w10-nao: #323130;
+  --w10-nao-hover: #201f1e;
+  --w10-painel: #f9f9f9;
+  --font-sans: 'Segoe UI', 'Selawik', system-ui, ui-sans-serif, sans-serif;
 }
 [data-estilo='win10'][data-theme='dark'] {
-  --brand: #60cdff;
-  --brand-600: #006cbe;
-  --brand-700: #005a9e;
   --accent: #6acb5d;
   --accent-600: #1e7e34;
   --accent-700: #166328;
   --danger-soft: #ff99a3;
-  --danger-600: #c50500;
-  --danger-700: #9e0400;
-  --ok: #107c10;
   --warn: #b45309;
-  --err: #c50500;
   --titulo: #202020;
   --app: #111111;
   --card: #202020;
@@ -817,40 +1049,60 @@
   --accent-fg: #6acb5d;
   --danger-fg: #ff99a3;
   --w10-barra: #202020;
-  --w10-borda: #333333;
+  --w10-borda: #383838;
   --w10-borda-campo: #777777;
-  --w10-borda-btn: #4a4a4a;
-  --w10-btn: #3e3e3edd;
-  --w10-hover: #353535;
-}
-[data-estilo='win10'] body {
-  background: var(--app);
+  --w10-borda-btn: #555555;
+  --w10-btn: #333333;
+  --w10-hover: #444444;
+  --w10-ativo: #292929;
+  --w10-nao: #484848;
+  --w10-nao-hover: #585858;
+  --w10-painel: #191919;
 }
 [data-estilo='win10'] .barra-app {
   background: var(--w10-barra);
   border-bottom: 1px solid var(--w10-borda);
 }
+[data-estilo='win10'] .barra-app .selo-status {
+  background: var(--w10-painel);
+  border: 1px solid var(--w10-borda);
+  border-radius: 0.25rem;
+  color: var(--fg);
+}
 [data-estilo='win10'] .card {
   background: var(--card);
   border: 1px solid var(--w10-borda);
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
+  border-radius: 0.25rem;
+  box-shadow: none;
 }
 [data-estilo='win10'] .janela {
   background: var(--card);
   border: 1px solid var(--w10-borda);
-  border-radius: 0.5rem;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 0.25);
+  border-radius: 0.25rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
 }
 [data-estilo='win10'] .janela-titulo {
   background: var(--titulo);
   border-bottom: 1px solid var(--w10-borda);
 }
-[data-estilo='win10']:not([data-theme='dark']) .janela-titulo :is(h3, .btn) {
+[data-estilo='win10'] .janela-titulo :is(h3, .btn) {
   color: #ffffff;
 }
 [data-estilo='win10'][data-theme='dark'] .janela-titulo {
-  border-bottom: 2px solid var(--brand);
+  border-bottom: 2px solid var(--brand-600);
+}
+[data-estilo='win10'] .janela-titulo .btn {
+  border-radius: 0.25rem;
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .janela-titulo .btn:hover {
+    background: #e81123;
+    color: #ffffff;
+  }
+}
+[data-estilo='win10'] .janela-titulo .btn:active {
+  background: #b50d1b;
+  color: #ffffff;
 }
 [data-estilo='win10'] .field {
   background: var(--field);
@@ -858,18 +1110,27 @@
   border-bottom: 1px solid var(--w10-borda-campo);
   border-radius: 0.25rem;
 }
-[data-estilo='win10'] .field:focus:not([readonly]) {
+[data-estilo='win10'] .field[readonly] {
+  background: var(--w10-painel);
+  color: var(--muted);
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .field:hover:not([readonly]):not(:focus):not(.faltando) {
+    border-color: var(--w10-borda-campo);
+  }
+}
+[data-estilo='win10'] .field:focus:not([readonly]):not(.faltando) {
   border-color: var(--w10-borda);
-  border-bottom: 2px solid var(--brand);
+  border-bottom: 2px solid var(--brand-600);
   box-shadow: none;
 }
-[data-estilo='win10'] :is(.btn:not(.btn-ghost), .escolha) {
+[data-estilo='win10'] :is(.btn:not(.btn-ghost), .escolha, .nova-os) {
   border-radius: 0.25rem;
 }
 [data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
   background: var(--w10-btn);
   border: 1px solid var(--w10-borda-btn);
-  border-bottom-color: var(--w10-borda-campo);
+  box-shadow: none;
 }
 [data-estilo='win10'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
   color: var(--fg);
@@ -877,28 +1138,158 @@
 @media (hover: hover) {
   [data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])):hover:not(:disabled) {
     background: var(--w10-hover);
+    border-color: var(--w10-borda-campo);
   }
 }
+[data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])):active:not(:disabled) {
+  background: var(--w10-ativo);
+}
+[data-estilo='win10'] .btn-primary,
+[data-estilo='win10'] .nova-os.bg-brand-600,
+[data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]) {
+  background-color: var(--brand-600);
+  border: 1px solid var(--brand-600);
+  color: #ffffff;
+  box-shadow: none;
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .btn-primary:hover:not(:disabled),
+  [data-estilo='win10'] .nova-os.bg-brand-600:hover,
+  [data-estilo='win10'] .group:hover .nova-os.bg-brand-600,
+  [data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]):hover:not(:disabled) {
+    background-color: var(--brand-700);
+    border-color: var(--brand-700);
+  }
+}
+[data-estilo='win10'] .btn-primary:active:not(:disabled),
+[data-estilo='win10'] .nova-os.bg-brand-600:active,
+[data-estilo='win10'] .group:active .nova-os.bg-brand-600,
+[data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]):active:not(:disabled) {
+  background-color: #005a9e;
+  border-color: #005a9e;
+}
+[data-estilo='win10'] :is(.btn-accent, .nova-os.bg-accent-600) {
+  background-color: var(--accent-600);
+  border: 1px solid var(--accent-600);
+  color: #ffffff;
+  box-shadow: none;
+}
+[data-estilo='win10'] :is(.btn-accent, .nova-os.bg-accent-600):active:not(:disabled),
+[data-estilo='win10'] .group:active .nova-os.bg-accent-600 {
+  background-color: var(--accent-700);
+  border-color: var(--accent-700);
+}
+[data-estilo='win10'] .btn-danger {
+  background: var(--danger-600);
+  border: 1px solid var(--danger-600);
+  color: #ffffff;
+  box-shadow: none;
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .btn-danger:hover:not(:disabled) {
+    background: var(--danger-700);
+    border-color: var(--danger-700);
+  }
+}
+[data-estilo='win10'] .btn-danger:active:not(:disabled) {
+  background: #7a0300;
+  border-color: #7a0300;
+}
+[data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true'] {
+  background: var(--w10-nao);
+  border: 1px solid var(--w10-nao);
+  color: #ffffff;
+  box-shadow: none;
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true']:hover:not(:disabled) {
+    background: var(--w10-nao-hover);
+    border-color: var(--w10-nao-hover);
+  }
+}
+[data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true']:active:not(:disabled) {
+  background: color-mix(in oklab, var(--w10-nao) 80%, #000000);
+  border-color: var(--w10-nao);
+  color: #ffffff;
+}
+[data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn) {
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
+    background: var(--w10-hover);
+    color: var(--fg);
+  }
+}
+[data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
+  background: var(--w10-ativo);
+  color: var(--fg);
+}
+[data-estilo='win10'] :is(.btn, .escolha):focus-visible,
+[data-estilo='win10'] .group:focus-visible .nova-os {
+  outline: 1px solid var(--fg);
+  outline-offset: 2px;
+}
+[data-estilo='win10'] :is(.btn, .escolha):disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 [data-estilo='win10'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: color-mix(in oklab, var(--brand) 14%, var(--card));
-  border: 1.5px solid var(--brand);
-  box-shadow: inset 3px 0 0 var(--brand);
+  background: color-mix(in oklab, var(--brand-600) 14%, var(--card));
+  border: 1px solid var(--brand-600);
+  box-shadow: inset 3px 0 0 var(--brand-600), inset 0 0 0 1px var(--brand-600);
+  color: var(--fg);
+}
+[data-estilo='win10'] .painel {
+  background: var(--w10-painel);
+  border-color: var(--w10-borda);
+  border-radius: 0.25rem;
+}
+[data-estilo='win10'] .faixa-cabecalho {
+  background: color-mix(in oklab, var(--brand-600) 8%, var(--card));
+  border-bottom: 1px solid var(--w10-borda);
+}
+[data-estilo='win10'] .janela-rodape {
+  background: var(--w10-painel);
+  border-top: 1px solid var(--w10-borda);
+}
+[data-estilo='win10'] #update-banner > div {
+  background: var(--card);
+  border: 1px solid var(--w10-borda);
+  border-radius: 0.25rem;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
 }
 [data-estilo='win10'].amostra .amostra-janela {
   border: 1px solid var(--w10-borda-btn);
-  border-radius: 0.35rem;
+  border-radius: 0.25rem;
 }
 [data-estilo='win10'][data-theme='dark'].amostra .amostra-titulo {
-  border-bottom: 1.5px solid var(--brand);
+  border-bottom: 1.5px solid var(--brand-600);
+}
+[data-estilo='win10'].amostra .amostra-brand {
+  background: var(--brand-600);
+}
+[data-estilo='win10'].amostra .amostra-accent {
+  background: var(--brand-700);
 }
 
-/* Regras compartilhadas entre os temas Windows (contraste do botão "Não" e destaque .faltando). */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) .escolha[data-choice='Não'][aria-pressed='true'] {
-  color: #ffffff;
+/*
+ * Win98, XP e 3.1: todo botão tem a face cinza do sistema; o papel (excluir, encerrar/ocorrência, ação principal)
+ * fica na cor do texto e do ícone (--btn-fg, lido pelas regras de face acima), para o eletricista não confundir
+ * "Sim, excluir" com "Cancelar".
+ */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-danger, .btn-outline.text-danger-fg) {
+  --btn-fg: var(--danger-fg);
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'])[data-theme='dark'] .escolha[data-choice='Não'][aria-pressed='true'] {
-  color: var(--app);
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-accent, .btn-outline.text-accent-fg, .nova-os.bg-accent-600) {
+  --btn-fg: var(--accent-fg);
 }
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-outline.text-brand-fg, .nova-os.bg-brand-600) {
+  --btn-fg: var(--brand-fg);
+}
+
+/* Destaque .faltando compartilhado entre os temas Windows. */
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando,
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando:focus {
   outline: none;

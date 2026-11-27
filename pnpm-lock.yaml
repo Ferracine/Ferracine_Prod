@@ -11,6 +11,12 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource/pt-sans':
+        specifier: ^5.3.0
+        version: 5.3.0
+      '@fontsource/win95fa':
+        specifier: ^5.3.0
+        version: 5.3.0
       jspdf:
         specifier: ^4.2.1
         version: 4.2.1
@@ -581,6 +587,12 @@ packages:
 
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource/pt-sans@5.3.0':
+    resolution: {integrity: sha512-qisFKuquwSWlELeuQHQldOa4oSxDAOFpak2hj3FjFcdo4eCUGV0trhIBk3qt+Py50L8JKWHKnnL7/JPxRH0TPw==}
+
+  '@fontsource/win95fa@5.3.0':
+    resolution: {integrity: sha512-TTkwEvrXxQcMcboJyKxL1CDQBYCEtelWUaQaWpcH3lhpX9o50b0UhzZjnmRYe8q12TI6Ge/gvYMcXZWVwPoFLw==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -3276,6 +3288,10 @@ snapshots:
     optional: true
 
   '@fontsource-variable/inter@5.3.0': {}
+
+  '@fontsource/pt-sans@5.3.0': {}
+
+  '@fontsource/win95fa@5.3.0': {}
 
   '@img/colour@1.1.0': {}
 
