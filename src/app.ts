@@ -8,7 +8,7 @@ import { espelhoMaisNovo, lerEspelho } from './espelho';
 import { cancelarDados, encerrarDados, type KeyValueStore, lerSeq, loadData, montarDados, reabrirDados, removerFolha, saveData, SEQ_KEY } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando, pausarToques } from './ui/dom';
-import { closeModal, confirmModal, isModalOpen, openModal, showToast } from './ui/feedback';
+import { closeModal, confirmModal, EVENTO_JANELA, isModalOpen, openModal, showToast } from './ui/feedback';
 import { type AcaoFolha, type FolhasProps, listaFolhas } from './ui/folhas';
 import { headerScreen } from './ui/header-screen';
 import { osScreen } from './ui/os-screen';
@@ -386,7 +386,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   // history.back() é assíncrono: o popstate dele chega depois. Enquanto não chega, não empilha outra entrada (abrir
   // outra OS logo depois de salvar faria esse popstate atrasado "cancelar" a OS nova).
   let backPendente = 0;
-  const trapsBack = (screen: Screen) => screen === 'new' || screen === 'edit' || (screen === 'header' && editingHeader);
+  // Também com uma janela aberta: no navegador/PWA o voltar fecha a janela em vez de sair do app (no APK a
+  // MainActivity já fecha a janela antes, por window.ferracineBack).
+  const trapsBack = (screen: Screen) => screen === 'new' || screen === 'edit' || (screen === 'header' && editingHeader) || isModalOpen();
 
   function syncBackButton(screen: Screen): void {
     if (backPendente > 0) return; // o popstate pendente chama de novo
@@ -407,6 +409,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     closeModal();
     return true;
   };
+
+  document.addEventListener(EVENTO_JANELA, () => syncBackButton(currentScreen()));
 
   window.addEventListener('popstate', () => {
     if (backPendente > 0) {

@@ -55,6 +55,13 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
     (lápis) passam pelas mesmas regras (código, DITAIS). `finalize` normaliza respostas vazias
     (e escondidas) para `skipped`. `isUnchanged` decide se Cancelar confirma.
   - `espelho.ts`: linhas do PDF a partir do catálogo (coluna CÓDIGO = código do serviço).
+- `src/espelho.ts`: espelho do estado no IndexedDB, gravado com `durability: 'strict'`. Cada `saveData` grava o JSON
+  e um número (`ferracine_prod:v3:seq`) no localStorage e o par {seq, json} no espelho; ao abrir, se o espelho tiver
+  número maior (o Chrome grava o localStorage em disco com atraso e o Android pode matar o app), o app adota o espelho
+  (`montarDados`) e regrava.
+- Voltar do sistema: uma entrada extra no `history` enquanto há tela de OS, correção de cabeçalho ou janela aberta
+  (`trapsBack`); abrir/fechar janela dispara `EVENTO_JANELA` (feedback.ts) e o app acerta a entrada. No APK a
+  MainActivity chama `window.ferracineBack()` antes (fecha a janela).
 - `src/storage.ts`: um JSON `AppData` versão 3 em `ferracine_prod:v3`: cabeçalho, OSs, rascunho da OS nova (`draft`),
   `sheets` (as 4 últimas folhas encerradas, a mais recente primeiro; `lastSheet` da 1.4.x vira o 1º item),
   `lastHeader` (preenche o próximo turno), `tecnicos` e `eletricistas` (cadastrados no app; sem a lista, os
@@ -206,7 +213,5 @@ com a chave de sempre. Push, Release e publicação só com OK explícito do Bru
 - Mudança de conta (1.4.15): o repositório antigo `Bruno1991/Ferracine_Prod` foi apagado. APK até a 1.4.14 não
   recebe mais atualização sozinho: instalar uma vez à mão o APK da Release mais recente da conta Ferracine (mesma
   assinatura; os dados do app ficam).
-- O Chrome grava o `localStorage` em disco com atraso: Chrome morto com o app na tela pode perder o último passo do
-  preenchimento. Se isso virar problema em campo, migrar o estado para IndexedDB.
-- No navegador/PWA, o voltar do sistema com uma janela aberta no painel segue o histórico (pode sair do app). No APK
-  não: a MainActivity chama `window.ferracineBack()` antes, e a janela é fechada.
+- Atualizar pelo app mostra o Google Play Protect ("A verificação do app é recomendada"): o APK não vem da Play
+  Store. "Verificar app" analisa e instala (testado no A23 na 1.4.18 → 1.4.19); o eletricista precisa saber disso.

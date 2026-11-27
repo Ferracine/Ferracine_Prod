@@ -838,6 +838,25 @@ test('localStorage perdeu o último passo (app morto antes de gravar em disco): 
   expect(await page.evaluate(() => localStorage.getItem('ferracine_prod:v3'))).toContain('"osNumber":"555"');
 });
 
+test('navegador/PWA: o voltar com uma janela aberta no painel fecha a janela e não sai do app', async ({ page }) => {
+  await iniciarTurno(page);
+  await page.locator('#historico-toggle').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.locator('#screen-dashboard')).toBeVisible();
+  expect(page.url()).toContain('localhost');
+  // Fechar pelo botão também desfaz a entrada extra: abrir e fechar de novo não deixa "voltar" sobrando.
+  await page.locator('#historico-toggle').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  const tamanho = await page.evaluate(() => history.length);
+  await page.locator('#historico-toggle').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => history.length)).toBe(tamanho);
+});
+
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '28', '789');

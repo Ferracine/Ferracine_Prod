@@ -39,9 +39,13 @@ export interface ModalAction {
 
 let lastFocus: Element | null = null;
 
+/** Evento no `document` quando uma janela abre (com nenhuma aberta) ou fecha: o app ajusta o "voltar" (app.ts). */
+export const EVENTO_JANELA = 'ferracine-janela';
+
 export function openModal(title: string, body: Node, actions: ModalAction[]): void {
   lastFocus = document.activeElement;
   const modal = byId('modal');
+  const abrindo = modal.classList.contains('hidden');
   const close = h('button', { type: 'button', class: `${btn('fechar', 'icon')} -my-2 -mr-2`, 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
   const buttons = actions.map((a) => h('button', { type: 'button', class: btn(a.variant), onClick: a.onClick }, a.label));
   // Uma ação embaixo da outra na largura toda (rótulos como "Continuar preenchendo" não cabem lado a lado no
@@ -60,6 +64,7 @@ export function openModal(title: string, body: Node, actions: ModalAction[]): vo
   modal.classList.remove('hidden');
   modal.classList.add('flex');
   (buttons.at(-1) ?? close).focus(); // a ação de confirmar
+  if (abrindo) document.dispatchEvent(new Event(EVENTO_JANELA));
 }
 
 export function isModalOpen(): boolean {
@@ -73,6 +78,7 @@ export function closeModal(): void {
   modal.classList.remove('flex');
   modal.replaceChildren();
   if (lastFocus instanceof HTMLElement) lastFocus.focus();
+  document.dispatchEvent(new Event(EVENTO_JANELA));
 }
 
 export function confirmModal(title: string, body: Node | string, confirm: Omit<ModalAction, 'onClick'>, onConfirm: () => void, cancelLabel = 'Cancelar'): void {
