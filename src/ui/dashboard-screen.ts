@@ -3,7 +3,7 @@ import { SERVICE_LABEL } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
 import { answerRows, faltaObrigatoria } from '../domain/ordem';
-import { btn, gradeBotoes, h, icon } from './dom';
+import { btn, type BtnTom, gradeBotoes, h, icon } from './dom';
 
 export interface DashboardProps {
   header: ShiftHeader;
@@ -31,23 +31,15 @@ export const TYPE_BADGE: Record<ServiceType, string> = {
 
 const BADGE = 'text-[11px] font-bold px-2 py-0.5 rounded-md';
 
-/**
- * "+" de cada tipo: Comercial = cor principal, Ocorrência = cor de destaque (classes por extenso para o Tailwind).
- * `btn-primary`/`btn-accent`: os mesmos ganchos de tema de `btn()` (styles.css).
- */
-const PLUS_COLORS: Record<ServiceType, string> = {
-  COMERCIAL: 'btn-primary bg-brand-600 hover:bg-brand-700 shadow-brand/30',
-  OCORRENCIA: 'btn-accent bg-accent-600 hover:bg-accent-700 shadow-accent/30',
+/** Nova OS: botão do tema; Comercial = ação principal (o "botão padrão" nos temas Windows), Ocorrência = destaque. */
+const NOVA_OS: Record<ServiceType, { tom: BtnTom; rotulo: string }> = {
+  COMERCIAL: { tom: 'primary', rotulo: 'Nova Comercial' },
+  OCORRENCIA: { tom: 'accent', rotulo: 'Nova Ocorrência' },
 };
 
-/** "+" de nova OS: círculo colorido do tipo com o rótulo embaixo; a coluna inteira é a área de toque. */
 function botaoNovaOS(type: ServiceType, onClick: () => void): HTMLElement {
-  return h(
-    'button',
-    { type: 'button', id: `btn-new-${type.toLowerCase()}`, 'aria-label': `Nova OS ${SERVICE_LABEL[type]}`, class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1', onClick },
-    h('span', { class: `nova-os size-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` }, icon(Plus, 'w-8 h-8')),
-    h('span', { class: 'sobre-app text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
-  );
+  const { tom, rotulo } = NOVA_OS[type];
+  return h('button', { type: 'button', id: `btn-new-${type.toLowerCase()}`, class: btn(tom), onClick }, icon(Plus, 'w-5 h-5'), rotulo);
 }
 
 function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement {
@@ -141,12 +133,8 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         ),
       ),
     ),
-    // Nova OS: um "+" por tipo; cada um abre a tela da OS em branco com as perguntas daquele tipo.
-    h(
-      'div',
-      { class: 'grid grid-cols-2 gap-4 max-w-xs mx-auto' },
-      (['COMERCIAL', 'OCORRENCIA'] as const).map((type) => botaoNovaOS(type, () => p.onNewOS(type))),
-    ),
+    // Nova OS: um botão por tipo; cada um abre a tela da OS em branco com as perguntas daquele tipo.
+    gradeBotoes((['COMERCIAL', 'OCORRENCIA'] as const).map((type) => botaoNovaOS(type, () => p.onNewOS(type)))),
     h(
       'div',
       { class: 'card p-6 space-y-4' },

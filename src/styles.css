@@ -280,9 +280,8 @@
 }
 
 /* ==========================================================================
- * TEMAS CLÁSSICOS: Windows 3.1, 98, XP e 10, com as cores e o desenho dos próprios sistemas.
+ * TEMAS CLÁSSICOS: Windows 98, XP e 10 (em ordem cronológica), com as cores e o desenho dos próprios sistemas.
  * Fontes dos valores (pesquisa de 27/11/2026, reports/Paletas e botões dos temas Windows.md):
- * - 3.1: CONTROL.INI [color schemes] ("Windows Default"; escuro = "LCD Reversed - Dark").
  * - 98: HKCU\Control Panel\Colors + USER.EXE ("Windows Standard"; escuro = "High Contrast Black"); biséis do
  *   DrawEdge (Wine uitools.c = 98.css).
  * - XP: bitmaps do Luna Blue e do Royale Noir (o escuro oficial do XP, que só escurece moldura e barras: as
@@ -292,35 +291,35 @@
  * app (selos de tipo, avisos) usam cores da mesma paleta. Só o tamanho não é o do sistema: o app é de toque.
  * ========================================================================== */
 
-/* --- Comum aos quatro --------------------------------------------------- */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os) {
+/* --- Comum aos três ----------------------------------------------------- */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha) {
   scale: 1;
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .card, .janela) {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) :is(.btn, .escolha, .card, .janela) {
   box-shadow: none;
   transition: none;
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) body {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) body {
   background: var(--app);
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) #modal {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) #modal {
   backdrop-filter: none;
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .sobre-app {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .sobre-app {
   color: var(--sobre-app);
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field::placeholder {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .field::placeholder {
   color: var(--w-gray);
 }
 
 /* ==========================================================================
- * 3.1 e 98: botões de bisel. Cada tema declara as cores do sistema (--w-*) e os biséis; as regras ficam aqui.
+ * Windows 98: botões de bisel. As cores do sistema ficam em --w-* e os biséis em --bisel*; as regras usam só elas.
  * ========================================================================== */
-:is([data-estilo='win98'], [data-estilo='win31']) {
+[data-estilo='win98'] {
   --font-sans: 'WIN95FA', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
   /* A fonte do sistema só tem o peso normal: negrito falso borra os pixels. */
   font-synthesis: none;
-  /* Cores do sistema e paleta do app iguais no 98 e no 3.1 claros (cada tema declara só o que muda). */
+  /* Cores do sistema e paleta do app do esquema Windows Standard. */
   --w-face: #c0c0c0;
   --w-face-fg: #000000;
   --w-hilight: #ffffff;
@@ -351,20 +350,20 @@
   --warn: #808000;
   --err: #ff0000;
 }
-/* Cantos retos (98, 3.1 e 10): as utilidades rounded-* leem --radius-*; card e campo têm raio próprio. */
-:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) {
+/* Cantos retos (98 e 10): as utilidades rounded-* leem --radius-*; card e campo têm raio próprio. */
+:is([data-estilo='win98'], [data-estilo='win10']) {
   --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
 }
-:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) :is(.rounded-full, .card, .field) {
+:is([data-estilo='win98'], [data-estilo='win10']) :is(.rounded-full, .card, .field) {
   border-radius: 0;
 }
 
 /* Botões, "+" de OS nova e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
   background: var(--w-face);
   color: var(--w-face-fg);
   border: var(--w-borda-btn);
@@ -372,65 +371,62 @@
   box-shadow: var(--bisel);
 }
 /* Botão padrão (ação principal da tela): a moldura extra do sistema. */
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .nova-os).btn-primary {
+[data-estilo='win98'] .btn.btn-primary {
   box-shadow: var(--bisel-padrao);
 }
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha):active:not(:disabled),
-:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha):active:not(:disabled) {
   box-shadow: var(--bisel-ativo);
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .btn-primary:active:not(:disabled),
-:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os.btn-primary {
+[data-estilo='win98'] .btn.btn-primary:active:not(:disabled) {
   box-shadow: var(--bisel-padrao-ativo);
 }
 /* Botão sem moldura (fechar dos avisos, ações discretas): só ganha relevo ao tocar. */
-:is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn) {
+[data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn) {
   background: transparent;
   color: var(--fg);
   border: 1px solid transparent;
 }
 @media (hover: hover) {
-  :is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
+  [data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
     background: var(--w-face);
     color: var(--w-face-fg);
     box-shadow: var(--bisel);
   }
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
+[data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
   background: var(--w-face);
   color: var(--w-face-fg);
   box-shadow: var(--bisel-ativo);
 }
 /* Escolha marcada: botão travado afundado (no 98, com a trama de ButtonHilight). */
-:is([data-estilo='win98'], [data-estilo='win31']) .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+[data-estilo='win98'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
   background: var(--w-travado);
   color: var(--w-face-fg);
   box-shadow: var(--bisel-ativo);
 }
 /* Lista de temas: o item escolhido fica na cor de seleção do sistema. */
-:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao] {
+[data-estilo='win98'] .escolha[data-estilo-opcao] {
   background: var(--w-window);
   color: var(--w-window-fg);
   border: 1px solid transparent;
   box-shadow: none;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao][aria-pressed='true'] {
+[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] {
   background: var(--w-sel);
   color: var(--w-sel-fg);
   outline: 1px dotted var(--w-sel-fg);
   outline-offset: -3px;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao][aria-pressed='true'] * {
+[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] * {
   color: inherit;
 }
 /* Foco: retângulo pontilhado por dentro do botão. */
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .escolha):focus-visible,
-:is([data-estilo='win98'], [data-estilo='win31']) .group:focus-visible .nova-os {
+[data-estilo='win98'] :is(.btn, .escolha):focus-visible {
   outline: 1px dotted var(--w-face-fg);
   outline-offset: -4px;
 }
-/* Desabilitado: texto em ButtonShadow com o relevo em ButtonHilight (98) ou só GrayText (3.1). */
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .escolha):disabled {
+/* Desabilitado: texto em ButtonShadow com o relevo em ButtonHilight. */
+[data-estilo='win98'] :is(.btn, .escolha):disabled {
   opacity: 1;
   color: var(--w-gray);
   text-shadow: var(--w-gray-relevo);
@@ -438,42 +434,42 @@
 }
 
 /* Janelas, cartões e campos */
-:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo {
+[data-estilo='win98'] .janela-titulo {
   background: var(--titulo);
   border-bottom: none;
   padding: 0.3rem 0.35rem 0.3rem 0.6rem;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo h3 {
+[data-estilo='win98'] .janela-titulo h3 {
   color: var(--w-titulo-fg);
   font-size: 1rem;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo .btn {
+[data-estilo='win98'] .janela-titulo .btn {
   margin: 0;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .janela-rodape {
+[data-estilo='win98'] .janela-rodape {
   background: var(--w-face);
   border-top: none;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .field {
+[data-estilo='win98'] .field {
   background: var(--w-window);
   color: var(--w-window-fg);
   border: var(--w-borda-campo);
   box-shadow: var(--bisel-campo);
   font-weight: 400;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .field[readonly] {
+[data-estilo='win98'] .field[readonly] {
   background: var(--w-face);
   color: var(--w-face-fg);
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .field:focus:not([readonly]):not(.faltando) {
+[data-estilo='win98'] .field:focus:not([readonly]):not(.faltando) {
   outline: 1px dotted var(--w-window-fg);
   outline-offset: -4px;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) select.field option {
+[data-estilo='win98'] select.field option {
   background: var(--w-window);
   color: var(--w-window-fg);
 }
-:is([data-estilo='win98'], [data-estilo='win31']) .lbl {
+[data-estilo='win98'] .lbl {
   font-weight: 400;
   letter-spacing: 0;
 }
@@ -585,115 +581,6 @@
   box-shadow: var(--bisel-padrao);
 }
 
-/* --- Windows 3.1: "Windows Default" (claro) e "LCD Reversed - Dark" (escuro) --- */
-[data-estilo='win31'] {
-  --w-frame: #000000;
-  --w-gray-relevo: none;
-  --w-borda-ativa: #c0c0c0;
-  /* Botão do 3.1: moldura de 1px (cantos cortados), 2px de realce e 2px de sombra; padrão com moldura dupla. */
-  --w-borda-btn: 1px solid var(--w-frame);
-  --w-borda-campo: 1px solid var(--w-frame);
-  --w-raio-btn: 2px;
-  --w-travado: var(--w-face);
-  --bisel: inset 1px 1px var(--w-hilight), inset 2px 2px var(--w-hilight), inset -1px -1px var(--w-shadow), inset -2px -2px var(--w-shadow);
-  --bisel-padrao: 0 0 0 1px var(--w-frame), var(--bisel);
-  --bisel-ativo: inset 1px 1px var(--w-shadow);
-  --bisel-padrao-ativo: 0 0 0 1px var(--w-frame), inset 1px 1px var(--w-shadow);
-  --bisel-campo: none;
-  --titulo: #000080;
-  --app: #c0c0c0;
-  --card: #ffffff;
-  --sobre-app: #000000;
-  color-scheme: light;
-}
-[data-estilo='win31'][data-theme='dark'] {
-  /* LCD Reversed - Dark: janela bordô com texto branco, título oliva com texto preto; botões na face cinza do 3.1.
-     O texto desabilitado do esquema (#C0C0C0) some na face; fica #808080. */
-  --w-shadow: #80807f;
-  --w-window: #800000;
-  --w-window-fg: #ffffff;
-  --w-borda-ativa: #808000;
-  --w-titulo-fg: #000000;
-  --titulo: #808000;
-  --app: #000000;
-  --card: #800000;
-  --field: #800000;
-  --fg: #ffffff;
-  --muted: #ffffff;
-  --subtle: #ffffff;
-  --sobre-app: #ffffff;
-  --brand: #ffff00;
-  --brand-fg: #ffff00;
-  --accent: #c0c0c0;
-  --accent-600: #808000;
-  --accent-700: #5c5c00;
-  --accent-fg: #c0c0c0;
-  --danger-fg: #ffff00;
-  --err: #ffff00;
-  color-scheme: dark;
-}
-[data-estilo='win31'][data-theme='dark'] .field::placeholder {
-  color: #c0c0c0;
-}
-[data-estilo='win31'] :is(.card, .aviso) {
-  background: var(--w-window);
-  color: var(--w-window-fg);
-  border: 1px solid var(--w-frame);
-  box-shadow: none;
-}
-[data-estilo='win31'] .janela {
-  background: var(--w-window);
-  border: 1px solid var(--w-frame);
-  box-shadow: 0 0 0 3px var(--w-borda-ativa), 0 0 0 4px var(--w-frame);
-}
-[data-estilo='win31'] .janela-titulo {
-  border-bottom: 1px solid var(--w-frame);
-}
-[data-estilo='win31'] .janela-titulo h3 {
-  flex: 1;
-  text-align: center;
-}
-[data-estilo='win31'] .janela-rodape {
-  background: var(--w-window);
-  border-top: 1px solid var(--w-frame);
-}
-[data-estilo='win31'] .barra-app {
-  background: var(--w-window);
-  border-bottom: 1px solid var(--w-frame);
-}
-[data-estilo='win31'] .barra-app .selo-status {
-  background: var(--w-window);
-  border: 1px solid var(--w-frame);
-  color: var(--w-window-fg);
-}
-[data-estilo='win31'] .painel {
-  background: var(--w-window);
-  border: 1px solid var(--w-frame);
-}
-[data-estilo='win31'] .faixa-cabecalho {
-  background: var(--w-window);
-  border-bottom: 1px solid var(--w-frame);
-}
-[data-estilo='win31'] .field:focus:not([readonly]):not(.faltando) {
-  outline: 1px solid var(--w-frame);
-  outline-offset: 0;
-}
-[data-estilo='win31'].amostra {
-  border-color: var(--w-frame);
-}
-[data-estilo='win31'].amostra .amostra-janela {
-  background: var(--w-window);
-  border: 1px solid var(--w-frame);
-}
-[data-estilo='win31'].amostra .amostra-titulo {
-  border-bottom: 1px solid var(--w-frame);
-}
-[data-estilo='win31'].amostra :is(.amostra-brand, .amostra-accent) {
-  background: var(--w-face);
-  border: 1px solid #000000;
-  box-shadow: var(--bisel);
-}
-
 /* ==========================================================================
  * Windows XP: Luna azul (claro) e Royale Noir (escuro).
  * ========================================================================== */
@@ -736,10 +623,11 @@
   --brand-600: #0054e3;
   --brand-700: #003dd7;
   --brand-fg: #0046d5;
-  --accent: #22a122;
-  --accent-600: #228b22;
-  --accent-700: #1b6e1b;
-  --accent-fg: #1a7a1a;
+  /* Destaque: o azul dos títulos de grupo do XP (o Luna não usa verde fora do botão Iniciar). */
+  --accent: #215dc6;
+  --accent-600: #215dc6;
+  --accent-700: #1a4ba0;
+  --accent-fg: #215dc6;
   --danger-soft: #e04b25;
   --danger-600: #cc3813;
   --danger-700: #a13217;
@@ -774,6 +662,10 @@
   --brand-600: #335ea8;
   --brand-700: #26467e;
   --brand-fg: #2b4f8f;
+  --accent: #26467e;
+  --accent-600: #26467e;
+  --accent-700: #1c355f;
+  --accent-fg: #26467e;
 }
 [data-estilo='xp'] .barra-app {
   background: var(--xp-barra);
@@ -781,6 +673,10 @@
 }
 [data-estilo='xp'][data-theme='dark'] .barra-app {
   border-bottom-color: #161d2d;
+}
+[data-estilo='xp'][data-theme='dark'] .barra-app h1 {
+  color: #ffffff;
+  border-color: rgb(255 255 255 / 0.3);
 }
 [data-estilo='xp'] .barra-app .selo-status {
   background: var(--xp-face);
@@ -831,7 +727,7 @@
   color: #215dc6;
 }
 /* Botões */
-[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .nova-os, .escolha:where(:not([data-estilo-opcao]))) {
+[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))) {
   background: var(--xp-btn);
   border: 1px solid var(--xp-borda-btn);
   border-radius: 3px;
@@ -843,19 +739,16 @@
   box-shadow: var(--xp-foco);
 }
 @media (hover: hover) {
-  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled),
-  [data-estilo='xp'] .group:hover .nova-os {
+  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled) {
     box-shadow: var(--xp-hover);
   }
 }
 [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled),
-[data-estilo='xp'] .group:active .nova-os,
 [data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
   background: var(--xp-btn-ativo);
   box-shadow: none;
 }
-[data-estilo='xp'] :is(.btn:where(:not(.janela-titulo .btn)), .escolha):focus-visible,
-[data-estilo='xp'] .group:focus-visible .nova-os {
+[data-estilo='xp'] :is(.btn:where(:not(.janela-titulo .btn)), .escolha):focus-visible {
   outline: 1px dotted #000000;
   outline-offset: -4px;
   box-shadow: var(--xp-foco);
@@ -980,11 +873,11 @@
   --brand-600: #0078d7;
   --brand-700: #005a9e;
   --brand-fg: #005a9e;
-  /* Ocorrência: o verde da paleta de cores de destaque do Windows 10. */
-  --accent: #107c10;
-  --accent-600: #107c10;
-  --accent-700: #0b5a0b;
-  --accent-fg: #107c10;
+  /* Destaque secundário: tons escuros da própria cor de destaque (SystemAccentColorDark1/Dark2). */
+  --accent: #005a9e;
+  --accent-600: #005a9e;
+  --accent-700: #004275;
+  --accent-fg: #004275;
   --danger-soft: #e81123;
   --danger-600: #c50500;
   --danger-700: #9e0400;
@@ -1009,7 +902,7 @@
   --subtle: color-mix(in srgb, #ffffff 60%, var(--w10-chrome-medium));
   --sobre-app: color-mix(in srgb, #ffffff 60%, #000000);
   --brand-fg: #76b9ed;
-  --accent-fg: #6ccb5f;
+  --accent-fg: #a6d8ff;
   --danger-fg: #ff99a4;
   --err: #fff000;
   color-scheme: dark;
@@ -1058,7 +951,7 @@
   border-top: none;
 }
 /* Botão padrão: BaseLow, borda transparente de 2px; hover = borda BaseMediumLow; pressionado = fundo BaseMediumLow. */
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao])), .nova-os) {
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))) {
   background: var(--w10-base-low);
   border: 2px solid transparent;
   color: var(--fg);
@@ -1070,18 +963,12 @@
   background: var(--w10-accent);
   color: #ffffff;
 }
-[data-estilo='win10'] .nova-os.btn-accent {
-  background: var(--accent-600);
-  color: #ffffff;
-}
 @media (hover: hover) {
-  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled),
-  [data-estilo='win10'] .group:hover .nova-os {
+  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled) {
     border-color: var(--w10-base-medium-low);
   }
 }
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled),
-[data-estilo='win10'] .group:active .nova-os {
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled) {
   background: var(--w10-base-medium-low);
   border-color: transparent;
   color: var(--fg);
@@ -1093,8 +980,7 @@
   color: var(--w10-base-medium-low);
   cursor: default;
 }
-[data-estilo='win10'] :is(.btn, .escolha):focus-visible,
-[data-estilo='win10'] .group:focus-visible .nova-os {
+[data-estilo='win10'] :is(.btn, .escolha):focus-visible {
   outline: 2px solid var(--fg);
   outline-offset: 1px;
   box-shadow: inset 0 0 0 1px var(--w10-alt-medium);
@@ -1179,14 +1065,14 @@
   background: var(--w10-base-low);
 }
 
-/* --- Falta preencher (os quatro): borda e anel na cor de erro do tema --- */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando,
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando:focus {
+/* --- Falta preencher (os três): borda e anel na cor de erro do tema --- */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .field.faltando,
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .field.faltando:focus {
   outline: none;
   border-color: var(--err);
   box-shadow: 0 0 0 2px var(--err);
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .card.faltando {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .card.faltando {
   border-color: var(--err);
   box-shadow: 0 0 0 2px var(--err);
 }

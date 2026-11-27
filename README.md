@@ -20,7 +20,7 @@ houver, só serve para o app se atualizar.
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
-2. **Painel**: dois botões **+**, um **Comercial** (cor principal do tema) e um **Ocorrência** (cor de destaque do tema). Cada um abre a tela da OS em
+2. **Painel**: dois botões no estilo do tema, **Nova Comercial** (ação principal) e **Nova Ocorrência** (cor de destaque). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
    o do código do serviço. Qualquer código vale nos dois tipos (são muitos serviços; a folha pode ser corrigida
    depois).
@@ -70,21 +70,20 @@ produção total e os técnicos saem na última. Embaixo de toda folha: data, eq
 
 ### Aparência
 
-Sete temas, cada um com variante clara e escura e paleta própria (nenhum usa as cores do logo). O botão da paleta,
+Seis temas, cada um com variante clara e escura e paleta própria (nenhum usa as cores do logo). O botão da paleta,
 no topo, abre a lista com prévia de cada tema e um seletor Claro/Escuro; o do sol/lua troca claro e escuro (sem
 escolha, segue o celular):
 - **Paletas modernas**: **Tema 1 – Safira & Violeta** (padrão), **Tema 2 – Esmeralda & Ouro** e **Tema 3 – Alto
   Contraste** (branco para sol forte, preto OLED no escuro, bordas de 2 px).
 - **Temas clássicos**, com as cores e os botões dos próprios sistemas (valores do registro/INI e dos bitmaps do
   sistema; pesquisa de 27/11/2026). Todo botão tem a face do sistema; o principal se distingue como no Windows
-  (moldura preta no 98/3.1, anel azul no XP, cor de destaque no 10):
+  (moldura preta no 98, anel azul no XP, cor de destaque no 10). Em ordem cronológica:
   - **Tema 4 – Windows 98**: esquema "Windows Standard" (área de trabalho `#008080`, face `#C0C0C0`, título
     `#000080 → #1084D0`); escuro = "High Contrast Black".
   - **Tema 5 – Windows XP**: Luna azul (face `#ECE9D8`, botão com borda `#003C74`, hover laranja); escuro = Royale
-    Noir, que no XP só escurece moldura, barras e área de trabalho (janelas e botões continuam claros).
-  - **Tema 6 – Windows 3.1**: esquema "Windows Default" (moldura preta, título centralizado); escuro = "LCD
-    Reversed - Dark" (janela bordô, título oliva).
-  - **Tema 7 – Windows 10**: claro e escuro do Windows 10, botão cinza de 20% com borda de 2px no hover, botão de
+    Noir, que no XP só escurece moldura, barras e área de trabalho (janelas e botões continuam claros). Sem verde:
+    o destaque é o azul do próprio sistema.
+  - **Tema 6 – Windows 10**: claro e escuro do Windows 10, botão cinza de 20% com borda de 2px no hover, botão de
     destaque `#0078D7`, raio 0, Segoe UI (Selawik offline).
 
 O logo do Grupo Energisa aparece no topo do app e no PDF (o PDF não muda com o tema); a prancheta é o ícone do app

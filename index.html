@@ -17,7 +17,7 @@
         if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         if (e === 'retro') e = 'win98';
         document.documentElement.dataset.theme = t;
-        document.documentElement.dataset.estilo = e && /^(moderno|floresta|sol-forte|win98|xp|win31|win10)$/.test(e) ? e : 'moderno';
+        document.documentElement.dataset.estilo = e && /^(moderno|floresta|sol-forte|win98|xp|win10)$/.test(e) ? e : 'moderno';
       })();
     </script>
   </head>

@@ -79,7 +79,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   O PDF segue com a informação e dá para corrigir pelo lápis.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
-  grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
+  grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um botão por tipo, "Nova Comercial" (`btn('primary')`, `#btn-new-comercial`) e "Nova Ocorrência" (`btn('accent')`, `#btn-new-ocorrencia`):
   abre a tela da OS em branco (`startDraft(tipo)`, código vazio; no topo, número e, abaixo,
   código, digitados). Erro de regra rola até o campo
   (`data-field`) e o foca.
@@ -120,27 +120,27 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
-- Temas clássicos (`win98`, `xp`, `win31`, `win10`): cores e desenho dos próprios sistemas, com a fonte de cada
-  valor no comentário do topo da seção em `styles.css` e o relatório em `reports/Paletas e botões dos temas Windows.md`
-  (fora do git; notas em `research_notes/`). 98 e 3.1 compartilham as regras de bisel: cada um só declara as cores
-  do sistema (`--w-face`, `--w-hilight`, `--w-shadow`, `--w-dk`, `--w-window`, `--w-sel`, `--w-gray`...) e os
-  biséis (`--bisel`, `--bisel-padrao`, `--bisel-ativo`, `--bisel-campo`...). Todo botão tem a face do sistema; o
-  principal (`.btn-primary`) é o "botão padrão". Escuros: High Contrast Black (98), LCD Reversed - Dark (3.1), Royale
-  Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. Ganchos além dos de baixo: `.painel` (item
-  de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status`, `.aviso` (aviso de atualização) e
-  `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`); o "+" de OS nova leva `btn-primary`/`btn-accent`
-  (os ganchos de `btn()`). Seletores longos de `:not()` vão dentro de `:where()` (senão o botão comum vence o de
-  destaque pela especificidade).
+- Temas clássicos, em ordem cronológica (`win98`, `xp`, `win10`; o Windows 3.1 saiu na 1.4.18 e quem o usava volta
+  ao padrão): cores e desenho dos próprios sistemas, com a fonte de cada valor no comentário do topo da seção em
+  `styles.css` e o relatório em `reports/Paletas e botões dos temas Windows.md` (fora do git; notas em
+  `research_notes/`). O 98 declara as cores do sistema (`--w-face`, `--w-hilight`, `--w-shadow`, `--w-dk`,
+  `--w-window`, `--w-sel`, `--w-gray`...) e os biséis (`--bisel`, `--bisel-padrao`, `--bisel-ativo`, `--bisel-campo`...),
+  e as regras usam só elas. Todo botão tem a face do sistema; o principal (`.btn-primary`) é o "botão padrão".
+  Escuros: High Contrast Black (98), Royale Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. XP
+  e 10 não usam verde: o destaque (`--accent*`) é um azul do próprio sistema. Ganchos além dos de baixo: `.painel`
+  (item de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status`, `.aviso` (aviso de atualização) e
+  `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`). Seletores longos de `:not()` vão dentro de
+  `:where()`, e o botão padrão usa `.btn.btn-primary` (senão o botão comum vence pela especificidade).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
   `data-estilo` (chave `ferracine_prod:estilo`) e **claro/escuro** `data-theme` (chave `ferracine_prod:theme`; sem
   escolha, segue o celular). Temas em `ESTILOS`: paletas modernas `moderno` (Safira & Violeta, padrão), `floresta`
-  (Esmeralda & Ouro) e `sol-forte` (Alto Contraste); clássicos `win98`, `xp`, `win31` e `win10`. Id antigo `retro`
+  (Esmeralda & Ouro) e `sol-forte` (Alto Contraste); clássicos `win98`, `xp` e `win10`. Id antigo `retro`
   vira `win98`; id desconhecido (temas removidos) volta a `moderno`. **Nenhum tema usa as cores do logo**: cada um
   define a própria paleta completa em `styles.css` (`--brand*`, `--accent*`, `--danger-*` → `rose-*`, `--ok/--warn/--err`,
   superfícies e textos), ligadas às utilidades do Tailwind por `@theme inline` (`bg-brand-600`, `bg-accent-600`,
   `bg-rose-600`...). O padrão fica em `@layer base` (`:root, [data-estilo]`); os demais temas, fora de `@layer` (vencem
   as utilidades), com variáveis + acabamento pelos ganchos `.btn`/`.btn-<tom>` (de `btn()`), `.card`, `.field`,
-  `.escolha`, `.janela`/`.janela-titulo`, `.barra-app` e `.nova-os`. As variáveis ficam em `[data-estilo=...]` (não só
+  `.escolha`, `.janela`/`.janela-titulo` e `.barra-app`. As variáveis ficam em `[data-estilo=...]` (não só
   no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema que mostra. Tema novo: id em
   `ESTILOS`, na regex do script do `<head>` e um bloco de variáveis claro/escuro + acabamento em `styles.css`. O PDF
   não muda com o tema.
