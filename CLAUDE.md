@@ -17,7 +17,8 @@ pnpm test              # Vitest, só tests/unit (ambiente node, sem DOM)
 pnpm test ordem        # um arquivo: filtre pelo nome; passar o caminho completo no Git Bash quebra o Vitest
 pnpm build             # dist/ + service worker (vite-plugin-pwa, generateSW)
 pnpm test:e2e          # Playwright contra o build (pnpm preview :4173), Chrome instalado, viewport Pixel 7
-pnpm check             # lint + test + build + e2e: rode antes de commitar
+pnpm test:android      # testes Kotlin (regras do atualizador, android/app/src/test), JDK 17 de C:\dev
+pnpm check             # lint + test + test:android + build + e2e (inclui temas.spec e acessibilidade.spec): rode antes de commitar
 pnpm apk               # build web + APK release assinado em release/FerracineProd-<versão>.apk (scripts/apk.mjs)
 pnpm release           # só no main e com a árvore limpa: sobe a versão, pnpm check, APK, commit do package.json, push e Release
 pnpm logo              # regenera src/assets/energisa-pdf.png (logo do PDF) a partir de src/assets/energisa.svg
@@ -26,6 +27,9 @@ pnpm android:icons     # regenera os mipmaps do APK a partir de public/icon.png
 ```
 
 O e2e usa o build de produção: depois de mudar `src/`, rode `pnpm build` antes de `pnpm test:e2e`.
+`tests/e2e/temas.spec.ts` compara os estilos calculados de cada tema com `tests/e2e/__snapshots__` (LF, sem sufixo
+de sistema): mudança de tema de propósito → `pnpm test:e2e temas --update-snapshots` e confira o diff.
+`tests/e2e/acessibilidade.spec.ts` (axe) não aceita nenhuma violação em nenhum tema.
 `pnpm-workspace.yaml` nega o build script do `core-js` (pnpm 11 trava qualquer `pnpm run` com build pendente).
 
 APK: JDK 17 em `C:\dev\jdk-17.0.2` (o script usa se `JAVA_HOME` não estiver definido) e SDK em
@@ -203,7 +207,7 @@ Ferracini Silva; Pages em ferracine.github.io/Ferracine_Prod). O Bruno1991 (o `g
 colaborador com escrita: push e Release saem normalmente (`git push`, `gh release create -R Ferracine/Ferracine_Prod`).
 Configurações do repositório (Pages, colaboradores) só pela conta Ferracine: `GH_TOKEN=$FERRACINE_GITHUB_TOKEN gh api ...`
 (`C:\dev\.env`), por comando e sem gravar o token. Push no `main` publica no GitHub Pages pelo
-workflow `.github/workflows/deploy-pages.yml` (lint, testes unitários, build). O APK vai como asset de uma
+workflow `.github/workflows/deploy-pages.yml` (lint, testes unitários, build e e2e no Chrome do runner). O APK vai como asset de uma
 Release (`gh release create v<versão> release/FerracineProd-<versão>.apk`). **Publicar a Release entrega a
 atualização a todos os APKs instalados**: tag `v` + versão do `package.json` e o APK com esse nome exato, assinado
 com a chave de sempre. Push, Release e publicação só com OK explícito do Bruno.

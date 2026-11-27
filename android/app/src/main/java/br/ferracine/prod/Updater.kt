@@ -8,7 +8,6 @@ import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import java.io.File
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.concurrent.thread
@@ -22,7 +21,7 @@ class Updater(private val activity: Activity, private val emit: (status: String,
 
     /** Começa o download em segundo plano; devolve "" ou o motivo da recusa. `size` = bytes da Release (0 = ?). */
     fun start(url: String, size: Long): String {
-        if (!url.startsWith(DOWNLOAD_PREFIX) || !url.endsWith(".apk")) return "Endereço de atualização inválido."
+        if (!RegrasAtualizacao.enderecoValido(url)) return "Endereço de atualização inválido."
         if (busy) return ""
         busy = true
         thread(name = "ferracine-update") {
@@ -37,7 +36,7 @@ class Updater(private val activity: Activity, private val emit: (status: String,
                 pending = apk
                 activity.runOnUiThread { install() }
             } catch (e: Exception) {
-                emit("error", "Não foi possível baixar a atualização: ${motivo(e)}.")
+                emit("error", "Não foi possível baixar a atualização: ${RegrasAtualizacao.motivo(e)}.")
             } finally {
                 busy = false
             }
@@ -57,7 +56,7 @@ class Updater(private val activity: Activity, private val emit: (status: String,
     private fun download(url: String, size: Long): File {
         val dir = File(activity.cacheDir, "update").apply { mkdirs() }
         val file = File(dir, url.substringAfterLast('/'))
-        if (file.isFile && (size <= 0 || file.length() == size)) return file
+        if (RegrasAtualizacao.reaproveita(file.isFile, file.length(), size)) return file
         dir.listFiles()?.forEach { it.delete() } // só o APK mais recente fica no aparelho
         val part = File(dir, "${file.name}.part") // download interrompido nunca vira "APK baixado"
         // github.com responde com redirecionamento para o armazenamento do GitHub (também https).
@@ -92,10 +91,10 @@ class Updater(private val activity: Activity, private val emit: (status: String,
     /** Recusa antes de abrir o instalador: outro app, arquivo corrompido ou versão que não é mais nova. */
     private fun verify(apk: File) {
         val pm = activity.packageManager
-        val baixado = pm.getPackageArchiveInfo(apk.path, 0) ?: error("o arquivo baixado não é um APK válido")
-        if (baixado.packageName != activity.packageName) error("o arquivo baixado não é da Folha de Produção")
+        val baixado = pm.getPackageArchiveInfo(apk.path, 0)
         val instalado = pm.getPackageInfo(activity.packageName, 0)
-        if (versionCode(baixado) <= versionCode(instalado)) error("a versão baixada não é mais nova que a instalada")
+        val recusa = RegrasAtualizacao.recusaApk(baixado?.packageName, baixado?.let(::versionCode) ?: 0, activity.packageName, versionCode(instalado))
+        if (recusa != null) error(recusa)
     }
 
     private fun canInstall(): Boolean =
@@ -121,8 +120,6 @@ class Updater(private val activity: Activity, private val emit: (status: String,
     }
 
     private companion object {
-        /** Mesmo prefixo de src/domain/update.ts: o app só baixa APK das Releases do próprio repositório. */
-        const val DOWNLOAD_PREFIX = "https://github.com/Ferracine/Ferracine_Prod/releases/download/"
         const val DOWNLOAD_MAX_MS = 5 * 60_000L
 
         // Estado do processo, não da tela: se o Android recriar a MainActivity enquanto o eletricista está nas
@@ -136,12 +133,5 @@ class Updater(private val activity: Activity, private val emit: (status: String,
         @Suppress("DEPRECATION")
         fun versionCode(info: PackageInfo): Long =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode else info.versionCode.toLong()
-
-        /** Motivo em português: as exceções de rede do Java vêm em inglês ("Unable to resolve host..."). */
-        fun motivo(e: Exception): String = when (e) {
-            is IllegalStateException -> e.message ?: "erro desconhecido" // nossos error(...), já em português
-            is IOException -> "sem internet ou sinal fraco"
-            else -> e.javaClass.simpleName
-        }
     }
 }

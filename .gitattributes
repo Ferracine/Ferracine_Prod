@@ -1,0 +1,2 @@
+# Referências de teste comparadas byte a byte: sempre LF (o autocrlf do Windows trocaria por CRLF).
+tests/e2e/__snapshots__/** text eol=lf
