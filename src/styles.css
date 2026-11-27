@@ -362,7 +362,7 @@
   border-radius: 0;
 }
 
-/* Botões, "+" de OS nova e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
+/* Botões e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
 [data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
   background: var(--w-face);
   color: var(--w-face-fg);
@@ -735,7 +735,7 @@
   font-weight: 400;
   box-shadow: var(--xp-btn-anel);
 }
-[data-estilo='xp'] .btn-primary {
+[data-estilo='xp'] .btn.btn-primary {
   box-shadow: var(--xp-foco);
 }
 @media (hover: hover) {
@@ -957,8 +957,8 @@
   color: var(--fg);
   font-weight: 400;
 }
-/* Botão de destaque (ação principal e encerrar) e escolha marcada (ToggleButton ligado). */
-[data-estilo='win10'] :is(.btn-primary, .btn-accent),
+/* Botão de destaque: só a ação principal (como no Windows 10); e a escolha marcada (ToggleButton ligado). */
+[data-estilo='win10'] .btn.btn-primary,
 [data-estilo='win10'] .escolha[aria-pressed='true']:where(:not([data-estilo-opcao])) {
   background: var(--w10-accent);
   color: #ffffff;

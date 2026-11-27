@@ -23,7 +23,7 @@ export interface DashboardProps {
   onInverterOrdem: () => void;
 }
 
-/** Cores do selo de tipo (lista e tela da OS): Comercial = ciano do logo, Ocorrência = laranja do logo. */
+/** Cores do selo de tipo (lista e tela da OS): Comercial = cor principal do tema, Ocorrência = cor de destaque. */
 export const TYPE_BADGE: Record<ServiceType, string> = {
   COMERCIAL: 'bg-brand/15 text-brand-fg',
   OCORRENCIA: 'bg-accent/15 text-accent-fg',

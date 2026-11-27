@@ -126,8 +126,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `research_notes/`). O 98 declara as cores do sistema (`--w-face`, `--w-hilight`, `--w-shadow`, `--w-dk`,
   `--w-window`, `--w-sel`, `--w-gray`...) e os biséis (`--bisel`, `--bisel-padrao`, `--bisel-ativo`, `--bisel-campo`...),
   e as regras usam só elas. Todo botão tem a face do sistema; o principal (`.btn-primary`) é o "botão padrão".
-  Escuros: High Contrast Black (98), Royale Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. XP
-  e 10 não usam verde: o destaque (`--accent*`) é um azul do próprio sistema. Ganchos além dos de baixo: `.painel`
+  Escuros: High Contrast Black (98), Royale Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. No XP
+  e no 10 o destaque (`--accent*`) é um azul do próprio sistema, não verde; no 10 só `.btn-primary` tem a cor de
+  destaque (o `btn('accent')` é botão comum, como no 98/XP). Ganchos além dos de baixo: `.painel`
   (item de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status`, `.aviso` (aviso de atualização) e
   `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`). Seletores longos de `:not()` vão dentro de
   `:where()`, e o botão padrão usa `.btn.btn-primary` (senão o botão comum vence pela especificidade).

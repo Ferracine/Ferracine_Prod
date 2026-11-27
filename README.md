@@ -20,7 +20,7 @@ houver, só serve para o app se atualizar.
    preenchido com o último turno**; a data é sempre a de hoje (do sistema) e o técnico líder começa em branco.
    Eletricistas (nome e matrícula) e técnicos líderes (nome e telefone) são cadastrados no próprio app
    ("Adicionar / excluir eletricistas" e "Adicionar / excluir técnicos").
-2. **Painel**: dois botões no estilo do tema, **Nova Comercial** (ação principal) e **Nova Ocorrência** (cor de destaque). Cada um abre a tela da OS em
+2. **Painel**: dois botões no estilo do tema, **Nova Comercial** (ação principal) e **Nova Ocorrência** (cor de destaque nas paletas modernas; nos temas Windows, botão comum, e o da Comercial é o botão padrão do sistema). Cada um abre a tela da OS em
    branco com as perguntas do tipo; no topo, o campo do número (da ocorrência ou da OS comercial) e, abaixo,
    o do código do serviço. Qualquer código vale nos dois tipos (são muitos serviços; a folha pode ser corrigida
    depois).
