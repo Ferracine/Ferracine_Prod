@@ -472,7 +472,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       'Cancelar turno',
       reaberta
         ? `Descartar a correção? A folha de ${sheetLabel(reaberta)} volta ao histórico como estava antes de você tocar em "Editar".`
-        : `Descartar este turno? O cabeçalho e ${n === 0 ? 'o turno sem OSs' : plural(n, 'OS registrada', 'OSs registradas')} são apagados e não vão para o histórico. Não dá para desfazer.`,
+        : n === 0
+          ? 'Descartar este turno (ainda sem OSs)? O cabeçalho é apagado e não vai para o histórico. Não dá para desfazer.'
+          : `Descartar este turno? O cabeçalho e ${plural(n, 'OS registrada', 'OSs registradas')} são apagados e não vão para o histórico. Não dá para desfazer.`,
       { label: 'Sim, cancelar turno', variant: 'danger' },
       () => {
         update(cancelarDados);
@@ -567,10 +569,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, a folha corrigida volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
       { label: 'Editar folha', variant: 'primary' },
       () => {
-        update((d) => {
-          reabrirDados(d, sheet);
-          d.tecnicos = [...d.tecnicos, ...sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id))];
-        });
+        update((d) => reabrirDados(d, sheet));
         showToast('Folha reaberta: corrija o que precisar e toque em "Encerrar turno".', 'info');
       },
     );

@@ -77,7 +77,7 @@ function manageCadastro<T extends { id: string; nome: string }>(c: Cadastro<T>, 
                 'button',
                 {
                   type: 'button',
-                  class: `${btn('outline', 'icon')} text-danger-fg hover:bg-rose-500/10`,
+                  class: btn('perigo', 'icon'),
                   'aria-label': `Excluir ${c.rotulo} ${t.nome}`,
                   onClick: () => {
                     c.onRemove(t.id);

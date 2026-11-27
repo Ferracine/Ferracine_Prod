@@ -47,8 +47,8 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
   const answered = rows.filter((r) => !r.skipped).length;
   const time = new Date(os.registradaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const label = osLabel(os.osNumber);
-  const action = (title: string, cls: string, node: Parameters<typeof icon>[0], onClick: () => void) =>
-    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: `${btn('outline', 'icon')} ${cls}`, onClick }, icon(node, 'w-5 h-5'));
+  const action = (title: string, classe: string, node: Parameters<typeof icon>[0], onClick: () => void) =>
+    h('button', { type: 'button', title, 'aria-label': `${title} OS ${label}`, class: classe, onClick }, icon(node, 'w-5 h-5'));
 
   return h(
     'li',
@@ -70,9 +70,9 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
     h(
       'div',
       { class: 'flex items-center gap-1.5 shrink-0' },
-      action('Editar', 'text-accent-fg hover:bg-fg/10', Pencil, () => p.onEdit(os)),
-      action('Ver respostas', 'text-brand-fg hover:bg-fg/10', Eye, () => p.onView(os)),
-      action('Excluir', 'text-danger-fg hover:bg-rose-500/10', Trash2, () => p.onDelete(os)),
+      action('Editar', `${btn('outline', 'icon')} text-accent-fg`, Pencil, () => p.onEdit(os)),
+      action('Ver respostas', `${btn('outline', 'icon')} text-brand-fg`, Eye, () => p.onView(os)),
+      action('Excluir', btn('perigo', 'icon'), Trash2, () => p.onDelete(os)),
     ),
   );
 }
@@ -88,7 +88,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
           'div',
           { class: 'text-center py-8 px-4 bg-fg/[0.03] rounded-xl border border-dashed border-fg/15' },
           h('p', { class: 'text-sm font-semibold text-muted' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
-          h('p', { class: 'text-xs text-subtle mt-1' }, 'Toque no + Comercial ou no + Ocorrência para registrar a primeira OS do turno.'),
+          h('p', { class: 'text-xs text-subtle mt-1' }, 'Toque em Nova Comercial ou Nova Ocorrência para registrar a primeira OS do turno.'),
         )
       : h('ul', { class: 'space-y-3', 'data-testid': 'os-list' }, ordenar(ordens.map((os, i) => osRow(os, i, p)), p.decrescente));
 
@@ -169,8 +169,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       { class: 'pt-2 pb-8' },
       gradeBotoes([
         h('button', { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} shadow-lg shadow-accent/20`, onClick: p.onFinish }, 'Encerrar turno'),
-        // Destrutiva, mas discreta (contornada, texto vermelho), como o Excluir do histórico; confirma antes.
-        h('button', { type: 'button', id: 'btn-cancel-turno', class: `${btn('outline', 'lg')} text-danger-fg`, onClick: p.onCancelTurno }, 'Cancelar turno'),
+        h('button', { type: 'button', id: 'btn-cancel-turno', class: btn('perigo', 'lg'), onClick: p.onCancelTurno }, 'Cancelar turno'),
       ]),
     ),
   );

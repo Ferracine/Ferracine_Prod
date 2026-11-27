@@ -17,7 +17,7 @@ export interface FolhasProps {
 
 /**
  * Lista das últimas folhas, cada uma com Baixar, Abrir, Compartilhar, Editar e Excluir (grade de colunas iguais;
- * Excluir ocupa a linha). Usada no cartão da tela do cabeçalho e na janela do botão de histórico do topo.
+ * Excluir ocupa a linha). Usada na janela do histórico (botão do topo) e na janela "Produção encerrada".
  */
 export function listaFolhas(p: FolhasProps): HTMLElement {
   if (!p.sheets.length) return h('p', { class: 'text-sm text-muted' }, 'Nenhuma folha encerrada ainda. Elas aparecem aqui ao encerrar o turno.');
@@ -27,9 +27,8 @@ export function listaFolhas(p: FolhasProps): HTMLElement {
     'div',
     { class: 'space-y-3', 'data-lista': 'folhas' },
     p.sheets.map((sheet) => {
-      // Destrutiva, mas discreta (contornada, texto vermelho): o destaque fica com "Baixar PDF"; confirma antes.
-      const excluir = botao(sheet, 'delete', 'outline', Trash2, 'Excluir');
-      excluir.classList.add('text-danger-fg');
+      // Destrutiva, mas discreta: o destaque fica com "Baixar PDF"; confirma antes.
+      const excluir = botao(sheet, 'delete', 'perigo', Trash2, 'Excluir');
       return h(
         'div',
         { class: 'space-y-2 border-t border-fg/10 pt-3 first:border-t-0 first:pt-0', 'data-testid': 'last-sheet' },

@@ -49,7 +49,7 @@ function ocorrenciaCompleta(n: number): OrdemServico {
     leituraInst: { kind: 'text', value: '7788' },
     horaFin: { kind: 'text', value: '09:40' },
     // Como uma ocorrência da 1.4.17 convertida: as perguntas que saíram ficam no começo da caixa.
-    infoAdicional: { kind: 'text', value: 'CALLBACK: SIM; DEFEITO: Fusível queimado; DISP.: Chave fusível; ALTERAÇÃO UC: Troca do disjuntor do padrão; Acesso difícil ao poste' },
+    infoAdicional: { kind: 'text', value: 'Callback: Sim; Defeito: Fusível queimado; Disp.: Chave fusível; Alteração UC: Troca do disjuntor do padrão; Acesso difícil ao poste' },
   }, `id-${n}`);
 }
 

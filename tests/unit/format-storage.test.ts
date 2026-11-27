@@ -71,6 +71,7 @@ describe('armazenamento', () => {
       lastHeader: header,
       tecnicos,
       reaberta: { header, ordens: [], fechadaEm: '2026-11-18T20:00:00.000Z', tecnicos, baixadaEm: '2026-11-18T21:00:00.000Z' },
+      tecnicosDaReaberta: ['t1'],
     };
     expect(saveData(store, data)).toBe(true);
     expect(store.items.get(STORAGE_KEY)).toContain('"version":3');
@@ -171,7 +172,7 @@ describe('armazenamento', () => {
     expect(loaded.draft?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Chuva' } });
   });
 
-  it('ocorrência até a 1.4.17: callback, defeito, dispositivo e alteração na UC vão para o começo de Informações adicionais', () => {
+  it('ocorrência até a 1.4.17: callback, defeito, dispositivo e alteração na UC vão para o começo de Informações adicionais, com os rótulos do PDF', () => {
     const base = { osNumber: '1', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x' };
     const antigas = {
       callback: { kind: 'choice', choice: 'Sim' },
@@ -184,12 +185,12 @@ describe('armazenamento', () => {
     const semNada = { ...base, id: 'b', answers: { dispositivo: { kind: 'text', value: '  ' } } };
     const folha = { header, ordens: [comInfo], fechadaEm: 'x', tecnicos: [], baixadaEm: 'x' };
     const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [comInfo, semNada], sheets: [folha], reaberta: folha }) }));
-    const info = 'CALLBACK: SIM; DEFEITO: FUSÍVEL; ALTERAÇÃO UC: TROCA DE DISJUNTOR; POSTE ALAGADO';
+    const info = 'Callback: Sim; Defeito: FUSÍVEL; Alteração UC: TROCA DE DISJUNTOR; POSTE ALAGADO';
     expect(loaded.ordens[0]?.answers).toEqual({ ditais: { kind: 'choice', choice: 'Não' }, infoAdicional: { kind: 'text', value: info } });
     expect(loaded.ordens[1]?.answers).toEqual({});
     expect(loaded.sheets[0]?.ordens[0]?.answers.infoAdicional).toEqual({ kind: 'text', value: info });
     expect(loaded.reaberta?.ordens[0]?.answers.infoAdicional).toEqual({ kind: 'text', value: info });
-    // No PDF continua em INFORMAÇÃO ADICIONAL, com os mesmos rótulos.
+    // No PDF continua em INFORMAÇÃO ADICIONAL, com os mesmos rótulos e a mesma grafia de antes.
     expect(espelhoRows(loaded.ordens)[0]?.info).toBe(`DITAIS: Não; ${info}`);
   });
 
@@ -230,6 +231,16 @@ describe('armazenamento', () => {
     expect(reaberto.reaberta).toEqual(meio);
     cancelarDados(reaberto);
     expect(reaberto).toMatchObject({ header: null, sheets: [nova, meio, velha], reaberta: null });
+    // Os técnicos que o "Editar" pôs de volta no cadastro saem ao cancelar; os que já estavam ficam.
+    const ana = { id: 'ana', nome: 'ANA', telefone: '1' };
+    const beto = { id: 'beto', nome: 'BETO', telefone: '2' };
+    const comTecnicos = { ...velha, tecnicos: [ana, beto] };
+    const t: AppData = { ...emptyData(), sheets: [comTecnicos], tecnicos: [ana] };
+    reabrirDados(t, comTecnicos);
+    expect(t.tecnicos).toEqual([ana, beto]);
+    expect(t.tecnicosDaReaberta).toEqual(['beto']);
+    cancelarDados(t);
+    expect(t).toMatchObject({ tecnicos: [ana], tecnicosDaReaberta: [], sheets: [comTecnicos] });
     // Encerrar a correção também esquece a original.
     reabrirDados(d, meio);
     encerrarDados(d, '2026-11-22T08:00:00.000Z');

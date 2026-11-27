@@ -130,6 +130,8 @@ const BTN_TOM = {
   danger: 'bg-rose-600 hover:bg-rose-700 text-white',
   accent: 'bg-accent-600 hover:bg-accent-700 text-white',
   outline: 'bg-fg/5 border border-fg/10 hover:bg-fg/10', // cor do texto/ícone fica com quem usa
+  /** Destrutiva, mas discreta (Cancelar turno, Excluir, lixeira): contornada, texto vermelho; confirma antes. */
+  perigo: 'bg-fg/5 border border-fg/10 hover:bg-rose-500/10 text-danger-fg',
   ghost: SEM_MOLDURA,
   /** X das janelas: igual ao ghost, com gancho próprio (`btn-fechar`) para os temas Windows o desenharem como botão da barra de título. */
   fechar: SEM_MOLDURA,

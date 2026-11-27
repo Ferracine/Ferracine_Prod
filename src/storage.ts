@@ -53,7 +53,7 @@ const TECNICO: Esquema<Tecnico> = { id: textoExato, nome: textoExato, telefone: 
 const ELETRICISTA: Esquema<Eletricista> = { id: textoExato, nome: textoExato, matricula: textoExato };
 
 export function emptyData(): AppData {
-  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [], reaberta: null };
+  return { version: 3, header: null, ordens: [], draft: null, sheets: [], lastHeader: null, tecnicos: [], eletricistas: [], reaberta: null, tecnicosDaReaberta: [] };
 }
 
 /** Completa com vazio os campos que não existiam quando o cabeçalho foi salvo (ex.: equipe, viatura, bodycam2). */
@@ -94,6 +94,7 @@ const DADOS: Esquema<AppData> = {
   tecnicos: (v) => lista(TECNICO, v),
   eletricistas: (v) => lista(ELETRICISTA, v),
   reaberta: (v) => montar(FOLHA, v) ?? null,
+  tecnicosDaReaberta: (v) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []),
 };
 
 /** Folha recém-encerrada no topo do histórico; passando de SHEETS_KEPT, a mais antiga sai. */
@@ -118,6 +119,7 @@ export function encerrarDados(d: AppData, fechadaEm: string): void {
 /** Sem turno aberto: cabeçalho, OSs, rascunho e a folha reaberta saem. */
 function limparTurno(d: AppData): void {
   d.reaberta = null;
+  d.tecnicosDaReaberta = [];
   d.header = null;
   d.ordens = [];
   d.draft = null;
@@ -129,16 +131,24 @@ function limparTurno(d: AppData): void {
  */
 export function cancelarDados(d: AppData): void {
   if (d.reaberta) d.sheets = [...d.sheets, d.reaberta].sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm)).slice(0, SHEETS_KEPT);
+  d.tecnicos = d.tecnicos.filter((t) => !d.tecnicosDaReaberta.includes(t.id));
   limparTurno(d);
 }
 
-/** "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. */
+/**
+ * "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. Os técnicos dela
+ * voltam ao cadastro (o líder continua valendo, mesmo se tinha sido excluído); os que entraram só por isso ficam
+ * anotados para "Cancelar turno" tirar de novo.
+ */
 export function reabrirDados(d: AppData, sheet: ClosedSheet): void {
+  const novos = sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id));
   d.header = sheet.header;
   d.ordens = sheet.ordens;
   d.draft = null;
   d.sheets = removerFolha(d.sheets, sheet);
   d.reaberta = sheet;
+  d.tecnicos = [...d.tecnicos, ...novos];
+  d.tecnicosDaReaberta = novos.map((t) => t.id);
 }
 
 /**
@@ -245,10 +255,10 @@ function eletricistasDosCabecalhos(...headers: (ShiftHeader | null)[]): Eletrici
 
 /** Perguntas que só a ocorrência tinha até a 1.4.17, com o rótulo que o PDF usava. */
 const PERGUNTAS_SO_DA_OCORRENCIA = [
-  ['callback', 'CALLBACK'],
-  ['defeito', 'DEFEITO'],
-  ['dispositivo', 'DISP.'],
-  ['alteracaoUC', 'ALTERAÇÃO UC'],
+  ['callback', 'Callback'],
+  ['defeito', 'Defeito'],
+  ['dispositivo', 'Disp.'],
+  ['alteracaoUC', 'Alteração UC'],
 ] as const;
 
 /** Resposta como as versões antigas gravavam: o SIM/NÃO podia levar um complemento (`detail`). */
@@ -265,8 +275,9 @@ type RespostaAntiga = Exclude<Answer, { kind: 'choice' }> | { kind: 'choice'; ch
  * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
  *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
  * - Ocorrência até a 1.4.17: callback, defeito, dispositivo manobrado e alteração na UC saíram (a ocorrência tem as
- *   perguntas da comercial). O que foi respondido vai para o começo de "Informações adicionais", com os rótulos que o
- *   PDF usava ("CALLBACK: SIM; DEFEITO: ..."): o PDF segue com a informação e dá para corrigir pelo lápis.
+ *   perguntas da comercial). O que foi respondido vai para o começo de "Informações adicionais", com os mesmos rótulos
+ *   e a mesma grafia que o PDF usava ("Callback: Sim; Defeito: ..."); no PDF passam a vir depois das perguntas atuais
+ *   (DITAIS etc.), porque "Informações adicionais" é a última. Dá para corrigir pelo lápis.
  */
 function migrateAnswers(type: ServiceType, answers: Record<string, RespostaAntiga>): Record<string, Answer> {
   const { os: _copiaDoNumero, dificuldade, ...out } = answers;
@@ -281,7 +292,7 @@ function migrateAnswers(type: ServiceType, answers: Record<string, RespostaAntig
     const antigas = PERGUNTAS_SO_DA_OCORRENCIA.flatMap(([id, rotulo]) => {
       const a = out[id];
       delete out[id];
-      const v = a?.kind === 'choice' ? a.choice.toUpperCase() : a?.kind === 'text' ? a.value.trim() : '';
+      const v = a?.kind === 'choice' ? a.choice : a?.kind === 'text' ? a.value.trim() : '';
       return v ? [`${rotulo}: ${v}`] : [];
     });
     if (antigas.length) {

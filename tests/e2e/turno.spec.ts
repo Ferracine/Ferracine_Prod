@@ -696,6 +696,18 @@ test('OSs concluídas: o botão inverte a ordem (crescente ↔ decrescente), man
   await expect(itens).toHaveText([/#1 • OS 1/, /#2 • OS 2/, /#3 • OS 3/]);
 });
 
+test('temas Windows: Cancelar turno mantém o texto vermelho do esquema ao lado do Encerrar (botões da mesma face)', async ({ page }) => {
+  await iniciarTurno(page);
+  const cor = (sel: string) => page.locator(sel).evaluate((el) => getComputedStyle(el).color);
+  for (const [estilo, perigo] of [['win98', 'rgb(128, 0, 0)'], ['xp', 'rgb(176, 38, 11)'], ['win10', 'rgb(197, 5, 0)']] as const) {
+    await page.evaluate((e) => localStorage.setItem('ferracine_prod:estilo', e), estilo);
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('data-estilo', estilo);
+    expect(await cor('#btn-cancel-turno')).toBe(perigo);
+    expect(await cor('#btn-finish')).not.toBe(perigo);
+  }
+});
+
 test('cancelar turno: pede confirmação, descarta sem ir ao histórico; folha reaberta volta como estava (mesmo depois de recarregar)', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '709', '10');

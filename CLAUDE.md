@@ -19,7 +19,7 @@ pnpm build             # dist/ + service worker (vite-plugin-pwa, generateSW)
 pnpm test:e2e          # Playwright contra o build (pnpm preview :4173), Chrome instalado, viewport Pixel 7
 pnpm check             # lint + test + build + e2e: rode antes de commitar
 pnpm apk               # build web + APK release assinado em release/FerracineProd-<versão>.apk (scripts/apk.mjs)
-pnpm release           # sobe a versão, roda pnpm check, gera o APK, faz commit + push e publica a Release no GitHub
+pnpm release           # só no main e com a árvore limpa: sobe a versão, pnpm check, APK, commit do package.json, push e Release
 pnpm logo              # regenera src/assets/energisa-pdf.png (logo do PDF) a partir de src/assets/energisa.svg
 pnpm icons             # regenera favicon/ícones do PWA a partir de public/icon.png (prancheta)
 pnpm android:icons     # regenera os mipmaps do APK a partir de public/icon.png
@@ -95,9 +95,11 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   `listaFolhas`): só na janela do botão `#historico-toggle` do topo (a tela do cabeçalho não mostra mais o cartão);
   ações Baixar/Abrir/Compartilhar/Editar/Excluir. **Editar** (`reabrirFolha`) devolve a folha ao turno aberto
   (cabeçalho e OSs) e a tira de `sheets`, guardando a original em `AppData.reaberta` (gravada: sobrevive ao app
-  fechar no meio da correção); só sem turno aberto. Com `reaberta`, corrigir o cabeçalho não muda `lastHeader`.
+  fechar no meio da correção) e os técnicos que ela devolveu ao cadastro em `tecnicosDaReaberta`; só sem turno
+  aberto. Com `reaberta`, corrigir o cabeçalho não muda `lastHeader`.
   **Cancelar turno** (`#btn-cancel-turno`, `cancelarTurno` → `cancelarDados`) descarta cabeçalho/OSs/rascunho
-  depois de confirmar; com `reaberta`, a folha volta ao histórico como estava. A lista "OSs concluídas" tem
+  depois de confirmar; com `reaberta`, a folha volta ao histórico como estava e os técnicos de `tecnicosDaReaberta`
+  saem do cadastro. A lista "OSs concluídas" tem
   `#btn-ordem-os` (Crescente/Decrescente, chave `ferracine_prod:ordem-os`; o # é a posição na folha). Não há
   planilha: o app só gera PDF.
 - Campo que falta: `marcarFaltando(el)` (dom.ts) põe `.faltando` (borda vermelha, styles.css) até a pessoa mexer;
@@ -145,7 +147,7 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema que mostra. Tema novo: id em
   `ESTILOS`, na regex do script do `<head>` e um bloco de variáveis claro/escuro + acabamento em `styles.css`. O PDF
   não muda com o tema.
-- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost`/`fechar` (o X das janelas) e
+- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost`/`fechar` (o X das janelas)/`perigo` (destrutiva discreta: Cancelar turno, Excluir, lixeiras; nos temas Windows fica a face do sistema com texto vermelho) e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
   Solo/Dupla, `BTN_OPCAO` para item de lista de opções (lista de temas). Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou o marcado como largo ocupa a linha). Nas

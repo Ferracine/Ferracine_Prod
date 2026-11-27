@@ -113,6 +113,8 @@ export interface AppData {
    * memória) para "Cancelar turno" devolvê-la ao histórico mesmo depois de o app fechar no meio da correção.
    */
   reaberta: ClosedSheet | null;
+  /** Ids dos técnicos que o "Editar" da folha reaberta acrescentou ao cadastro ("Cancelar turno" os tira de novo). */
+  tecnicosDaReaberta: string[];
 }
 
 /** Linha pronta para exibir no app ou no PDF. */

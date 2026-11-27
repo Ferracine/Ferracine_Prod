@@ -1060,6 +1060,11 @@
   background: var(--w10-base-low);
 }
 
+/* --- Ação destrutiva (os três): a face do sistema, com o texto na cor de perigo do esquema --- */
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .btn.btn-perigo:not(:disabled):not(:active) {
+  color: var(--danger-fg);
+}
+
 /* --- Falta preencher (os três): borda e anel na cor de erro do tema --- */
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .field.faltando,
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win10']) .field.faltando:focus {

@@ -46,6 +46,17 @@ function bumpVersion(ver, kind) {
   return `${maj}.${min}.${pat + 1}`;
 }
 
+// Só no main e com a árvore limpa: o commit da release leva só o package.json, e a tag/Release apontam para o main.
+const branch = capture('git', ['rev-parse', '--abbrev-ref', 'HEAD']);
+if (branch !== 'main') {
+  console.error(`pnpm release só roda no main (branch atual: ${branch}).`);
+  process.exit(1);
+}
+if (capture('git', ['status', '--porcelain'])) {
+  console.error('pnpm release precisa da árvore limpa: faça commit (ou guarde) as mudanças antes.');
+  process.exit(1);
+}
+
 const args = process.argv.slice(2);
 const bumpKind = ['patch', 'minor', 'major'].includes(args[0]) ? args.shift() : null;
 const customMsg = args.join(' ').trim();
@@ -88,12 +99,16 @@ if (!existsSync(`${root}${apkPath}`)) {
 }
 
 console.log('\n[3/4] Commitando e enviando para o GitHub (main -> GitHub Pages)...');
-run('git', ['add', '-A']);
-const staged = capture('git', ['status', '--porcelain']);
-if (staged) {
+if (nextVersion !== oldVersion) {
+  run('git', ['add', 'package.json']);
   const commitTitle = customMsg ? `release(${tag}): ${customMsg}` : `chore(release): ${tag}`;
   const commitRes = spawnSync('git', ['commit', '-m', commitTitle], { cwd: root, stdio: 'inherit' });
-  if (commitRes.status !== 0) process.exit(commitRes.status ?? 1);
+  if (commitRes.status !== 0) {
+    spawnSync('git', ['reset', '-q', 'package.json'], { cwd: root });
+    writeFileSync(pkgPath, pkgRaw, 'utf8');
+    console.error(`Commit falhou: package.json restaurado para ${oldVersion}.`);
+    process.exit(commitRes.status ?? 1);
+  }
 }
 run('git', ['push', 'origin', 'main']);
 

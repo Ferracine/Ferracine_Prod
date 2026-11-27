@@ -31,8 +31,9 @@ houver, só serve para o app se atualizar.
      de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
      o da UC para MEDIDOR RETIRADO.
    - **Ocorrência** (ex.: 508 / 509 / 503 / 531 / 324 / 533): as mesmas perguntas da comercial, na mesma ordem.
-     Ocorrências salvas até a 1.4.17 guardam também callback, defeito, dispositivo manobrado e alteração na UC:
-     essas respostas continuam no PDF e no "Ver respostas", e o lápis não as apaga.
+     Nas ocorrências salvas até a 1.4.17, o que foi respondido em callback, defeito, dispositivo manobrado e alteração
+     na UC vira texto no começo de **Informações adicionais** ("Callback: Sim; Defeito: ..."): continua no PDF e dá
+     para corrigir pelo lápis.
    - Todos os campos de texto ficam em maiúsculas (o teclado abre com caps e o texto é convertido).
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
    mesma do lápis. Responda o que souber e toque em **Salvar OS**. A última pergunta, **Informações adicionais**, é uma caixa aberta
