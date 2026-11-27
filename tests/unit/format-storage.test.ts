@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { espelhoRows } from '../../src/domain/espelho';
 import { formatDateBR, formatHorario, mesmaPessoa, osLabel, sheetFileName, sheetLabel, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
-import { emptyData, encerrarDados, type KeyValueStore, loadData, pushSheet, reabrirDados, removerFolha, saveData, STORAGE_KEY } from '../../src/storage';
+import { cancelarDados, emptyData, encerrarDados, type KeyValueStore, loadData, pushSheet, reabrirDados, removerFolha, saveData, STORAGE_KEY } from '../../src/storage';
 import { startDraft } from '../../src/domain/ordem';
 import { baseHeader as header, finishedOS } from './fixtures';
 
@@ -187,6 +187,21 @@ describe('armazenamento', () => {
     // Sem turno aberto, encerrar não faz nada.
     encerrarDados(d, 'x');
     expect(d.sheets).toEqual([corrigida, antiga]);
+  });
+
+  it('cancelar turno: descarta cabeçalho, OSs e rascunho sem criar folha; a folha reaberta volta ao histórico no lugar dela', () => {
+    const os = finishedOS('1', 'COMERCIAL', '28');
+    const nova = { header, ordens: [os], fechadaEm: '2026-11-21T18:00:00.000Z', tecnicos: [], baixadaEm: '' };
+    const velha = { ...nova, fechadaEm: '2026-11-19T18:00:00.000Z' };
+    const meio = { ...nova, fechadaEm: '2026-11-20T18:00:00.000Z', baixadaEm: '2026-11-20T19:00:00.000Z' };
+    const d: AppData = { ...emptyData(), header, ordens: [os], draft: startDraft('COMERCIAL'), sheets: [nova, velha] };
+    cancelarDados(d, null);
+    expect(d).toMatchObject({ header: null, ordens: [], draft: null, sheets: [nova, velha] });
+    // "Editar" tirou a do meio do histórico; cancelar a correção devolve como estava (com a marca de baixada).
+    reabrirDados(d, d.sheets[0]!);
+    d.sheets = [velha];
+    cancelarDados(d, meio);
+    expect(d.sheets).toEqual([meio, velha]);
   });
 
   it('até a 1.4.15 encerrar já baixava o PDF: folha antiga (sem baixadaEm) conta como baixada; a nova não', () => {

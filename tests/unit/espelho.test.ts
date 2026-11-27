@@ -58,7 +58,7 @@ describe('linhas do Espelho de Campo', () => {
     expect(espelhoRows([os])[0]?.info).not.toContain('novo medidor');
   });
 
-  it('ocorrência: tipo, callback, defeito, dispositivo, DITAIS, alteração na UC e informações adicionais vão para INFORMAÇÃO ADICIONAL', () => {
+  it('ocorrência salva antes da 1.4.18: callback, defeito, dispositivo e alteração na UC continuam em INFORMAÇÃO ADICIONAL', () => {
     const os = finishedOS('', 'OCORRENCIA', '508', {
       callback: { kind: 'choice', choice: 'Sim' },
       horaIni: { kind: 'text', value: '10:00' },
@@ -71,7 +71,7 @@ describe('linhas do Espelho de Campo', () => {
     });
     const [row] = espelhoRows([os]);
     expect(row).toMatchObject({ os: 'S/N', codigo: '508', horaIni: '10:00', kmIni: '', clientePresente: '' });
-    expect(row?.info).toBe('Callback: Sim; Tipo: Falta de energia; Defeito: Fusível; Disp.: Chave fusível; DITAIS: Não; Alteração UC: Troca de disjuntor; Poste em área alagada');
+    expect(row?.info).toBe('Tipo: Falta de energia; DITAIS: Não; Callback: Sim; Defeito: Fusível; Disp.: Chave fusível; Alteração UC: Troca de disjuntor; Poste em área alagada');
   });
 
   it('perguntas puladas não entram em INFORMAÇÃO ADICIONAL', () => {

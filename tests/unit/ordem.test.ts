@@ -6,22 +6,8 @@ import { espelhoRows } from '../../src/domain/espelho';
 import { DITAIS_NAO, finishedOS } from './fixtures';
 
 describe('catálogo', () => {
-  it('ocorrência segue a ordem definida pelo dono do app', () => {
-    expect(questionsFor('OCORRENCIA').map((q) => q.text)).toEqual([
-      'Tentou callback?',
-      'Deseja informar a hora inicial?',
-      'Deseja informar o KM inicial?',
-      'Qual tipo de serviço?',
-      'Qual foi o defeito?',
-      'Qual dispositivo manobrado?',
-      'Houve necessidade de realizar os DITAIS?',
-      'Deseja informar o KM final?',
-      'Deseja informar alguma alteração feita na UC do cliente?',
-      'Digite o número do medidor instalado',
-      'Qual a leitura do medidor instalado?',
-      'Deseja informar a hora final?',
-      'Informações adicionais',
-    ]);
+  it('ocorrência tem as mesmas perguntas da comercial, na mesma ordem', () => {
+    expect(questionsFor('OCORRENCIA')).toEqual(questionsFor('COMERCIAL'));
   });
 
   it('comercial segue a ordem definida pelo dono do app', () => {
@@ -178,16 +164,41 @@ describe('OS nova (tela da OS)', () => {
   it('answerRows descreve cada pergunta para o app', () => {
     const os = finishedOS('7', 'OCORRENCIA', '503', { ditais: { kind: 'choice', choice: 'Sim' }, infoAdicional: { kind: 'text', value: 'Chuva' } });
     const rows = ordem.answerRows(os);
-    // O número da OS fica no topo da tela (S/N não conta como "não respondida").
-    expect(rows).toHaveLength(13);
-    expect(rows[0]).toEqual({ question: 'Tentou callback?', display: 'Não informado', skipped: true, isDitais: false });
-    expect(rows[6]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
-    expect(rows[12]).toMatchObject({ question: 'Informações adicionais', display: 'Chuva' });
+    // O número da OS fica no topo da tela (S/N não conta como "não respondida"); o medidor novo está escondido.
+    expect(rows).toHaveLength(12);
+    expect(rows[0]).toEqual({ question: 'Qual tipo de serviço?', display: 'Não informado', skipped: true, isDitais: false });
+    expect(rows[8]).toMatchObject({ display: 'Sim', isDitais: true, skipped: false });
+    expect(rows[11]).toMatchObject({ question: 'Informações adicionais', display: 'Chuva' });
+  });
+
+  it('ocorrência salva antes da 1.4.18: callback, defeito, dispositivo e alteração na UC continuam nas respostas', () => {
+    const os = finishedOS('7', 'OCORRENCIA', '503', {
+      ...DITAIS_NAO,
+      callback: { kind: 'choice', choice: 'Sim' },
+      defeito: { kind: 'text', value: 'Fusível' },
+      dispositivo: { kind: 'skipped' },
+      infoAdicional: { kind: 'text', value: 'Chuva' },
+    });
+    const perguntas = ordem.answerRows(os).map((r) => r.question);
+    // Só as respondidas, antes de "Informações adicionais" (que continua a última).
+    expect(perguntas.slice(-3)).toEqual(['Tentou callback?', 'Qual foi o defeito?', 'Informações adicionais']);
+    expect(perguntas).not.toContain('Qual dispositivo manobrado?');
+    // Nova OS não pergunta mais.
+    expect(questionsFor('OCORRENCIA').map((q) => q.id)).not.toContain('callback');
   });
 });
 
 describe('edição completa de OS (lápis)', () => {
   const base = () => finishedOS('100', 'OCORRENCIA', '508', { ...DITAIS_NAO, tipo: { kind: 'text', value: 'Falta' } }, 'id-9');
+
+  it('ocorrência salva antes da 1.4.18: o lápis não apaga callback, defeito e as outras perguntas antigas', () => {
+    const os = finishedOS('5', 'OCORRENCIA', '508', { ...DITAIS_NAO, defeito: { kind: 'text', value: 'Fusível' }, callback: { kind: 'choice', choice: 'Não' } });
+    const r = ordem.applyEdit(os, { osNumber: '5', serviceCode: '508', answers: { ...os.answers, kmIni: { kind: 'text', value: '10' } } });
+    if (!r.ok) throw new Error(r.error);
+    expect(r.os.answers).toMatchObject({ defeito: { kind: 'text', value: 'Fusível' }, callback: { kind: 'choice', choice: 'Não' }, kmIni: { kind: 'text', value: '10' } });
+    // OS nova não grava essas perguntas.
+    expect(finishedOS('6', 'OCORRENCIA', '508', DITAIS_NAO).answers).not.toHaveProperty('defeito');
+  });
 
   it('altera número, código e respostas mantendo id e horário de registro', () => {
     const os = base();

@@ -1,4 +1,4 @@
-import { isVisible, questionsFor, visibleQuestions } from './catalog';
+import { antigasRespondidas, isVisible, questionsFor, visibleQuestions } from './catalog';
 import type { Answer, AnswerRow, OrdemServico, OSDraft, Question, ServiceType } from './types';
 
 /**
@@ -87,6 +87,8 @@ export function finalize(draft: OSDraft, id: string, now: Date): OrdemServico {
     // Escondida (ex.: número do medidor novo com "Foi instalado novo medidor?" = NÃO): o que foi digitado antes não vale.
     answers[q.id] = isVisible(q, draft.answers) ? normalizeAnswer(q, draft.answers[q.id]) : { kind: 'skipped' };
   }
+  // OS salva antes da 1.4.18 (ocorrência com callback, defeito...): o lápis não apaga essas respostas.
+  for (const q of antigasRespondidas(draft.answers)) answers[q.id] = normalizeAnswer(q, draft.answers[q.id]);
   return {
     id,
     osNumber: draft.osNumber,

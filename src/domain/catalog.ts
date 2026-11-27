@@ -39,25 +39,8 @@ const INFO_ADICIONAL: Question = {
 /** Segurança: obrigatória nos dois tipos (a OS comercial também pode ter o procedimento). */
 const DITAIS: Question = { id: 'ditais', text: 'Houve necessidade de realizar os DITAIS?', type: 'yesno', required: true, isDitais: true, short: 'DITAIS' };
 
-const OCORRENCIA: readonly Question[] = [
-  { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
-  HORA_INI,
-  KM_INI,
-  { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o tipo de serviço...', short: 'Tipo' },
-  { id: 'defeito', text: 'Qual foi o defeito?', type: 'text', placeholder: 'Informe o defeito encontrado...', short: 'Defeito' },
-  { id: 'dispositivo', text: 'Qual dispositivo manobrado?', type: 'text', placeholder: 'Ex: Chave fusível, religador, disjuntor...', short: 'Disp.' },
-  DITAIS,
-  KM_FIN,
-  { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', placeholder: 'Descreva a alteração na UC...', short: 'Alteração UC' },
-  // Na ocorrência não há troca de medidor (isso é OS comercial): só o número e a leitura do medidor que está na UC.
-  MEDIDOR_INST_NUM,
-  LEITURA_INST,
-  { id: 'horaFin', text: 'Deseja informar a hora final?', type: 'text', placeholder: 'Ex: 09:40', input: 'time', espelho: 'horaFin' },
-  INFO_ADICIONAL,
-];
-
 const COMERCIAL: readonly Question[] = [
-  { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o serviço comercial executado...', short: 'Tipo' },
+  { id: 'tipo', text: 'Qual tipo de serviço?', type: 'text', placeholder: 'Descreva o serviço executado...', short: 'Tipo' },
   KM_INI,
   HORA_INI,
   { id: 'clientePresente', text: 'Cliente presente?', type: 'yesno', espelho: 'clientePresente' },
@@ -75,6 +58,26 @@ const COMERCIAL: readonly Question[] = [
   INFO_ADICIONAL,
 ];
 
+/** Ocorrência: as mesmas perguntas da comercial, na mesma ordem (pedido do dono, 1.4.18). */
+const OCORRENCIA: readonly Question[] = COMERCIAL;
+
+/**
+ * Perguntas que só a ocorrência tinha até a 1.4.17. OS nova não as pergunta, mas as OSs já salvas (turno aberto e
+ * folhas do histórico) guardam as respostas: `visibleQuestions` as inclui quando respondidas, para o PDF e o
+ * "Ver respostas" não perderem o que foi registrado, e `finalize` as mantém ao salvar pelo lápis.
+ */
+const PERGUNTAS_ANTIGAS: readonly Question[] = [
+  { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
+  { id: 'defeito', text: 'Qual foi o defeito?', type: 'text', short: 'Defeito' },
+  { id: 'dispositivo', text: 'Qual dispositivo manobrado?', type: 'text', short: 'Disp.' },
+  { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', short: 'Alteração UC' },
+];
+
+/** Perguntas antigas com resposta nesta OS. */
+export function antigasRespondidas(answers: Record<string, Answer>): readonly Question[] {
+  return PERGUNTAS_ANTIGAS.filter((q) => answers[q.id] && answers[q.id]?.kind !== 'skipped');
+}
+
 const QUESTIONS: Record<ServiceType, readonly Question[]> = { COMERCIAL, OCORRENCIA };
 
 export function questionsFor(type: ServiceType): readonly Question[] {
@@ -88,5 +91,10 @@ export function isVisible(q: Question, answers: Record<string, Answer>): boolean
 
 /** Perguntas que valem com estas respostas (as escondidas por `showIf` ficam de fora). */
 export function visibleQuestions(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
-  return questionsFor(type).filter((q) => isVisible(q, answers));
+  const atuais = questionsFor(type).filter((q) => isVisible(q, answers));
+  const antigas = antigasRespondidas(answers);
+  if (!antigas.length) return atuais;
+  // Antes de "Informações adicionais", que continua a última.
+  const fim = atuais.at(-1)?.id === INFO_ADICIONAL.id ? atuais.length - 1 : atuais.length;
+  return [...atuais.slice(0, fim), ...antigas, ...atuais.slice(fim)];
 }

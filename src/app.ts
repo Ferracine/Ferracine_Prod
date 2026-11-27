@@ -4,12 +4,12 @@ import { osLabel, plural, sheetFileName, sheetLabel } from './domain/format';
 import * as ordem from './domain/ordem';
 import { SHEETS_KEPT, type AppData, type ClosedSheet, type OrdemServico, type OSDraft, type ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
-import { encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
+import { cancelarDados, encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast } from './ui/feedback';
 import { type AcaoFolha, type FolhasProps, listaFolhas } from './ui/folhas';
-import { headerScreen, sheetsCard } from './ui/header-screen';
+import { headerScreen } from './ui/header-screen';
 import { osScreen } from './ui/os-screen';
 
 /** `new` = OS nova em preenchimento (rascunho salvo); `edit` = lápis de uma OS concluída. Mesma tela da OS. */
@@ -18,6 +18,8 @@ type PdfModule = typeof import('./pdf');
 /** PDF pronto: baixar, abrir e compartilhar reaproveitam o mesmo Blob (e, no APK, o base64). */
 type Arquivo = { blob: Blob; fileName: string; mime: string; base64?: string };
 const PDF_MIME = 'application/pdf';
+/** Ordem da lista "OSs concluídas no turno" ('desc' = a mais recente primeiro); preferência do aparelho. */
+const ORDEM_KEY = 'ferracine_prod:ordem-os';
 
 function newId(): string {
   // randomUUID só existe em contexto seguro (https/localhost); no teste pela rede local cai no fallback.
@@ -119,8 +121,12 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** OS aberta na tela de edição (lápis). Só em memória: a OS salva muda apenas em "Salvar alterações". */
   let editing: { os: OrdemServico; dirty: boolean } | null = null;
   let shownScreen: Screen | null = null;
-  /** O turno aberto veio de uma folha reaberta: corrigir o cabeçalho dela não muda o "próximo turno" (lastHeader). */
-  let turnoReaberto = false;
+  /**
+   * Folha reaberta pelo "Editar" do histórico, como estava: o turno aberto é a correção dela. Corrigir o cabeçalho não
+   * muda o "próximo turno" (lastHeader), e "Cancelar turno" devolve a folha ao histórico.
+   */
+  let folhaReaberta: ClosedSheet | null = null;
+  let decrescente = lerOrdem();
   const shareSupported = canShareFiles();
 
   let saveFailed = false;
@@ -175,7 +181,6 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         getEletricistas: () => data.eletricistas,
         onAddEletricista: (nome, matricula) => update((d) => { d.eletricistas = [...d.eletricistas, { id: newId(), nome, matricula }]; }, false),
         onRemoveEletricista: (id) => update((d) => { d.eletricistas = d.eletricistas.filter((e) => e.id !== id); }, false),
-        folhas: folhasProps(),
         onSubmit: submitHeader,
         onCancelEdit: cancelHeaderEdit,
       });
@@ -213,6 +218,9 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         onDelete: deleteOS,
         onEditHeader: () => { editingHeader = true; render(); },
         onFinish: encerrarTurno,
+        onCancelTurno: cancelarTurno,
+        decrescente,
+        onInverterOrdem: inverterOrdem,
       });
     }
 
@@ -257,7 +265,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     editingHeader = false;
     update((d) => {
       d.header = header;
-      if (!turnoReaberto) d.lastHeader = header; // preenche o próximo turno
+      if (!folhaReaberta) d.lastHeader = header; // preenche o próximo turno
     });
     showToast(wasEditing ? 'Cabeçalho atualizado.' : 'Turno iniciado! Registro de OSs liberado.', 'success');
   }
@@ -453,12 +461,52 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   /** A folha vai para o topo do histórico com "PDF não baixado" até o eletricista baixar (`encerrarDados`). */
   function encerrar(): void {
-    turnoReaberto = false;
+    folhaReaberta = null;
     update((d) => encerrarDados(d, new Date().toISOString()));
     // Toque duplo: o 2º toque cairia num botão da tela do cabeçalho, que acabou de aparecer no lugar do painel.
     root.style.pointerEvents = 'none';
     setTimeout(() => (root.style.pointerEvents = ''), 400);
-    showToast('Turno encerrado. A folha está nas últimas encerradas: toque em "Baixar PDF" para salvar.', 'success');
+    // Só a produção que acabou de ser encerrada (as anteriores ficam no histórico do topo).
+    const sheet = data.sheets[0];
+    if (sheet) abrirFolhas('Produção encerrada', () => (data.sheets.includes(sheet) ? [sheet] : []), false);
+    showToast('Turno encerrado. Toque em "Baixar PDF" para salvar a folha.', 'success');
+  }
+
+  /** "Cancelar turno": descarta cabeçalho e OSs sem criar folha; uma folha reaberta volta ao histórico como estava. */
+  function cancelarTurno(): void {
+    const n = data.ordens.length;
+    const reaberta = folhaReaberta;
+    confirmModal(
+      'Cancelar turno',
+      reaberta
+        ? `Descartar a correção? A folha de ${sheetLabel(reaberta)} volta ao histórico como estava antes de você tocar em "Editar".`
+        : `Descartar este turno? O cabeçalho e ${n === 0 ? 'o turno sem OSs' : plural(n, 'OS registrada', 'OSs registradas')} são apagados e não vão para o histórico. Não dá para desfazer.`,
+      { label: 'Sim, cancelar turno', variant: 'danger' },
+      () => {
+        folhaReaberta = null;
+        update((d) => cancelarDados(d, reaberta));
+        showToast(reaberta ? 'Correção descartada: a folha voltou ao histórico.' : 'Turno cancelado.', 'info');
+      },
+      'Voltar ao turno',
+    );
+  }
+
+  function lerOrdem(): boolean {
+    try {
+      return store.getItem(ORDEM_KEY) === 'desc';
+    } catch {
+      return false;
+    }
+  }
+
+  function inverterOrdem(): void {
+    decrescente = !decrescente;
+    try {
+      store.setItem(ORDEM_KEY, decrescente ? 'desc' : 'asc');
+    } catch {
+      // sem armazenamento: vale até fechar o app
+    }
+    render();
   }
 
   /** Folhas sendo entregues agora: toque duplo na mesma entrega uma vez só; as outras folhas seguem livres. */
@@ -488,20 +536,31 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     }
   }
 
-  /** Histórico das últimas folhas, com as ações de cada uma (cartão da tela do cabeçalho e janela do topo). */
-  /** `naJanela`: a lista está na janela do botão do topo (depois de excluir, a janela volta com a lista). */
-  function folhasProps(naJanela = false): FolhasProps {
-    return { sheets: data.sheets, canShare: shareSupported, turnoAberto: !!data.header, onAcao: (sheet, acao) => acaoFolha(sheet, acao, naJanela) };
+  /**
+   * Janela de folhas aberta agora: título, quais folhas mostra (histórico = todas; ao encerrar = só a encerrada) e se
+   * volta mesmo vazia depois de excluir (o histórico volta e diz que não há folhas).
+   */
+  let janelaFolhas: { titulo: string; folhas: () => readonly ClosedSheet[]; voltaVazia: boolean } | null = null;
+
+  function folhasProps(folhas: readonly ClosedSheet[]): FolhasProps {
+    return { sheets: folhas, canShare: shareSupported, turnoAberto: !!data.header, onAcao: acaoFolha };
   }
 
-  function abrirHistorico(): void {
+  /** Janela com folhas e as ações de cada uma (Baixar, Abrir, Compartilhar, Editar, Excluir). */
+  function abrirFolhas(titulo: string, folhas: () => readonly ClosedSheet[], voltaVazia: boolean): void {
     void loadPdfModule().catch(() => undefined); // Abrir/Compartilhar logo após o toque precisam do gerador pronto
-    openModal('Últimas folhas encerradas', listaFolhas(folhasProps(true)), [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }]);
+    janelaFolhas = { titulo, folhas, voltaVazia };
+    openModal(titulo, listaFolhas(folhasProps(folhas())), [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }]);
   }
 
-  function acaoFolha(sheet: ClosedSheet, acao: AcaoFolha, naJanela: boolean): void {
+  /** Botão do topo: o histórico só aparece por aqui. */
+  function abrirHistorico(): void {
+    abrirFolhas('Últimas folhas encerradas', () => data.sheets, true);
+  }
+
+  function acaoFolha(sheet: ClosedSheet, acao: AcaoFolha): void {
     if (acao === 'edit') reabrirFolha(sheet);
-    else if (acao === 'delete') excluirFolha(sheet, naJanela);
+    else if (acao === 'delete') excluirFolha(sheet);
     else void deliverSheet(sheet, acao);
   }
 
@@ -517,7 +576,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
       `A folha de ${sheetLabel(sheet)} volta a ser o turno aberto para você corrigir; ao encerrar, a folha corrigida volta ao histórico. O que estiver preenchido nesta tela é descartado.`,
       { label: 'Editar folha', variant: 'primary' },
       () => {
-        turnoReaberto = true;
+        folhaReaberta = sheet;
         update((d) => {
           reabrirDados(d, sheet);
           d.tecnicos = [...d.tecnicos, ...sheet.tecnicos.filter((t) => !d.tecnicos.some((x) => x.id === t.id))];
@@ -527,16 +586,14 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     );
   }
 
-  /** Troca só as listas de folhas na tela (cartão da tela inicial e janela do topo): redesenhar perderia o digitado. */
+  /** Troca só a lista da janela de folhas aberta (redesenhar a tela perderia o digitado). */
   function atualizarListasDeFolhas(): void {
-    const cartao = document.querySelector('[data-testid="last-sheets"]');
-    if (data.sheets.length) cartao?.replaceWith(sheetsCard(folhasProps()));
-    else cartao?.remove();
-    document.querySelector('[role="dialog"] [data-lista="folhas"]')?.replaceWith(listaFolhas(folhasProps(true)));
+    if (janelaFolhas) document.querySelector('[role="dialog"] [data-lista="folhas"]')?.replaceWith(listaFolhas(folhasProps(janelaFolhas.folhas())));
   }
 
-  /** Não redesenha a tela (perderia o que estiver sendo digitado). */
-  function excluirFolha(sheet: ClosedSheet, naJanela: boolean): void {
+  /** Não redesenha a tela (perderia o que estiver sendo digitado); depois de excluir, a janela de folhas volta. */
+  function excluirFolha(sheet: ClosedSheet): void {
+    const voltar = janelaFolhas;
     confirmModal(
       'Excluir folha',
       `Excluir a folha de ${sheetLabel(sheet)} do histórico? O PDF já baixado no celular não é apagado.`,
@@ -547,7 +604,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         }, false);
         atualizarListasDeFolhas();
         showToast('Folha excluída do histórico.', 'success');
-        if (naJanela) abrirHistorico();
+        if (voltar && (voltar.voltaVazia || voltar.folhas().length)) abrirFolhas(voltar.titulo, voltar.folhas, voltar.voltaVazia);
       },
     );
   }

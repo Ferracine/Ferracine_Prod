@@ -1,9 +1,8 @@
-import { ArrowRight, FileDown, Trash2, Truck, UserCog, Users } from 'lucide';
+import { ArrowRight, Trash2, Truck, UserCog, Users } from 'lucide';
 import { mesmaPessoa, todayISO } from '../domain/format';
 import { HEADER_FIELDS, type Eletricista, type ShiftHeader, type Tecnico } from '../domain/types';
 import { btn, BTN_CHOICE, BTN_LINK, BTN_PRIMARY_LG, ESCOLHA_OFF, ESCOLHA_ON, h, icon, marcarFaltando, onEnter } from './dom';
 import { closeModal, openModal, showToast } from './feedback';
-import { listaFolhas, type FolhasProps } from './folhas';
 
 export interface HeaderScreenProps {
   /** Cabeçalho atual, quando a tela é aberta para corrigir o turno em andamento. */
@@ -18,8 +17,6 @@ export interface HeaderScreenProps {
   getEletricistas: () => readonly Eletricista[];
   onAddEletricista: (nome: string, matricula: string) => void;
   onRemoveEletricista: (id: string) => void;
-  /** Últimas folhas encerradas e as ações de cada uma (a mesma lista da janela de histórico do topo). */
-  folhas: FolhasProps;
   onSubmit: (header: ShiftHeader) => void;
   onCancelEdit: () => void;
 }
@@ -39,21 +36,6 @@ function group(title: string, node: Parameters<typeof icon>[0], ...children: HTM
     { class: 'painel bg-fg/[0.03] p-4 rounded-xl border border-fg/10 space-y-4' },
     h('div', { class: 'flex items-center gap-2 text-brand-fg font-bold text-sm' }, icon(node), title),
     ...children,
-  );
-}
-
-/** Últimas folhas encerradas (até 4), com as ações de cada uma. */
-export function sheetsCard(folhas: FolhasProps): HTMLElement {
-  return h(
-    'div',
-    { class: 'card p-4 space-y-3', 'data-testid': 'last-sheets' },
-    h(
-      'div',
-      { class: 'flex items-center gap-3' },
-      h('div', { class: 'bg-brand/15 text-brand-fg p-2 rounded-lg shrink-0' }, icon(FileDown, 'w-5 h-5')),
-      h('p', { class: 'text-sm font-bold text-fg' }, folhas.sheets.length === 1 ? 'Última folha encerrada' : `Últimas ${folhas.sheets.length} folhas encerradas`),
-    ),
-    listaFolhas(folhas),
   );
 }
 
@@ -378,7 +360,6 @@ export function headerScreen(p: HeaderScreenProps): HTMLElement {
   return h(
     'section',
     { id: 'screen-header', class: 'space-y-6' },
-    !init && p.folhas.sheets.length > 0 && sheetsCard(p.folhas),
     h(
       'div',
       { class: 'card overflow-hidden' },

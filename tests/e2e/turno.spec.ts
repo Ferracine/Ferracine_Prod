@@ -94,9 +94,11 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByTestId('os-item')).toContainText('OS 123');
   await expect(page.getByTestId('os-item')).not.toContainText('sem nº');
 
-  // Ocorrência: a pergunta do número é o campo do topo (13 perguntas na tela, com medidor e leitura) e a DITAIS é obrigatória.
+  // Ocorrência: as mesmas perguntas da comercial, na mesma ordem (o medidor novo escondido); a DITAIS é obrigatória.
   await novaOS(page, 'ocorrencia', '508', '456', null);
-  await expect(page.locator('#screen-os [data-question]')).toHaveCount(13);
+  await expect(page.locator('#screen-os [data-question]')).toHaveCount(14);
+  await expect(page.locator('#screen-os [data-question]:visible')).toHaveCount(12);
+  await expect(page.locator('#screen-os [data-question]').first()).toHaveAttribute('data-question', 'tipo');
   await salvar(page);
   await expect(page.getByRole('status').last()).toContainText('resposta obrigatória');
   await marcar(page, 'ditais', 'Não');
@@ -106,12 +108,14 @@ test('turno completo: OS sem número, ocorrência com DITAIS, PDF, encerramento 
   await expect(page.getByRole('dialog')).toContainText('456');
   await page.keyboard.press('Escape');
 
-  // Encerrar: sem pendência, um toque encerra o turno, sem janela e SEM baixar nada (só pelo "Baixar PDF").
+  // Encerrar: sem pendência, um toque encerra o turno SEM baixar nada (só pelo "Baixar PDF") e mostra só a produção encerrada.
+  await expect(page.locator('#btn-finish svg')).toHaveCount(0); // sem o visto
   let baixou = false;
   page.on('download', () => (baixou = true));
   await page.locator('#btn-finish').click();
   await expect(page.locator('#screen-header')).toBeVisible();
-  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('dialog')).toContainText('Produção encerrada');
+  await expect(page.getByRole('dialog').getByTestId('last-sheet')).toHaveCount(1);
   await page.waitForTimeout(500);
   expect(baixou).toBe(false);
   const hojeBR = await page.evaluate(() => new Date().toLocaleDateString('pt-BR').replaceAll('/', '-'));
@@ -295,11 +299,11 @@ test('número repetido pede confirmação (OS nova e edição)', async ({ page }
 test('voltar do Android na OS nova: com algo preenchido confirma; sem nada volta direto', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'ocorrencia', '508');
-  await marcar(page, 'callback', 'Sim');
+  await marcar(page, 'ramal', 'Sim');
   await page.goBack();
   await expect(page.getByRole('dialog')).toContainText('Cancelar registro da OS');
   await page.getByRole('button', { name: 'Continuar preenchendo' }).click();
-  await expect(page.locator('[data-question="callback"] [data-choice="Sim"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-question="ramal"] [data-choice="Sim"]')).toHaveAttribute('aria-pressed', 'true');
 
   await page.goBack();
   await page.getByRole('button', { name: 'Descartar OS' }).click();
@@ -557,9 +561,15 @@ test('histórico: guarda as 4 últimas folhas encerradas, a mais recente primeir
   await page.getByRole('button', { name: /Iniciar turno/ }).click();
   await page.locator('#btn-finish').click();
   await page.getByRole('button', { name: 'Encerrar mesmo assim' }).click();
+  // Ao encerrar, só a produção encerrada; as outras ficam no histórico do topo.
+  await expect(page.getByRole('dialog')).toContainText('Produção encerrada');
+  await expect(page.getByRole('dialog').getByTestId('last-sheet')).toHaveText([/TURNO 5/]);
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+  // A tela do cabeçalho não mostra o histórico: só o ícone do topo.
+  await expect(page.getByTestId('last-sheet')).toHaveCount(0);
+  await page.locator('#historico-toggle').click();
 
-  const folhas = page.getByTestId('last-sheet');
-  await expect(page.getByTestId('last-sheets')).toContainText('Últimas 4 folhas encerradas');
+  const folhas = page.getByRole('dialog').getByTestId('last-sheet');
   await expect(folhas).toHaveText([/TURNO 5/, /TURNO 4/, /TURNO 3/, /TURNO 2/]); // o turno 1 saiu
   // Cada folha baixa o próprio PDF.
   const download = page.waitForEvent('download');
@@ -629,6 +639,7 @@ test('histórico: baixar, abrir, excluir e editar (reabre como turno e volta ao 
   await page.locator('#btn-finish').click();
   await expect(page.getByTestId('last-sheet')).toHaveCount(1);
   await expect(page.getByTestId('last-sheet').first()).toContainText('2 OSs');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
 
   // Botão do topo: a mesma lista; Editar desativado com turno aberto. (Turno novo já vem com a equipe; só o líder.)
   await page.locator('#lider').selectOption({ label: 'TEC. LIDER - 69 90000-0000' });
@@ -649,7 +660,7 @@ test('histórico: baixar, abrir, excluir e editar (reabre como turno e volta ao 
   await expect(page.getByRole('dialog')).toContainText('Nenhuma folha encerrada');
 });
 
-test('excluir uma folha pelo cartão da tela inicial não apaga o que já foi digitado no cabeçalho', async ({ page }) => {
+test('excluir uma folha pelo histórico do topo não apaga o que já foi digitado no cabeçalho', async ({ page }) => {
   await page.addInitScript(() => {
     if (localStorage.getItem('ferracine_prod:v3')) return;
     const header = (nome: string) => ({ nome1: nome, mat1: '1', nome2: '', mat2: '', equipe: '', viatura: '', data: '2026-11-20', horaInicio: '07:00', horaFim: '17:00', bodycam1: '', bodycam2: '', lider: '' });
@@ -658,11 +669,65 @@ test('excluir uma folha pelo cartão da tela inicial não apaga o que já foi di
   });
   await page.goto('/');
   await page.getByLabel('Equipe', { exact: true }).fill('DIGITADO');
+  await page.locator('#historico-toggle').click();
   await page.getByTestId('last-sheet').first().getByRole('button', { name: 'Excluir', exact: true }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Excluir', exact: true }).click();
   await expect(page.getByTestId('last-sheet')).toHaveCount(1);
   await expect(page.getByTestId('last-sheet')).toContainText('TURNO B');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
   await expect(page.getByLabel('Equipe', { exact: true })).toHaveValue('DIGITADO');
+});
+
+test('OSs concluídas: o botão inverte a ordem (crescente ↔ decrescente), mantém o número de cada OS e fica salvo', async ({ page }) => {
+  await iniciarTurno(page);
+  for (const n of ['1', '2', '3']) {
+    await novaOS(page, 'comercial', '709', n);
+    await salvar(page);
+  }
+  const itens = page.getByTestId('os-item');
+  await expect(itens).toHaveText([/#1 • OS 1/, /#2 • OS 2/, /#3 • OS 3/]);
+  await expect(page.locator('#btn-ordem-os')).toHaveText('Crescente');
+  await page.locator('#btn-ordem-os').click();
+  await expect(itens).toHaveText([/#3 • OS 3/, /#2 • OS 2/, /#1 • OS 1/]);
+  await expect(page.locator('#btn-ordem-os')).toHaveText('Decrescente');
+  await page.reload();
+  await expect(itens).toHaveText([/#3 • OS 3/, /#2 • OS 2/, /#1 • OS 1/]);
+  await page.locator('#btn-ordem-os').click();
+  await expect(itens).toHaveText([/#1 • OS 1/, /#2 • OS 2/, /#3 • OS 3/]);
+});
+
+test('cancelar turno: pede confirmação, descarta sem ir ao histórico; folha reaberta volta como estava', async ({ page }) => {
+  await iniciarTurno(page);
+  await novaOS(page, 'comercial', '709', '10');
+  await salvar(page);
+  // "Voltar ao turno" não mexe em nada.
+  await page.locator('#btn-cancel-turno').click();
+  await expect(page.getByRole('dialog')).toContainText('1 OS registrada');
+  await page.getByRole('button', { name: 'Voltar ao turno' }).click();
+  await expect(page.getByTestId('os-item')).toHaveCount(1);
+  await page.locator('#btn-cancel-turno').click();
+  await page.getByRole('button', { name: 'Sim, cancelar turno' }).click();
+  await expect(page.locator('#screen-header')).toBeVisible();
+  await page.locator('#historico-toggle').click();
+  await expect(page.getByRole('dialog')).toContainText('Nenhuma folha encerrada');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar', exact: true }).click();
+
+  // Encerra um turno, reabre pelo "Editar", corrige e cancela: a folha volta ao histórico como era (1 OS).
+  await page.locator('#lider').selectOption({ label: 'TEC. LIDER - 69 90000-0000' });
+  await page.getByRole('button', { name: /Iniciar turno/ }).click();
+  await novaOS(page, 'comercial', '709', '20');
+  await salvar(page);
+  await page.locator('#btn-finish').click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Editar', exact: true }).click();
+  await page.getByRole('button', { name: 'Editar folha' }).click();
+  await novaOS(page, 'comercial', '709', '21');
+  await salvar(page);
+  await page.locator('#btn-cancel-turno').click();
+  await expect(page.getByRole('dialog')).toContainText('volta ao histórico como estava');
+  await page.getByRole('button', { name: 'Sim, cancelar turno' }).click();
+  await page.locator('#historico-toggle').click();
+  await expect(page.getByRole('dialog').getByTestId('last-sheet')).toHaveCount(1);
+  await expect(page.getByRole('dialog').getByTestId('last-sheet')).toContainText('1 OS');
 });
 
 test('tema claro e escuro: alterna e fica salvo', async ({ page }) => {

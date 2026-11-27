@@ -116,6 +116,17 @@ export function encerrarDados(d: AppData, fechadaEm: string): void {
   d.draft = null;
 }
 
+/**
+ * "Cancelar turno": descarta o cabeçalho, as OSs e o rascunho sem criar folha. `reaberta` = a folha que o "Editar" do
+ * histórico tinha tirado de lá: volta como estava antes da correção (no lugar dela pela data de encerramento).
+ */
+export function cancelarDados(d: AppData, reaberta: ClosedSheet | null): void {
+  d.header = null;
+  d.ordens = [];
+  d.draft = null;
+  if (reaberta) d.sheets = [...d.sheets, reaberta].sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm)).slice(0, SHEETS_KEPT);
+}
+
 /** "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. */
 export function reabrirDados(d: AppData, sheet: ClosedSheet): void {
   d.header = sheet.header;

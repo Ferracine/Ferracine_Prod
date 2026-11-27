@@ -1,9 +1,9 @@
-import { CheckCheck, ClipboardList, Eye, Pencil, Plus, Trash2 } from 'lucide';
+import { ArrowDown01, ArrowDown10, ClipboardList, Eye, Pencil, Plus, Trash2 } from 'lucide';
 import { SERVICE_LABEL } from '../domain/catalog';
 import { formatDateBR, formatHorario, orDash, osLabel, plural } from '../domain/format';
 import type { OrdemServico, ServiceType, ShiftHeader } from '../domain/types';
 import { answerRows, faltaObrigatoria } from '../domain/ordem';
-import { btn, h, icon } from './dom';
+import { btn, gradeBotoes, h, icon } from './dom';
 
 export interface DashboardProps {
   header: ShiftHeader;
@@ -16,6 +16,11 @@ export interface DashboardProps {
   onDelete: (os: OrdemServico) => void;
   onEditHeader: () => void;
   onFinish: () => void;
+  /** "Cancelar turno": descarta o turno (pede confirmação antes). */
+  onCancelTurno: () => void;
+  /** Lista das OSs da mais recente para a mais antiga (o número # de cada uma não muda). */
+  decrescente: boolean;
+  onInverterOrdem: () => void;
 }
 
 /** Cores do selo de tipo (lista e tela da OS): Comercial = ciano do logo, Ocorrência = laranja do logo. */
@@ -87,7 +92,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
           h('p', { class: 'text-sm font-semibold text-muted' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
           h('p', { class: 'text-xs text-subtle mt-1' }, 'Toque no + Comercial ou no + Ocorrência para registrar a primeira OS do turno.'),
         )
-      : h('ul', { class: 'space-y-3' }, ordens.map((os, i) => osRow(os, i, p)));
+      : h('ul', { class: 'space-y-3', 'data-testid': 'os-list' }, (p.decrescente ? [...ordens.keys()].reverse() : [...ordens.keys()]).map((i) => osRow(ordens[i]!, i, p)));
 
   const bodycams = [header.bodycam1, header.bodycam2].map((b) => b.trim()).filter(Boolean).join(' / ');
   // Uma informação por linha, rótulo à esquerda e valor à direita (o eletricista 2 só se houver dupla).
@@ -143,20 +148,37 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         'div',
         { class: 'flex items-center justify-between border-b border-fg/10 pb-3' },
         h('div', { class: 'flex items-center gap-2' }, icon(ClipboardList, 'w-5 h-5 text-brand-fg'), h('h3', { class: 'font-extrabold text-fg text-base' }, 'OSs concluídas no turno')),
-        h('span', { id: 'os-count-badge', class: 'bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full' }, plural(ordens.length, 'OS', 'OSs')),
+        h(
+          'div',
+          { class: 'flex items-center gap-2' },
+          ordens.length > 1 &&
+            h(
+              'button',
+              {
+                type: 'button',
+                id: 'btn-ordem-os',
+                class: `${btn('outline', 'sm')} text-fg`,
+                'aria-pressed': String(p.decrescente),
+                title: 'Inverter a ordem da lista',
+                onClick: p.onInverterOrdem,
+              },
+              icon(p.decrescente ? ArrowDown10 : ArrowDown01, 'w-4 h-4'),
+              p.decrescente ? 'Decrescente' : 'Crescente',
+            ),
+          h('span', { id: 'os-count-badge', class: 'bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-full' }, plural(ordens.length, 'OS', 'OSs')),
+        ),
       ),
       list,
     ),
     h(
       'div',
       { class: 'pt-2 pb-8' },
-      h(
-        'button',
-        { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} w-full shadow-lg shadow-accent/20`, onClick: p.onFinish },
-        icon(CheckCheck, 'w-5 h-5'),
-        'Encerrar turno',
-      ),
-      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'A folha vai para as últimas encerradas: de lá você baixa, abre ou compartilha o PDF (e edita, se precisar).'),
+      gradeBotoes([
+        h('button', { type: 'button', id: 'btn-finish', class: `${btn('accent', 'lg')} shadow-lg shadow-accent/20`, onClick: p.onFinish }, 'Encerrar turno'),
+        // Destrutiva, mas discreta (contornada, texto vermelho), como o Excluir do histórico; confirma antes.
+        h('button', { type: 'button', id: 'btn-cancel-turno', class: `${btn('outline', 'lg')} text-danger-fg`, onClick: p.onCancelTurno }, 'Cancelar turno'),
+      ]),
+      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Encerrar guarda a folha no histórico (ícone do relógio no topo), de onde você baixa, abre ou compartilha o PDF. Cancelar descarta o turno.'),
     ),
   );
 }
