@@ -172,7 +172,6 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         // Destrutiva, mas discreta (contornada, texto vermelho), como o Excluir do histórico; confirma antes.
         h('button', { type: 'button', id: 'btn-cancel-turno', class: `${btn('outline', 'lg')} text-danger-fg`, onClick: p.onCancelTurno }, 'Cancelar turno'),
       ]),
-      h('p', { class: 'sobre-app text-center text-xs text-subtle mt-2.5' }, 'Encerrar guarda a folha no histórico (ícone do relógio no topo), de onde você baixa, abre ou compartilha o PDF. Cancelar descarta o turno.'),
     ),
   );
 }

@@ -217,7 +217,6 @@ function escolherEstilo(botaoTemaTopo: HTMLButtonElement): void {
         h('div', { class: 'flex gap-2', role: 'group', 'aria-label': 'Variante clara ou escura' }, modoBtns),
       ),
       secoes,
-      h('p', { class: 'text-xs text-muted pt-1' }, 'Cada tema possui paleta própria e independente. O PDF oficial não muda com o tema.'),
     ),
     [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }],
   );
