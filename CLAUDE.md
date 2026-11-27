@@ -143,8 +143,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   e no 10 o destaque (`--accent*`) é um azul do próprio sistema, não verde; no 10 só `.btn-primary` tem a cor de
   destaque (o `btn('accent')` é botão comum, como no 98/XP). Ganchos além dos de baixo: `.painel`
   (item de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status`, `.aviso` (aviso de atualização) e
-  `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`). Seletores longos de `:not()` vão dentro de
-  `:where()`, e o botão padrão usa `.btn.btn-primary` (senão o botão comum vence pela especificidade).
+  `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`). Família de botão: `btn()` põe
+  `btn-moldura` nos tons com moldura (todos menos `ghost` e `fechar`); os temas desenham a face em `.btn-moldura`,
+  sem exclusões. O botão padrão usa `.btn.btn-primary` (senão o botão comum vence pela especificidade).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
   `data-estilo` (chave `ferracine_prod:estilo`) e **claro/escuro** `data-theme` (chave `ferracine_prod:theme`; sem
   escolha, segue o celular). Temas em `ESTILOS`: paletas modernas `moderno` (Safira & Violeta, padrão), `floresta`

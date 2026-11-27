@@ -140,8 +140,12 @@ export type BtnTom = keyof typeof BTN_TOM;
 /** Tons das ações de uma janela (os sem moldura não servem de ação). */
 export type TomAcao = 'primary' | 'neutral' | 'danger' | 'accent';
 
+/** Tons sem moldura (só o texto/ícone). Os demais levam o gancho `btn-moldura`: os temas Windows desenham a face neles. */
+const TONS_SEM_MOLDURA: ReadonlySet<BtnTom> = new Set(['ghost', 'fechar']);
+
 export function btn(tom: BtnTom, tamanho: keyof typeof BTN_TAMANHO = 'md'): string {
-  return `${BTN_BASE} btn-${tom} ${BTN_TAMANHO[tamanho]} ${BTN_TOM[tom]}`;
+  const familia = TONS_SEM_MOLDURA.has(tom) ? '' : ' btn-moldura';
+  return `${BTN_BASE}${familia} btn-${tom} ${BTN_TAMANHO[tamanho]} ${BTN_TOM[tom]}`;
 }
 
 /** Botão grande de ação principal (Iniciar turno, Salvar OS). */

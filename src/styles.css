@@ -364,7 +364,7 @@
 }
 
 /* Botões e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha) {
+[data-estilo='win98'] :is(.btn-moldura, .btn-fechar, .escolha) {
   background: var(--w-face);
   color: var(--w-face-fg);
   border: none;
@@ -374,7 +374,7 @@
 [data-estilo='win98'] .btn.btn-primary {
   box-shadow: var(--bisel-padrao);
 }
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha):active:not(:disabled) {
+[data-estilo='win98'] :is(.btn-moldura, .btn-fechar, .escolha):active:not(:disabled) {
   box-shadow: var(--bisel-ativo);
 }
 [data-estilo='win98'] .btn.btn-primary:active:not(:disabled) {
@@ -723,7 +723,7 @@
   color: #215dc6;
 }
 /* Botões */
-[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha) {
+[data-estilo='xp'] :is(.btn-moldura, .escolha) {
   background: var(--xp-btn);
   border: 1px solid var(--xp-borda-btn);
   border-radius: 3px;
@@ -735,16 +735,16 @@
   box-shadow: var(--xp-foco);
 }
 @media (hover: hover) {
-  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):hover:not(:disabled) {
+  [data-estilo='xp'] :is(.btn-moldura, .escolha):hover:not(:disabled) {
     box-shadow: var(--xp-hover);
   }
 }
-[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):active:not(:disabled),
+[data-estilo='xp'] :is(.btn-moldura, .escolha):active:not(:disabled),
 [data-estilo='xp'] .escolha[aria-pressed='true'] {
   background: var(--xp-btn-ativo);
   box-shadow: none;
 }
-[data-estilo='xp'] :is(.btn:where(:not(.btn-fechar)), .escolha, .opcao):focus-visible {
+[data-estilo='xp'] :is(.btn-moldura, .btn-ghost, .escolha, .opcao):focus-visible {
   outline: 1px dotted #000000;
   outline-offset: -4px;
   box-shadow: var(--xp-foco);
@@ -948,7 +948,7 @@
   border-top: none;
 }
 /* Botão padrão: BaseLow, borda transparente de 2px; hover = borda BaseMediumLow; pressionado = fundo BaseMediumLow. */
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha) {
+[data-estilo='win10'] :is(.btn-moldura, .escolha) {
   background: var(--w10-base-low);
   border: 2px solid transparent;
   color: var(--fg);
@@ -961,11 +961,11 @@
   color: #ffffff;
 }
 @media (hover: hover) {
-  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):hover:not(:disabled) {
+  [data-estilo='win10'] :is(.btn-moldura, .escolha):hover:not(:disabled) {
     border-color: var(--w10-base-medium-low);
   }
 }
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):active:not(:disabled) {
+[data-estilo='win10'] :is(.btn-moldura, .escolha):active:not(:disabled) {
   background: var(--w10-base-medium-low);
   border-color: transparent;
   color: var(--fg);
