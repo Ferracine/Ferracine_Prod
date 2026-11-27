@@ -30,10 +30,9 @@ houver, só serve para o app se atualizar.
      informações adicionais. No Espelho
      de Campo: sem troca, o medidor da UC vai para MEDIDOR INSTALADO; na troca, o novo vai para MEDIDOR INSTALADO e
      o da UC para MEDIDOR RETIRADO.
-   - **Ocorrência** (ex.: 508 / 509 / 503 / 531 / 324 / 533), 13 perguntas: callback, hora inicial,
-     KM inicial, tipo de serviço, defeito, dispositivo manobrado, **DITAIS** (obrigatória), KM final, alteração
-     na UC do cliente, número do medidor instalado (só o número: troca de medidor é OS comercial), leitura do
-     medidor instalado, hora final, informações adicionais.
+   - **Ocorrência** (ex.: 508 / 509 / 503 / 531 / 324 / 533): as mesmas perguntas da comercial, na mesma ordem.
+     Ocorrências salvas até a 1.4.17 guardam também callback, defeito, dispositivo manobrado e alteração na UC:
+     essas respostas continuam no PDF e no "Ver respostas", e o lápis não as apaga.
    - Todos os campos de texto ficam em maiúsculas (o teclado abre com caps e o texto é convertido).
 3. **Tela da OS**: número (opcional: vazio vira "S/N"), código (obrigatório) e todas as perguntas numa página só, a
    mesma do lápis. Responda o que souber e toque em **Salvar OS**. A última pergunta, **Informações adicionais**, é uma caixa aberta
@@ -41,11 +40,15 @@ houver, só serve para o app se atualizar.
    preenchido fica salvo no aparelho na hora: fechar o app no meio não perde a OS. Cancelar (ou o voltar do
    Android) pede confirmação se algo foi preenchido.
 4. **OSs do turno**: o **lápis** abre a mesma tela da OS para editar qualquer item; o olho mostra as
-   respostas; a lixeira exclui. Número de OS repetido pede confirmação.
-5. **Encerrar turno**: um toque encerra o turno e a folha vai para as últimas encerradas; nada é baixado sozinho.
-   Só aparece uma janela se houver o que conferir (nenhuma OS, OS sem número, sem DITAIS, sem técnico líder ou uma
-   folha ainda não baixada que sairia do histórico). Até ser baixada (botão Baixar PDF), a folha mostra **PDF não baixado**.
-6. **Últimas 4 folhas encerradas** (na tela inicial e no botão de histórico do topo, ao lado do tema): **Baixar** (salva o PDF; no APK, na pasta Downloads),
+   respostas; a lixeira exclui. Número de OS repetido pede confirmação. O botão **Crescente / Decrescente** inverte a
+   ordem da lista (o número # de cada OS não muda; a escolha fica salva no aparelho).
+5. **Encerrar turno**: um toque encerra o turno e abre a janela **Produção encerrada**, só com a folha que acabou de
+   ser encerrada (Baixar, Abrir, Compartilhar...); nada é baixado sozinho. Antes, só aparece uma janela se houver o
+   que conferir (nenhuma OS, OS sem número, sem DITAIS, sem técnico líder ou uma folha ainda não baixada que sairia do
+   histórico). Até ser baixada (botão Baixar PDF), a folha mostra **PDF não baixado**. Ao lado, **Cancelar turno**
+   descarta o turno (cabeçalho e OSs) sem ir para o histórico, depois de confirmar; numa folha reaberta pelo Editar,
+   cancelar devolve a folha ao histórico como estava.
+6. **Últimas 4 folhas encerradas** (só pelo botão de histórico do topo, ao lado do tema): **Baixar** (salva o PDF; no APK, na pasta Downloads),
    **Abrir**, **Compartilhar**, **Editar** e **Excluir**. Editar reabre a folha como turno (cabeçalho e OSs) para
    corrigir; ao encerrar de novo, o PDF corrigido volta ao topo. A 5ª folha mais antiga sai.
 
@@ -60,7 +63,7 @@ Segue a folha de papel [design/ex_pdf.jpeg](design/ex_pdf.jpeg), em A4 paisagem 
 Energisa, identificação da equipe e tabela de 15 linhas com **ITEM, OS/OCORRÊNCIA, CÓDIGO (do serviço),
 KM INICIAL, HORÁRIO INICIAL, HORÁRIO FINAL, KM FINAL, MEDIDOR INSTALADO, LEITURA, MEDIDOR RETIRADO, LEITURA,
 CLIENTE PRESENTE (quadradinhos SIM/NÃO) e INFORMAÇÃO ADICIONAL**. INFORMAÇÃO ADICIONAL traz tudo o que o eletricista respondeu
-e não tem coluna própria (tipo de serviço, callback, defeito, dispositivo, DITAIS, alteração na UC, informações adicionais...).
+e não tem coluna própria (tipo de serviço, lançou ramal, DITAIS, informações adicionais...).
 No rodapé, produção total e os técnicos cadastrados com o líder marcado. Logo e identificação ficam só na primeira folha. Com
 mais de 15 OSs, cada 15 a mais abrem uma folha que continua a tabela (títulos das colunas repetidos, ITEM seguindo); a
 produção total e os técnicos saem na última. Embaixo de toda folha: data, equipe e "FOLHA 1/2", "FOLHA 2/2"... Nome do arquivo: `Nome1_Nome2_DD-MM-AAAA_N_servicos.pdf` (com a data do turno).
@@ -72,10 +75,17 @@ no topo, abre a lista com prévia de cada tema e um seletor Claro/Escuro; o do s
 escolha, segue o celular):
 - **Paletas modernas**: **Tema 1 – Safira & Violeta** (padrão), **Tema 2 – Esmeralda & Ouro** e **Tema 3 – Alto
   Contraste** (branco para sol forte, preto OLED no escuro, bordas de 2 px).
-- **Tema 4 – Windows 98** (98.css): área de trabalho verde-azulada, cinza em relevo 3D e barra azul marinho.
-- **Tema 5 – Windows XP** (XP.css): Luna no claro e Royale Noir no escuro, barra de título brilhante e botões perolados.
-- **Tema 6 – Windows 3.1**: moldura 16-bit de cantos retos e título centralizado.
-- **Tema 7 – Windows 10**: visual Fluent em Segoe UI, azul `#0078D7` e foco com linha inferior.
+- **Temas clássicos**, com as cores e os botões dos próprios sistemas (valores do registro/INI e dos bitmaps do
+  sistema; pesquisa de 27/11/2026). Todo botão tem a face do sistema; o principal se distingue como no Windows
+  (moldura preta no 98/3.1, anel azul no XP, cor de destaque no 10):
+  - **Tema 4 – Windows 98**: esquema "Windows Standard" (área de trabalho `#008080`, face `#C0C0C0`, título
+    `#000080 → #1084D0`); escuro = "High Contrast Black".
+  - **Tema 5 – Windows XP**: Luna azul (face `#ECE9D8`, botão com borda `#003C74`, hover laranja); escuro = Royale
+    Noir, que no XP só escurece moldura, barras e área de trabalho (janelas e botões continuam claros).
+  - **Tema 6 – Windows 3.1**: esquema "Windows Default" (moldura preta, título centralizado); escuro = "LCD
+    Reversed - Dark" (janela bordô, título oliva).
+  - **Tema 7 – Windows 10**: claro e escuro do Windows 10, botão cinza de 20% com borda de 2px no hover, botão de
+    destaque `#0078D7`, raio 0, Segoe UI (Selawik offline).
 
 O logo do Grupo Energisa aparece no topo do app e no PDF (o PDF não muda com o tema); a prancheta é o ícone do app
 (aba do navegador, PWA e APK).

@@ -72,6 +72,10 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   cabeçalho: acrescente em `HEADER_FIELDS`
   (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`
   no lugar de `lastSheet`) fica na v3 com detecção na carga: subir a versão faria um APK antigo descartar tudo.
+- Ocorrência = as mesmas perguntas da comercial (`OCORRENCIA = COMERCIAL` no catálogo, 1.4.18). As que só a
+  ocorrência tinha até a 1.4.17 (callback, defeito, dispositivo, alteração na UC) ficam em `PERGUNTAS_ANTIGAS`:
+  `visibleQuestions` as inclui quando respondidas (PDF, "Ver respostas") e `finalize` as mantém no lápis; OS nova não
+  as pergunta.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
   grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
@@ -85,10 +89,15 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   (`saveFile`/`openFile`/`shareFile`). No navegador a ponte não existe.
 - Fim do turno (`app.ts`): "Encerrar turno" (`encerrarTurno` → `encerrar`) encerra num toque, sem gerar nem baixar o
   PDF (ele é montado só quando pedido no histórico: Baixar/Abrir/Compartilhar, `deliverSheet`); só
-  pergunta antes se houver pendência (nenhuma OS, S/N, `faltaObrigatoria`). Histórico (`src/ui/folhas.ts`,
-  `listaFolhas`): o mesmo componente no cartão da tela do cabeçalho e na janela do botão `#historico-toggle` do topo;
+  pergunta antes se houver pendência (nenhuma OS, S/N, `faltaObrigatoria`). Ao encerrar, a janela "Produção
+  encerrada" mostra só a folha encerrada (`abrirFolhas` com uma lista de uma folha). Histórico (`src/ui/folhas.ts`,
+  `listaFolhas`): só na janela do botão `#historico-toggle` do topo (a tela do cabeçalho não mostra mais o cartão);
   ações Baixar/Abrir/Compartilhar/Editar/Excluir. **Editar** (`reabrirFolha`) devolve a folha ao turno aberto
-  (cabeçalho e OSs) e a tira de `sheets`; só sem turno aberto. Não há planilha: o app só gera PDF.
+  (cabeçalho e OSs) e a tira de `sheets`, guardando a original em `folhaReaberta` (memória); só sem turno aberto.
+  **Cancelar turno** (`#btn-cancel-turno`, `cancelarTurno` → `cancelarDados`) descarta cabeçalho/OSs/rascunho
+  depois de confirmar; com `folhaReaberta`, a folha volta ao histórico como estava. A lista "OSs concluídas" tem
+  `#btn-ordem-os` (Crescente/Decrescente, chave `ferracine_prod:ordem-os`; o # é a posição na folha). Não há
+  planilha: o app só gera PDF.
 - Campo que falta: `marcarFaltando(el)` (dom.ts) põe `.faltando` (borda vermelha, styles.css) até a pessoa mexer;
   usado no cabeçalho, no cadastro e na OS (`showRuleError`).
 - Atualização do APK: `src/update.ts` consulta `releases/latest` da API do GitHub (CORS liberado; a cada abertura e,
@@ -109,6 +118,16 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   sai com `autocapitalize="characters"` e `forceUppercase` (main.ts) converte o digitado para maiúsculas. Não use `innerHTML`
   com dado do usuário. Ícones vêm do `lucide` 1.x por import nomeado.
   `os-screen.ts` é a tela da OS (nova e lápis). O cabeçalho não é redesenhado ao cadastrar técnicos (para não perder o digitado).
+- Temas clássicos (`win98`, `xp`, `win31`, `win10`): cores e desenho dos próprios sistemas, com a fonte de cada
+  valor no comentário do topo da seção em `styles.css` e o relatório em `reports/Paletas e botões dos temas Windows.md`
+  (fora do git; notas em `research_notes/`). 98 e 3.1 compartilham as regras de bisel: cada um só declara as cores
+  do sistema (`--w-face`, `--w-hilight`, `--w-shadow`, `--w-dk`, `--w-window`, `--w-sel`, `--w-gray`...) e os
+  biséis (`--bisel`, `--bisel-padrao`, `--bisel-ativo`, `--bisel-campo`...). Todo botão tem a face do sistema; o
+  principal (`.btn-primary`) é o "botão padrão". Escuros: High Contrast Black (98), LCD Reversed - Dark (3.1), Royale
+  Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. Ganchos além dos de baixo: `.painel` (item
+  de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status` e `.sobre-app` (texto direto sobre o fundo
+  do app, cor `--sobre-app`). Seletores longos de `:not()` vão dentro de `:where()` (senão o botão comum vence o de
+  destaque pela especificidade).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
   `data-estilo` (chave `ferracine_prod:estilo`) e **claro/escuro** `data-theme` (chave `ferracine_prod:theme`; sem
   escolha, segue o celular). Temas em `ESTILOS`: paletas modernas `moderno` (Safira & Violeta, padrão), `floresta`

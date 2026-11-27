@@ -25,10 +25,10 @@ const ESTILOS = [
   { id: 'moderno', grupo: 'Paletas modernas', nome: 'Tema 1: Safira & Violeta', descricao: 'Cantos arredondados, botões em azul safira e violeta real.' },
   { id: 'floresta', grupo: 'Paletas modernas', nome: 'Tema 2: Esmeralda & Ouro', descricao: 'Superfície sálvia suave com botões esmeralda e ouro velho.' },
   { id: 'sol-forte', grupo: 'Paletas modernas', nome: 'Tema 3: Alto Contraste', descricao: 'Branco solar / preto OLED puro, bordas de 2 px, ultramar e púrpura.' },
-  { id: 'win98', grupo: 'Especiais e clássicos', nome: 'Tema 4: Windows 98', descricao: 'Desktop teal, cinza #c0c0c0 com chanfro 3D e barra azul marinho.' },
-  { id: 'xp', grupo: 'Especiais e clássicos', nome: 'Tema 5: Windows XP', descricao: 'Estilo Luna / Royale Noir com barra brilhante, botões perolados e foco azul/âmbar.' },
-  { id: 'win31', grupo: 'Especiais e clássicos', nome: 'Tema 6: Windows 3.1', descricao: 'Moldura 16-bit de cantos retos, título centralizado e alto contraste VGA.' },
-  { id: 'win10', grupo: 'Especiais e clássicos', nome: 'Tema 7: Windows 10', descricao: 'Visual Fluent nítido em Segoe UI com azul #0078D7 e foco inferior.' },
+  { id: 'win98', grupo: 'Especiais e clássicos', nome: 'Tema 4: Windows 98', descricao: 'Esquema Windows Standard: face #C0C0C0 em relevo, título azul-marinho; escuro High Contrast Black.' },
+  { id: 'xp', grupo: 'Especiais e clássicos', nome: 'Tema 5: Windows XP', descricao: 'Luna azul: botões com borda #003C74 e brilho laranja; escuro Royale Noir (moldura escura).' },
+  { id: 'win31', grupo: 'Especiais e clássicos', nome: 'Tema 6: Windows 3.1', descricao: 'Windows Default: moldura preta e título centralizado; escuro LCD Reversed - Dark.' },
+  { id: 'win10', grupo: 'Especiais e clássicos', nome: 'Tema 7: Windows 10', descricao: 'Claro e escuro do Windows 10: botões cinza com borda de 2 px e destaque #0078D7.' },
 ] as const satisfies readonly EstiloDef[];
 
 type Estilo = (typeof ESTILOS)[number]['id'];

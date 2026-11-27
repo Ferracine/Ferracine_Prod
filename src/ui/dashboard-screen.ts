@@ -43,7 +43,7 @@ function botaoNovaOS(type: ServiceType, onClick: () => void): HTMLElement {
     'button',
     { type: 'button', id: `btn-new-${type.toLowerCase()}`, 'aria-label': `Nova OS ${SERVICE_LABEL[type]}`, class: 'flex flex-col items-center gap-2 group w-full rounded-xl py-1', onClick },
     h('span', { class: `nova-os size-16 rounded-full text-white shadow-lg flex items-center justify-center transition-all group-active:scale-95 ${PLUS_COLORS[type]}` }, icon(Plus, 'w-8 h-8')),
-    h('span', { class: 'text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
+    h('span', { class: 'sobre-app text-xs font-extrabold tracking-wide text-fg' }, SERVICE_LABEL[type]),
   );
 }
 
@@ -178,7 +178,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
         // Destrutiva, mas discreta (contornada, texto vermelho), como o Excluir do histórico; confirma antes.
         h('button', { type: 'button', id: 'btn-cancel-turno', class: `${btn('outline', 'lg')} text-danger-fg`, onClick: p.onCancelTurno }, 'Cancelar turno'),
       ]),
-      h('p', { class: 'text-center text-xs text-subtle mt-2.5' }, 'Encerrar guarda a folha no histórico (ícone do relógio no topo), de onde você baixa, abre ou compartilha o PDF. Cancelar descarta o turno.'),
+      h('p', { class: 'sobre-app text-center text-xs text-subtle mt-2.5' }, 'Encerrar guarda a folha no histórico (ícone do relógio no topo), de onde você baixa, abre ou compartilha o PDF. Cancelar descarta o turno.'),
     ),
   );
 }

@@ -280,819 +280,914 @@
 }
 
 /* ==========================================================================
- * TEMAS ESPECIAIS E CLÁSSICOS (Windows 98, XP, 3.1 e 10)
+ * TEMAS CLÁSSICOS: Windows 3.1, 98, XP e 10, com as cores e o desenho dos próprios sistemas.
+ * Fontes dos valores (pesquisa de 27/11/2026, reports/Paletas e botões dos temas Windows.md):
+ * - 3.1: CONTROL.INI [color schemes] ("Windows Default"; escuro = "LCD Reversed - Dark").
+ * - 98: HKCU\Control Panel\Colors + USER.EXE ("Windows Standard"; escuro = "High Contrast Black"); biséis do
+ *   DrawEdge (Wine uitools.c = 98.css).
+ * - XP: bitmaps do Luna Blue e do Royale Noir (o escuro oficial do XP, que só escurece moldura e barras: as
+ *   janelas e os botões continuam claros, como no sistema) e a tabela de cores do sistema.
+ * - 10: generic.xaml do UWP (2015–2019): botão BaseLow com borda de 2px, campo de 2px, raio 0, destaque #0078D7.
+ * Tudo que é do sistema (botão, campo, janela, barra de título, seleção) segue o sistema; as cores de conteúdo do
+ * app (selos de tipo, avisos) usam cores da mesma paleta. Só o tamanho não é o do sistema: o app é de toque.
  * ========================================================================== */
 
-/* ==========================================================================
- * RESET E REGRAS COMPARTILHADAS DOS TEMAS WINDOWS (98, XP, 3.1 e 10)
- * Remove escala de clique do Tailwind v4, sombras modernas e cantos/desfoque clássicos.
- * ========================================================================== */
+/* --- Comum aos quatro --------------------------------------------------- */
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .btn:active, .escolha:active, .group:active .nova-os) {
   scale: 1;
 }
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn-primary, .btn-accent, .btn-danger, .escolha, .nova-os, .card, .janela) {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .card, .janela) {
   box-shadow: none;
+  transition: none;
 }
-:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) body {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) body {
   background: var(--app);
 }
-:is([data-estilo='win98'], [data-estilo='win31']) {
-  --font-sans: 'WIN95FA', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
-}
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.rounded-full, .rounded-xl, .rounded-lg, .rounded-md, .rounded-2xl, .card, .field, .janela, .btn, .escolha, .nova-os) {
-  border-radius: 0;
-}
-:is([data-estilo='win98'], [data-estilo='win31']) #modal {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) #modal {
   backdrop-filter: none;
 }
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .sobre-app {
+  color: var(--sobre-app);
+}
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field::placeholder {
+  color: var(--w-gray);
+}
 
-/* --- Tema 4: Windows 98 (98.css: desktop teal, #c0c0c0 chanfrado 2px e barra azul marinho) --- */
-[data-estilo='win98'] {
-  --brand: #1084d0;
-  --brand-600: #000080;
-  --brand-700: #000060;
-  --accent: #008080;
-  --accent-600: #006666;
-  --accent-700: #004d4d;
-  --danger-soft: #cc0000;
-  --danger-600: #a80000;
-  --danger-700: #800000;
-  --ok: #006600;
-  --warn: #8a5200;
-  --err: #a80000;
-  --titulo: linear-gradient(90deg, #000080, #1084d0);
+/* ==========================================================================
+ * 3.1 e 98: botões de bisel. Cada tema declara as cores do sistema (--w-*) e os biséis; as regras ficam aqui.
+ * ========================================================================== */
+:is([data-estilo='win98'], [data-estilo='win31']) {
+  --font-sans: 'WIN95FA', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
   --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
+  /* A fonte do sistema só tem o peso normal: negrito falso borra os pixels. */
+  font-synthesis: none;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.rounded-full, .card, .field, .nova-os) {
+  border-radius: 0;
+}
+
+/* Botões, "+" de OS nova e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
+  background: var(--w-face);
+  color: var(--w-face-fg);
+  border: var(--w-borda-btn);
+  border-radius: var(--w-raio-btn);
+  box-shadow: var(--bisel);
+}
+/* Botão padrão (ação principal da tela): a moldura extra do sistema. */
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn-primary, .nova-os.bg-brand-600) {
+  box-shadow: var(--bisel-padrao);
+}
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha):active:not(:disabled),
+:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os {
+  box-shadow: var(--bisel-ativo);
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .btn-primary:active:not(:disabled),
+:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os.bg-brand-600 {
+  box-shadow: var(--bisel-padrao-ativo);
+}
+/* Botão sem moldura (fechar dos avisos, ações discretas): só ganha relevo ao tocar. */
+:is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn) {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid transparent;
+}
+@media (hover: hover) {
+  :is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
+    background: var(--w-face);
+    color: var(--w-face-fg);
+    box-shadow: var(--bisel);
+  }
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
+  background: var(--w-face);
+  color: var(--w-face-fg);
+  box-shadow: var(--bisel-ativo);
+}
+/* Escolha marcada: botão travado afundado (no 98, com a trama de ButtonHilight). */
+:is([data-estilo='win98'], [data-estilo='win31']) .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+  background: var(--w-travado);
+  color: var(--w-face-fg);
+  box-shadow: var(--bisel-ativo);
+}
+/* Lista de temas: o item escolhido fica na cor de seleção do sistema. */
+:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao] {
+  background: var(--w-window);
+  color: var(--w-window-fg);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: var(--w-sel);
+  color: var(--w-sel-fg);
+  outline: 1px dotted var(--w-sel-fg);
+  outline-offset: -3px;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .escolha[data-estilo-opcao][aria-pressed='true'] * {
+  color: inherit;
+}
+/* Foco: retângulo pontilhado por dentro do botão. */
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .escolha):focus-visible,
+:is([data-estilo='win98'], [data-estilo='win31']) .group:focus-visible .nova-os {
+  outline: 1px dotted var(--w-face-fg);
+  outline-offset: -4px;
+}
+/* Desabilitado: texto em ButtonShadow com o relevo em ButtonHilight (98) ou só GrayText (3.1). */
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .escolha):disabled {
+  opacity: 1;
+  color: var(--w-gray);
+  text-shadow: var(--w-gray-relevo);
+  cursor: default;
+}
+
+/* Janelas, cartões e campos */
+:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo {
+  background: var(--titulo);
+  border-bottom: none;
+  padding: 0.3rem 0.35rem 0.3rem 0.6rem;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo h3 {
+  color: var(--w-titulo-fg);
+  font-size: 1rem;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .janela-titulo .btn {
+  margin: 0;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .janela-rodape {
+  background: var(--w-face);
+  border-top: none;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .field {
+  background: var(--w-window);
+  color: var(--w-window-fg);
+  border: var(--w-borda-campo);
+  box-shadow: var(--bisel-campo);
+  font-weight: 400;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .field[readonly] {
+  background: var(--w-face);
+  color: var(--w-face-fg);
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .field:focus:not([readonly]):not(.faltando) {
+  border: var(--w-borda-campo);
+  box-shadow: var(--bisel-campo);
+  outline: 1px dotted var(--w-window-fg);
+  outline-offset: -4px;
+}
+:is([data-estilo='win98'], [data-estilo='win31']) select.field option {
+  background: var(--w-window);
+  color: var(--w-window-fg);
+}
+:is([data-estilo='win98'], [data-estilo='win31']) .lbl {
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--fg);
+}
+
+/* --- Windows 98: "Windows Standard" (claro) e "High Contrast Black" (escuro) --- */
+[data-estilo='win98'] {
+  --w-face: #c0c0c0;
+  --w-face-fg: #000000;
+  --w-hilight: #ffffff;
+  --w-light: #dfdfdf;
+  --w-shadow: #808080;
+  --w-dk: #000000;
+  --w-window: #ffffff;
+  --w-window-fg: #000000;
+  --w-sel: #000080;
+  --w-sel-fg: #ffffff;
+  --w-gray: #808080;
+  --w-gray-relevo: 1px 1px 0 var(--w-hilight);
+  --w-titulo-fg: #ffffff;
+  --w-borda-btn: none;
+  --w-borda-campo: none;
+  --w-raio-btn: 0;
+  /* Botão travado: trama 2x2 de ButtonHilight sobre ButtonFace (como a barra de rolagem do 98). */
+  --w-travado: repeating-conic-gradient(var(--w-hilight) 0 25%, var(--w-face) 0 50%) 0 0 / 2px 2px;
+  --bisel: inset -1px -1px var(--w-dk), inset 1px 1px var(--w-hilight), inset -2px -2px var(--w-shadow), inset 2px 2px var(--w-light);
+  --bisel-padrao: inset -2px -2px var(--w-dk), inset 1px 1px var(--w-dk), inset 2px 2px var(--w-hilight), inset -3px -3px var(--w-shadow), inset 3px 3px var(--w-light);
+  --bisel-ativo: inset -1px -1px var(--w-hilight), inset 1px 1px var(--w-dk), inset -2px -2px var(--w-light), inset 2px 2px var(--w-shadow);
+  --bisel-padrao-ativo: inset 0 0 0 1px var(--w-dk), inset 0 0 0 2px var(--w-shadow);
+  --bisel-janela: inset -1px -1px var(--w-dk), inset 1px 1px var(--w-light), inset -2px -2px var(--w-shadow), inset 2px 2px var(--w-hilight);
+  --bisel-campo: inset -1px -1px var(--w-hilight), inset 1px 1px var(--w-shadow), inset -2px -2px var(--w-light), inset 2px 2px var(--w-dk);
+  --bisel-painel: inset -1px -1px var(--w-hilight), inset 1px 1px var(--w-shadow);
+  --sulco-baixo: inset 0 -1px var(--w-hilight), inset 0 -2px var(--w-shadow);
+  --titulo: linear-gradient(90deg, #000080, #1084d0);
+  /* Paleta do app */
   --app: #008080;
   --card: #c0c0c0;
   --field: #ffffff;
-  --fg: #222222;
-  --muted: #2f2f2f;
-  --subtle: #444444;
+  --fg: #000000;
+  --muted: #000000;
+  --subtle: #000000;
+  --sobre-app: #ffffff;
+  --brand: #000080;
+  --brand-600: #000080;
+  --brand-700: #00005c;
   --brand-fg: #000080;
-  --accent-fg: #004747;
-  --danger-fg: #780000;
-  --w98-luz-ext: #ffffff;
-  --w98-luz-int: #dfdfdf;
-  --w98-sombra-int: #808080;
-  --w98-sombra-ext: #0a0a0a;
-  --w98-disabled-shadow: 1px 1px 0 #ffffff;
-  --w98-elevado: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-ext), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-int);
-  --w98-default: inset -2px -2px var(--w98-sombra-ext), inset 1px 1px var(--w98-sombra-ext), inset 2px 2px var(--w98-luz-ext), inset -3px -3px var(--w98-sombra-int), inset 3px 3px var(--w98-luz-int);
-  --w98-default-ativo: inset 2px 2px var(--w98-sombra-ext), inset -1px -1px var(--w98-sombra-ext), inset -2px -2px var(--w98-luz-ext), inset 3px 3px var(--w98-sombra-int), inset -3px -3px var(--w98-luz-int);
-  --w98-janela: inset -1px -1px var(--w98-sombra-ext), inset 1px 1px var(--w98-luz-int), inset -2px -2px var(--w98-sombra-int), inset 2px 2px var(--w98-luz-ext);
-  --w98-afundado: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-int), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-ext);
-  --w98-ativo: inset -1px -1px var(--w98-luz-ext), inset 1px 1px var(--w98-sombra-ext), inset -2px -2px var(--w98-luz-int), inset 2px 2px var(--w98-sombra-int);
+  --accent: #800080;
+  --accent-600: #800080;
+  --accent-700: #5c005c;
+  --accent-fg: #800080;
+  --danger-soft: #ff0000;
+  --danger-600: #800000;
+  --danger-700: #5c0000;
+  --danger-fg: #800000;
+  --ok: #008000;
+  --warn: #808000;
+  --err: #ff0000;
+  color-scheme: light;
 }
 [data-estilo='win98'][data-theme='dark'] {
-  --brand-600: #004e98;
-  --brand-700: #003970;
-  --accent: #00a0a0;
-  --accent-600: #006b6b;
-  --accent-700: #004f4f;
-  --danger-soft: #cc2929;
-  --danger-600: #9e0000;
-  --danger-700: #780000;
-  --ok: #008000;
-  --warn: #806000;
-  --err: #cc0000;
-  --titulo: linear-gradient(90deg, #000080, #0e5a9e);
+  --w-face: #000000;
+  --w-face-fg: #ffffff;
+  --w-hilight: #c0c0c0;
+  /* ButtonLight do registro é #D0B0B8 (rosado, resto de dado); fica no cinza do esquema. */
+  --w-light: #808080;
+  --w-shadow: #808080;
+  --w-dk: #ffffff;
+  --w-window: #000000;
+  --w-window-fg: #ffffff;
+  --w-sel: #800080;
+  --w-sel-fg: #ffffff;
+  --w-gray: #00ff00;
+  --w-gray-relevo: none;
+  --w-travado: repeating-conic-gradient(#808080 0 25%, #000000 0 50%) 0 0 / 2px 2px;
+  --titulo: #800080;
   --app: #000000;
-  --card: #1f1f1f;
+  --card: #000000;
   --field: #000000;
   --fg: #ffffff;
-  --muted: #d4d4d4;
-  --subtle: #a8a8a8;
-  --brand-fg: #66c2ff;
-  --accent-fg: #00ffff;
-  --danger-fg: #ff8080;
-  --w98-luz-ext: #c0c0c0;
-  --w98-luz-int: #666666;
-  --w98-sombra-int: #0d0d0d;
-  --w98-sombra-ext: #000000;
-  --w98-disabled-shadow: none;
+  --muted: #ffffff;
+  --subtle: #ffffff;
+  --sobre-app: #ffffff;
+  --brand: #800080;
+  --brand-600: #800080;
+  --brand-700: #5c005c;
+  --brand-fg: #ffff00;
+  --accent: #008000;
+  --accent-600: #008000;
+  --accent-700: #005c00;
+  --accent-fg: #00ff00;
+  --danger-soft: #ff0000;
+  --danger-600: #800000;
+  --danger-700: #5c0000;
+  --danger-fg: #ff0000;
+  --ok: #008000;
+  --warn: #808000;
+  --err: #ff0000;
+  color-scheme: dark;
 }
-[data-estilo='win98']:not([data-theme='dark']) :is(footer > p, #btn-check-update, #btn-new-comercial > span:last-child, #btn-new-ocorrencia > span:last-child, #screen-dashboard > div:last-child > p) {
-  color: #ffffff;
-  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.65);
-}
-[data-estilo='win98'] .barra-app {
-  background: var(--card);
-  border-bottom: none;
-  box-shadow: var(--w98-elevado);
-}
-[data-estilo='win98'] .barra-app .selo-status {
-  background: var(--card);
+[data-estilo='win98'] :is(.card, #update-banner > div) {
+  background: var(--w-face);
   border: none;
-  box-shadow: var(--w98-afundado);
-  color: var(--fg);
-}
-[data-estilo='win98'] :is(.card, :where(#update-banner > div)) {
-  background: var(--card);
-  border: none;
-}
-[data-estilo='win98'] :is(.card:not(.faltando), :where(#update-banner > div)) {
-  box-shadow: var(--w98-janela);
+  box-shadow: var(--bisel-janela);
 }
 [data-estilo='win98'] .janela {
-  background: var(--card);
+  background: var(--w-face);
   border: none;
   padding: 3px;
-  box-shadow: var(--w98-janela);
+  box-shadow: var(--bisel-janela);
 }
-[data-estilo='win98'] .janela-titulo {
-  background: var(--titulo);
+[data-estilo='win98'] .barra-app {
+  background: var(--w-face);
   border-bottom: none;
-  padding: 0.3rem 0.35rem 0.3rem 0.5rem;
+  box-shadow: inset 0 -1px var(--w-dk), inset 0 -2px var(--w-shadow), inset 0 1px var(--w-light), inset 0 2px var(--w-hilight);
 }
-[data-estilo='win98'] .janela-titulo h3 {
-  color: #ffffff;
-  font-size: 0.95rem;
-}
-[data-estilo='win98'] .janela-titulo .btn {
-  margin: 0;
-}
-[data-estilo='win98'] .field:not(.faltando) {
-  background: var(--field);
+[data-estilo='win98'] .barra-app .selo-status {
+  background: var(--w-face);
   border: none;
-  box-shadow: var(--w98-afundado);
-}
-[data-estilo='win98'] .field[readonly] {
-  background: var(--card);
-  color: var(--subtle);
-}
-[data-estilo='win98'] .field:focus:not([readonly]):not(.faltando) {
-  outline: 1px dotted var(--fg);
-  outline-offset: -3px;
-  box-shadow: var(--w98-afundado);
-}
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
-  background: var(--card);
-  color: var(--btn-fg, var(--fg));
-  border: none;
-  box-shadow: var(--w98-elevado);
-}
-[data-estilo='win98'] :is(.btn-primary, .nova-os.bg-brand-600) {
-  box-shadow: var(--w98-default);
-}
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
-[data-estilo='win98'] .group:active .nova-os {
-  box-shadow: var(--w98-ativo);
-  transform: translate(1px, 1px);
-}
-[data-estilo='win98'] :is(.btn-primary, .nova-os.bg-brand-600):active:not(:disabled),
-[data-estilo='win98'] .group:active .nova-os.bg-brand-600 {
-  box-shadow: var(--w98-default-ativo);
-}
-[data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)) {
-  border: none;
-  background: transparent;
-  color: var(--fg);
-  box-shadow: none;
-}
-@media (hover: hover) {
-  [data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
-    background: var(--card);
-    box-shadow: var(--w98-elevado);
-  }
-}
-[data-estilo='win98'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
-  background: var(--card);
-  box-shadow: var(--w98-ativo);
-  transform: translate(1px, 1px);
-}
-[data-estilo='win98'] .escolha[aria-pressed='true'] {
-  box-shadow: var(--w98-ativo);
-  outline: 1px dotted var(--fg);
-  outline-offset: -4px;
-}
-[data-estilo='win98'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
-  transform: translate(1px, 1px);
-}
-[data-estilo='win98'] :is(.btn, .escolha):focus-visible,
-[data-estilo='win98'] .group:focus-visible .nova-os {
-  outline: 1px dotted var(--fg);
-  outline-offset: -4px;
-}
-[data-estilo='win98'] :is(.btn, .escolha):disabled {
-  opacity: 1;
-  color: #808080;
-  text-shadow: var(--w98-disabled-shadow);
-  cursor: default;
-}
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha):disabled {
-  background: var(--card);
-  box-shadow: var(--w98-elevado);
+  color: var(--w-face-fg);
+  box-shadow: var(--bisel-painel);
 }
 [data-estilo='win98'] .painel {
-  background: var(--card);
-  border: 1px solid var(--w98-sombra-int);
-  box-shadow: inset 1px 1px 0 var(--w98-luz-ext), 1px 1px 0 var(--w98-luz-ext);
+  background: var(--w-face);
+  border: none;
+  box-shadow: var(--bisel-painel);
 }
 [data-estilo='win98'] .faixa-cabecalho {
-  background: var(--card);
-  border-bottom: 1px solid var(--w98-sombra-int);
-  box-shadow: inset 0 -1px 0 var(--w98-luz-ext);
+  background: var(--w-face);
+  border-bottom: none;
+  box-shadow: var(--sulco-baixo);
 }
 [data-estilo='win98'] .janela-rodape {
-  background: var(--card);
-  border-top: 1px solid var(--w98-sombra-int);
-  box-shadow: inset 0 1px 0 var(--w98-luz-ext);
+  box-shadow: inset 0 1px var(--w-shadow), inset 0 2px var(--w-hilight);
 }
 [data-estilo='win98'].amostra {
-  border-color: var(--w98-sombra-int);
+  border-color: var(--w-shadow);
 }
 [data-estilo='win98'].amostra .amostra-janela {
+  background: var(--w-face);
   border: none;
-  box-shadow: var(--w98-janela);
+  box-shadow: var(--bisel-janela);
+}
+[data-estilo='win98'].amostra :is(.amostra-brand, .amostra-accent) {
+  background: var(--w-face);
+  box-shadow: var(--bisel);
 }
 [data-estilo='win98'].amostra .amostra-brand {
-  background: var(--card);
-  box-shadow: var(--w98-default);
-}
-[data-estilo='win98'].amostra .amostra-accent {
-  background: var(--card);
-  box-shadow: var(--w98-elevado);
+  box-shadow: var(--bisel-padrao);
 }
 
-/* --- Tema 5: Windows XP (XP.css: Luna no claro / Royale Noir no escuro) --- */
+/* --- Windows 3.1: "Windows Default" (claro) e "LCD Reversed - Dark" (escuro) --- */
+[data-estilo='win31'] {
+  --w-face: #c0c0c0;
+  --w-face-fg: #000000;
+  --w-hilight: #ffffff;
+  --w-shadow: #808080;
+  --w-frame: #000000;
+  --w-window: #ffffff;
+  --w-window-fg: #000000;
+  --w-sel: #000080;
+  --w-sel-fg: #ffffff;
+  --w-gray: #808080;
+  --w-gray-relevo: none;
+  --w-borda-ativa: #c0c0c0;
+  --w-titulo-fg: #ffffff;
+  /* Botão do 3.1: moldura de 1px (cantos cortados), 2px de realce e 2px de sombra; padrão com moldura dupla. */
+  --w-borda-btn: 1px solid var(--w-frame);
+  --w-borda-campo: 1px solid var(--w-frame);
+  --w-raio-btn: 2px;
+  --w-travado: var(--w-face);
+  --bisel: inset 1px 1px var(--w-hilight), inset 2px 2px var(--w-hilight), inset -1px -1px var(--w-shadow), inset -2px -2px var(--w-shadow);
+  --bisel-padrao: 0 0 0 1px var(--w-frame), var(--bisel);
+  --bisel-ativo: inset 1px 1px var(--w-shadow);
+  --bisel-padrao-ativo: 0 0 0 1px var(--w-frame), inset 1px 1px var(--w-shadow);
+  --bisel-campo: none;
+  --titulo: #000080;
+  --app: #c0c0c0;
+  --card: #ffffff;
+  --field: #ffffff;
+  --fg: #000000;
+  --muted: #000000;
+  --subtle: #000000;
+  --sobre-app: #000000;
+  --brand: #000080;
+  --brand-600: #000080;
+  --brand-700: #00005c;
+  --brand-fg: #000080;
+  --accent: #800080;
+  --accent-600: #800080;
+  --accent-700: #5c005c;
+  --accent-fg: #800080;
+  --danger-soft: #ff0000;
+  --danger-600: #800000;
+  --danger-700: #5c0000;
+  --danger-fg: #800000;
+  --ok: #008000;
+  --warn: #808000;
+  --err: #ff0000;
+  color-scheme: light;
+}
+[data-estilo='win31'][data-theme='dark'] {
+  /* LCD Reversed - Dark: janela bordô com texto branco, título oliva com texto preto; botões na face cinza do 3.1.
+     O texto desabilitado do esquema (#C0C0C0) some na face; fica #808080. */
+  --w-shadow: #80807f;
+  --w-window: #800000;
+  --w-window-fg: #ffffff;
+  --w-sel: #000080;
+  --w-sel-fg: #ffffff;
+  --w-borda-ativa: #808000;
+  --w-titulo-fg: #000000;
+  --titulo: #808000;
+  --app: #000000;
+  --card: #800000;
+  --field: #800000;
+  --fg: #ffffff;
+  --muted: #ffffff;
+  --subtle: #ffffff;
+  --sobre-app: #ffffff;
+  --brand: #ffff00;
+  --brand-600: #000080;
+  --brand-700: #00005c;
+  --brand-fg: #ffff00;
+  --accent: #c0c0c0;
+  --accent-600: #808000;
+  --accent-700: #5c5c00;
+  --accent-fg: #c0c0c0;
+  --danger-fg: #ffff00;
+  --err: #ffff00;
+  color-scheme: dark;
+}
+[data-estilo='win31'][data-theme='dark'] .field::placeholder {
+  color: #c0c0c0;
+}
+[data-estilo='win31'] :is(.card, #update-banner > div) {
+  background: var(--w-window);
+  color: var(--w-window-fg);
+  border: 1px solid var(--w-frame);
+  box-shadow: none;
+}
+[data-estilo='win31'] .janela {
+  background: var(--w-window);
+  border: 1px solid var(--w-frame);
+  box-shadow: 0 0 0 3px var(--w-borda-ativa), 0 0 0 4px var(--w-frame);
+}
+[data-estilo='win31'] .janela-titulo {
+  border-bottom: 1px solid var(--w-frame);
+}
+[data-estilo='win31'] .janela-titulo h3 {
+  flex: 1;
+  text-align: center;
+}
+[data-estilo='win31'] .janela-rodape {
+  background: var(--w-window);
+  border-top: 1px solid var(--w-frame);
+}
+[data-estilo='win31'] .barra-app {
+  background: var(--w-window);
+  border-bottom: 1px solid var(--w-frame);
+}
+[data-estilo='win31'] .barra-app .selo-status {
+  background: var(--w-window);
+  border: 1px solid var(--w-frame);
+  color: var(--w-window-fg);
+}
+[data-estilo='win31'] .painel {
+  background: var(--w-window);
+  border: 1px solid var(--w-frame);
+}
+[data-estilo='win31'] .faixa-cabecalho {
+  background: var(--w-window);
+  border-bottom: 1px solid var(--w-frame);
+}
+[data-estilo='win31'] .field:focus:not([readonly]):not(.faltando) {
+  border: 1px solid var(--w-frame);
+  outline: 1px solid var(--w-frame);
+  outline-offset: 0;
+}
+[data-estilo='win31'].amostra {
+  border-color: var(--w-frame);
+}
+[data-estilo='win31'].amostra .amostra-janela {
+  background: var(--w-window);
+  border: 1px solid var(--w-frame);
+}
+[data-estilo='win31'].amostra .amostra-titulo {
+  border-bottom: 1px solid var(--w-frame);
+}
+[data-estilo='win31'].amostra :is(.amostra-brand, .amostra-accent) {
+  background: var(--w-face);
+  border: 1px solid #000000;
+  box-shadow: var(--bisel);
+}
+
+/* ==========================================================================
+ * Windows XP: Luna azul (claro) e Royale Noir (escuro).
+ * ========================================================================== */
 [data-estilo='xp'] {
-  --brand: #0050ee;
-  --brand-600: #0050ee;
-  --brand-700: #003dd7;
-  --accent: #2ed330;
-  --accent-600: #227a1e;
-  --accent-700: #195e16;
-  --danger-soft: #e5482e;
-  --danger-600: #c42b1c;
-  --danger-700: #9e1f12;
-  --ok: #227a1e;
-  --warn: #9c5700;
-  --err: #c42b1c;
-  --titulo: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #0066ff 93%, #005bff 95%, #003dd7 96%, #003dd7 100%);
+  --font-sans: Tahoma, 'PT Sans', 'Trebuchet MS', Arial, ui-sans-serif, sans-serif;
   --amostra-raio: 0.25rem;
-  --radius-md: 0.2rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.25rem;
-  --radius-2xl: 0.45rem;
-  --app: #d8e4f8;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 3px;
+  --radius-2xl: 3px;
+  --xp-face: #ece9d8;
+  --xp-window: #ffffff;
+  --xp-sel: #316ac5;
+  --w-gray: #aca899;
+  --xp-borda-btn: #003c74;
+  --xp-btn: linear-gradient(180deg, #ffffff 0, #fcfcfc 2px, #f6f6f3 5px, #f3f3ef 10px, #f0f0ea calc(100% - 4px), #ebebe5 calc(100% - 3px), #e0ded4 calc(100% - 2px), #d6d0c5 100%);
+  --xp-btn-ativo: linear-gradient(180deg, #d0cbbf 0, #dbd7ce 1px, #e2e0d8 2px, #e4e4dd 3px, #dfdfd6 calc(100% - 4px), #e2e1da calc(100% - 3px), #eaeae4 calc(100% - 2px), #f0f0ec 100%);
+  --xp-btn-anel: none;
+  --xp-hover: inset 0 1px #fff0cf, inset 0 2px #fdd889, inset 0 -1px #e59700, inset 0 -2px #f8b330, inset 1px 0 #fcca69, inset 2px 0 #fbca6a, inset -1px 0 #fcca69, inset -2px 0 #fbca6a;
+  --xp-foco: inset -1px 1px #cee7ff, inset 1px 2px #98b8ea, inset -2px 2px #bcd4f6, inset 1px -1px #89ade4, inset 2px -2px #89ade4;
+  --xp-off-borda: #c9c7ba;
+  --xp-off-face: #f5f4ea;
+  --xp-campo-borda: #7f9db9;
+  --xp-grupo-borda: #d0d0bf;
+  --xp-titulo-sombra: 1px 1px #0f1089;
+  --xp-moldura: inset -1px -1px #00138c, inset 1px 1px #0831d9, inset -2px -2px #001ea0, inset 2px 2px #166aee, inset -3px -3px #003bda, inset 3px 3px #0855dd;
+  --xp-fechar: linear-gradient(180deg, #f0a997 0, #e98168 25%, #e46344 55%, #e04b25 80%, #cc3813 100%);
+  --xp-fechar-hover: linear-gradient(180deg, #ffb3ab, #ff7f70 50%, #ed4a37);
+  --xp-fechar-ativo: linear-gradient(180deg, #69220f, #a13217 50%, #ae3719);
+  --xp-barra: linear-gradient(180deg, #f9f8f3 0%, #ece9d8 86%, #d8d2bd 100%);
+  --titulo: linear-gradient(180deg, #0997ff 0%, #0053ee 8%, #0050ee 40%, #0066ff 88%, #0066ff 93%, #005bff 95%, #003dd7 96%, #003dd7 100%);
+  --app: #004e98;
   --card: #ece9d8;
   --field: #ffffff;
-  --fg: #0b192c;
-  --muted: #344256;
-  --subtle: #4f5f75;
+  --fg: #000000;
+  --muted: #000000;
+  --subtle: #000000;
+  --sobre-app: #ffffff;
+  --brand: #316ac5;
+  --brand-600: #0054e3;
+  --brand-700: #003dd7;
   --brand-fg: #0046d5;
-  --accent-fg: #195e16;
-  --danger-fg: #a81c0e;
-  --xp-moldura: #0831d9;
-  --xp-janela-borda: inset -1px -1px #00138c, inset 1px 1px #0831d9, inset -2px -2px #001ea0, inset 2px 2px #166aee, inset -3px -3px #003bda, inset 3px 3px #0855dd;
-  --xp-borda-card: #919b9c;
-  --xp-borda-campo: #7f9db9;
-  --xp-borda-btn: #003c74;
-  --xp-focus: #89ade4;
-  --xp-hover-sombra: inset -1px 1px #fff0cf, inset 1px 2px #fdd889, inset -2px 2px #fbc761, inset 2px -2px #e5a01a;
-  --xp-focus-sombra: inset -1px 1px #cee7ff, inset 1px 2px #98b8ea, inset -2px 2px #bcd4f6, inset 1px -1px #89ade4, inset 2px -2px #89ade4;
-  --xp-btn-face: linear-gradient(180deg, #ffffff 0%, #ecebe5 86%, #d8d0c4 100%);
-  --xp-btn-ativo: linear-gradient(180deg, #cdcac3 0%, #e3e3db 8%, #e5e5de 94%, #f2f2f1 100%);
-  --xp-close: linear-gradient(180deg, #eb8b73 0%, #dc451f 45%, #a6280c 100%);
-  --xp-close-hover: linear-gradient(180deg, #ff9285 0%, #ff6e5d 45%, #c43618 100%);
-  --xp-close-ativo: linear-gradient(180deg, #822912 0%, #a83316 55%, #c24321 100%);
-  --xp-barra: linear-gradient(180deg, #f9f8f3 0%, #ece9d8 86%, #d8d2bd 100%);
-  --xp-painel: linear-gradient(180deg, #fcfcfe 0%, #f4f3ee 100%);
-  --xp-painel-borda: #d0d0bf;
-  --xp-disabled-bg: #f4f4f0;
-  --xp-disabled-border: #c9c7ba;
-  --xp-disabled-fg: #a1a192;
-  --xp-disabled-shadow: 1px 1px 0 #ffffff;
-  --font-sans: Tahoma, 'PT Sans', 'Trebuchet MS', Arial, ui-sans-serif, sans-serif;
+  --accent: #22a122;
+  --accent-600: #228b22;
+  --accent-700: #1b6e1b;
+  --accent-fg: #1a7a1a;
+  --danger-soft: #e04b25;
+  --danger-600: #cc3813;
+  --danger-700: #a13217;
+  --danger-fg: #b0260b;
+  --ok: #228b22;
+  --warn: #9c5700;
+  --err: #e04b25;
+  color-scheme: light;
 }
 [data-estilo='xp'][data-theme='dark'] {
-  --brand: #2d5aa6;
-  --brand-600: #2d5aa6;
-  --brand-700: #1c3f7d;
-  --accent: #2d8a2a;
-  --accent-600: #2d8a2a;
-  --accent-700: #1c5e1a;
-  --danger-soft: #c94638;
-  --danger-600: #b83528;
-  --danger-700: #8a1d14;
-  --ok: #257a22;
-  --err: #b83528;
-  --titulo: linear-gradient(180deg, #3a3a3a 0%, #2c2c2c 18%, #1c1c1c 48%, #101010 52%, #1c1c1c 88%, #242424 100%);
-  --app: #141414;
-  --card: #24262b;
-  --field: #16181d;
-  --fg: #f4f4f4;
-  --muted: #c2c5cc;
-  --subtle: #969ba6;
-  --brand-fg: #7fb2ff;
-  --accent-fg: #6bd368;
-  --danger-fg: #ff948a;
-  --xp-moldura: #0f0f0f;
-  --xp-janela-borda: inset -1px -1px #080808, inset 1px 1px #444444, inset -2px -2px #141414, inset 2px 2px #363636, inset -3px -3px #1c1c1c, inset 3px 3px #2b2b2b;
-  --xp-borda-card: #3a3d45;
-  --xp-borda-campo: #4a4e58;
-  --xp-borda-btn: #585c66;
-  --xp-hover-sombra: inset -1px 1px #ffe2a8, inset 1px 2px #e8b349, inset -2px 2px #d99b26, inset 2px -2px #b57a0e;
-  --xp-focus-sombra: inset -1px 1px #b8d8ff, inset 1px 2px #78a5de, inset -2px 2px #96bce8, inset 1px -1px #5f8dc7, inset 2px -2px #5f8dc7;
-  --xp-btn-face: linear-gradient(180deg, #45484f 0%, #2a2d33 56%, #1c1e22 100%);
-  --xp-btn-ativo: linear-gradient(180deg, #14161a 0%, #22252b 55%, #30343b 100%);
-  --xp-close: linear-gradient(180deg, #c94e3f 0%, #a82e20 48%, #7d1b10 100%);
-  --xp-close-hover: linear-gradient(180deg, #e06152 0%, #c43d2d 48%, #992618 100%);
-  --xp-close-ativo: linear-gradient(180deg, #63130a 0%, #8a2318 55%, #a83325 100%);
-  --xp-barra: linear-gradient(180deg, #2e3036 0%, #222429 86%, #181a1e 100%);
-  --xp-painel: linear-gradient(180deg, #212328 0%, #1b1d22 100%);
-  --xp-painel-borda: #343740;
-  --xp-disabled-bg: #1c1e22;
-  --xp-disabled-border: #33363d;
-  --xp-disabled-fg: #6b707a;
-  --xp-disabled-shadow: none;
-}
-[data-estilo='xp'] body {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 14%, var(--app)) 0%, var(--app) 320px) no-repeat var(--app);
+  /* Royale Noir: moldura, barras e área de trabalho escuras; janela e botões claros (Royale), como no sistema. */
+  --xp-face: #ebe9ed;
+  --xp-sel: #335ea8;
+  --w-gray: #a7a6aa;
+  --xp-borda-btn: #2d5082;
+  --xp-btn: linear-gradient(180deg, #e8eff7 0, #f8fcff 8%, #fcfdfd 20%, #edf4f7 45%, #e2eaf3 52%, #cbd8e9 62%, #becce0 72%, #adbed4 85%, #a5b7cf 94%, #9ab0d2 100%);
+  --xp-btn-ativo: linear-gradient(180deg, #ccd8e9 0, #7994bb 6%, #abbcd2 18%, #c4d2e5 38%, #e6eef4 52%, #f3fafa 70%, #fdfefe 88%, #ffffff 96%, #a5b5cb 100%);
+  --xp-btn-anel: inset 0 1px #839aba, inset 0 -1px #5b79a6;
+  --xp-hover: inset 0 1px #ffed9b, inset 0 2px #efcf84, inset 0 -1px #ea8627, inset 0 -2px #f3b458, inset 1px 0 #e8b164, inset 2px 0 #f0d187, inset -1px 0 #e8b164, inset -2px 0 #f0d187;
+  --xp-off-borda: #b2b6b2;
+  --xp-off-face: #f4f4f2;
+  --xp-titulo-sombra: none;
+  --xp-moldura: inset 0 0 0 1px #161d2d, inset 0 0 0 2px #798188, inset 0 0 0 3px #434c5a, inset 0 0 0 4px #1a2430;
+  --xp-fechar: linear-gradient(180deg, #f1795e 0, #de684e 45%, #d6351a 45%, #e95b39 75%, #f98b70 100%);
+  --xp-fechar-hover: linear-gradient(180deg, #f89a84 0, #e8826a 45%, #e0502f 45%, #f0765a 75%, #fba38c 100%);
+  --xp-fechar-ativo: linear-gradient(180deg, #9c2a14, #b8361c 50%, #c6452a);
+  --xp-barra: linear-gradient(180deg, #1f2739 0, #919195 3%, #66737c 7%, #5c6975 23%, #556271 37%, #4b5767 50%, #334151 50%, #2d394a 67%, #293344 77%, #232a3d 93%, #161d2d 100%);
+  --titulo: var(--xp-barra);
+  --app: #0f1626;
+  --card: #ebe9ed;
+  --field: #ffffff;
+  --fg: #000000;
+  --muted: #000000;
+  --subtle: #000000;
+  --sobre-app: #ffffff;
+  --brand: #335ea8;
+  --brand-600: #335ea8;
+  --brand-700: #26467e;
+  --brand-fg: #2b4f8f;
+  color-scheme: light;
 }
 [data-estilo='xp'] .barra-app {
   background: var(--xp-barra);
-  border-bottom: 2px solid var(--xp-moldura);
+  border-bottom: 1px solid #aca899;
+}
+[data-estilo='xp'][data-theme='dark'] .barra-app {
+  border-bottom-color: #161d2d;
 }
 [data-estilo='xp'] .barra-app .selo-status {
-  background: var(--xp-painel);
-  border: 1px solid var(--xp-painel-borda);
+  background: var(--xp-face);
+  border: 1px solid #aca899;
   border-radius: 3px;
   color: var(--fg);
 }
-[data-estilo='xp'] :is(.card, :where(#update-banner > div)) {
-  background: var(--card);
-  border: 1px solid var(--xp-borda-card);
-  border-radius: 0.45rem;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2), 0 1px 3px rgb(0 0 0 / 0.14);
+[data-estilo='xp'] :is(.card, #update-banner > div) {
+  background: var(--xp-face);
+  border: 1px solid var(--xp-grupo-borda);
+  border-radius: 3px;
 }
 [data-estilo='xp'] .janela {
-  background: var(--card);
+  background: var(--xp-face);
   border: none;
-  padding: 3px;
+  padding: 0 3px 3px;
   border-radius: 8px 8px 0 0;
-  box-shadow: var(--xp-janela-borda), 0 12px 28px rgb(0 0 0 / 0.45);
+  box-shadow: var(--xp-moldura), 0 12px 28px rgb(0 0 0 / 0.45);
 }
 [data-estilo='xp'] .janela-titulo {
   background: var(--titulo);
-  border-bottom: 1px solid var(--xp-moldura);
-  border-radius: 5px 5px 0 0;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  margin: 0 -3px;
   padding: 0.4rem 0.5rem 0.4rem 0.85rem;
 }
 [data-estilo='xp'] .janela-titulo h3 {
   color: #ffffff;
   font-family: 'Trebuchet MS', 'PT Sans', Tahoma, sans-serif;
+  font-weight: 700;
   font-size: 1rem;
-  text-shadow: 1px 1px 1px rgb(0 0 0 / 0.75);
+  text-shadow: var(--xp-titulo-sombra);
 }
-[data-estilo='xp'] .janela-titulo .btn {
-  margin: 0;
-  background: var(--xp-close);
-  border: 1px solid #ffffff;
+[data-estilo='xp'] .janela-rodape {
+  background: var(--xp-face);
+  border-top: none;
+}
+[data-estilo='xp'] .painel {
+  background: var(--xp-window);
+  border: 1px solid var(--xp-grupo-borda);
   border-radius: 3px;
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.45);
 }
-@media (hover: hover) {
-  [data-estilo='xp'] .janela-titulo .btn:hover {
-    background: var(--xp-close-hover);
-    color: #ffffff;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.65);
-  }
+/* Faixa do cabeçalho: o título de grupo dos painéis do XP (branco → azul claro, texto azul). */
+[data-estilo='xp'] .faixa-cabecalho {
+  background: linear-gradient(90deg, #ffffff, #c6d3f7);
+  border-bottom: 1px solid var(--xp-grupo-borda);
 }
-[data-estilo='xp'] .janela-titulo .btn:active {
-  background: var(--xp-close-ativo);
-  color: #ffffff;
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.5);
+[data-estilo='xp'] .faixa-cabecalho :is(p, h2) {
+  color: #215dc6;
 }
-[data-estilo='xp'] :is(.btn:not(.btn-ghost), .nova-os, .escolha) {
-  background: var(--xp-btn-face);
+/* Botões */
+[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .nova-os, .escolha:where(:not([data-estilo-opcao]))) {
+  background: var(--xp-btn);
   border: 1px solid var(--xp-borda-btn);
   border-radius: 3px;
-  color: var(--btn-fg, var(--fg));
-  box-shadow: none;
+  color: #000000;
+  font-weight: 400;
+  box-shadow: var(--xp-btn-anel);
 }
 [data-estilo='xp'] :is(.btn-primary, .nova-os.bg-brand-600) {
-  box-shadow: var(--xp-focus-sombra);
+  box-shadow: var(--xp-foco);
+}
+@media (hover: hover) {
+  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled),
+  [data-estilo='xp'] .group:hover .nova-os {
+    box-shadow: var(--xp-hover);
+  }
+}
+[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled),
+[data-estilo='xp'] .group:active .nova-os,
+[data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+  background: var(--xp-btn-ativo);
+  box-shadow: none;
+}
+[data-estilo='xp'] :is(.btn:where(:not(.janela-titulo .btn)), .escolha):focus-visible,
+[data-estilo='xp'] .group:focus-visible .nova-os {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+  box-shadow: var(--xp-foco);
 }
 [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)) {
   border: 1px solid transparent;
   border-radius: 3px;
+  color: var(--fg);
 }
 @media (hover: hover) {
   [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
-    background: var(--xp-btn-face);
+    background: var(--xp-btn);
     border-color: var(--xp-borda-btn);
-    color: var(--fg);
-    box-shadow: var(--xp-hover-sombra);
+    box-shadow: var(--xp-hover);
   }
 }
 [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
   background: var(--xp-btn-ativo);
   border-color: var(--xp-borda-btn);
-  color: var(--fg);
+}
+[data-estilo='xp'] :is(.btn, .escolha):disabled {
+  opacity: 1;
+  background: var(--xp-off-face);
+  border-color: var(--xp-off-borda);
+  color: var(--w-gray);
   box-shadow: none;
+  cursor: default;
+}
+/* Fechar da janela: o botão vermelho da barra de título. */
+[data-estilo='xp'] .janela-titulo .btn {
+  margin: 0;
+  background: var(--xp-fechar);
+  border: 1px solid #ffffff;
+  border-radius: 3px;
+  color: #ffffff;
 }
 @media (hover: hover) {
-  [data-estilo='xp'] :is(.btn:not(.janela-titulo .btn):not(.btn-ghost), .escolha:not([aria-pressed='true'])):hover:not(:disabled),
-  [data-estilo='xp'] .group:hover .nova-os {
-    box-shadow: var(--xp-hover-sombra);
+  [data-estilo='xp'] .janela-titulo .btn:hover {
+    background: var(--xp-fechar-hover);
   }
 }
-@media (hover: hover) {
-  [data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]):hover:not(:disabled) {
-    box-shadow: var(--xp-hover-sombra);
-  }
-}
-[data-estilo='xp'] :is(.btn:not(.janela-titulo .btn), .escolha):focus-visible,
-[data-estilo='xp'] .group:focus-visible .nova-os {
-  outline: 1px dotted var(--fg);
-  outline-offset: -4px;
-  box-shadow: var(--xp-focus-sombra);
+[data-estilo='xp'] .janela-titulo .btn:active {
+  background: var(--xp-fechar-ativo);
 }
 [data-estilo='xp'] .janela-titulo .btn:focus-visible {
   outline: 1px dotted #ffffff;
   outline-offset: -3px;
 }
-[data-estilo='xp'] :is(.btn:not(.janela-titulo .btn):not(.btn-ghost), .escolha:not([data-estilo-opcao])):active:not(:disabled),
-[data-estilo='xp'] .group:active .nova-os {
-  background: var(--xp-btn-ativo);
-  box-shadow: none;
-}
-[data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
-  background: var(--xp-btn-ativo);
-  border: 1px solid var(--xp-borda-btn);
-  box-shadow: var(--xp-focus-sombra);
+/* Lista de temas: item escolhido na cor de seleção. */
+[data-estilo='xp'] .escolha[data-estilo-opcao] {
+  background: var(--xp-window);
+  border: 1px solid var(--xp-grupo-borda);
+  color: #000000;
 }
 [data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: var(--xp-painel);
-  border: 2px solid var(--xp-moldura);
-  box-shadow: var(--xp-focus-sombra);
+  background: var(--xp-sel);
+  border-color: var(--xp-sel);
+  color: #ffffff;
 }
-[data-estilo='xp'] :is(.btn, .escolha):disabled {
-  opacity: 1;
-  background: var(--xp-disabled-bg);
-  border-color: var(--xp-disabled-border);
-  color: var(--xp-disabled-fg);
-  text-shadow: var(--xp-disabled-shadow);
+[data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] * {
+  color: inherit;
+}
+/* Campos */
+[data-estilo='xp'] .field {
+  background: var(--xp-window);
+  border: 1px solid var(--xp-campo-borda);
+  border-radius: 0;
   box-shadow: none;
-  cursor: default;
+  color: #000000;
+  font-weight: 400;
 }
-[data-estilo='xp'] .painel {
-  background: var(--xp-painel);
-  border: 1px solid var(--xp-painel-borda);
+[data-estilo='xp'] .field[readonly] {
+  background: var(--xp-face);
 }
-[data-estilo='xp'] .faixa-cabecalho {
-  background: linear-gradient(180deg, color-mix(in oklab, var(--brand) 10%, var(--card)) 0%, var(--card) 100%);
-  border-bottom: 1px solid var(--xp-borda-card);
+[data-estilo='xp'] .field:focus:not([readonly]):not(.faltando) {
+  border-color: var(--xp-campo-borda);
+  box-shadow: none;
 }
-[data-estilo='xp'] .janela-rodape {
-  background: var(--xp-painel);
-  border-top: 1px solid var(--xp-painel-borda);
+[data-estilo='xp'] select.field option {
+  background: #ffffff;
+  color: #000000;
 }
 [data-estilo='xp'].amostra .amostra-janela {
-  border: 1.5px solid var(--xp-moldura);
+  background: var(--xp-face);
+  border: 1.5px solid #0831d9;
   border-radius: 0.35rem 0.35rem 0.15rem 0.15rem;
 }
+[data-estilo='xp'][data-theme='dark'].amostra .amostra-janela {
+  border-color: #161d2d;
+}
 [data-estilo='xp'].amostra :is(.amostra-brand, .amostra-accent) {
-  background: var(--xp-btn-face);
+  background: var(--xp-btn);
   border: 1px solid var(--xp-borda-btn);
 }
 [data-estilo='xp'].amostra .amostra-brand {
-  box-shadow: var(--xp-focus-sombra);
-}
-[data-estilo='xp'] .field {
-  background: var(--field);
-  border: 1px solid var(--xp-borda-campo);
-  border-radius: 0;
-  box-shadow: inset 1px 1px 2px rgb(0 0 0 / 0.06);
-}
-[data-estilo='xp'] .field[readonly] {
-  background: var(--card);
-  color: var(--subtle);
-}
-[data-estilo='xp'] .field:focus:not([readonly]):not(.faltando) {
-  border-color: var(--xp-moldura);
-  box-shadow: 0 0 0 2px color-mix(in oklab, var(--xp-focus) 45%, transparent);
+  box-shadow: var(--xp-foco);
 }
 
-/* --- Tema 6: Windows 3.1 (Win31: cantos 0px estritos, moldura 16-bit e Alto Contraste VGA) --- */
-[data-estilo='win31'] {
-  --brand: #0000a8;
-  --brand-600: #000080;
-  --brand-700: #00005c;
-  --accent: #800080;
-  --accent-600: #6b006b;
-  --accent-700: #4d004d;
-  --danger-soft: #cc0000;
-  --danger-600: #990000;
-  --danger-700: #730000;
-  --ok: #006600;
-  --warn: #805000;
-  --err: #990000;
-  --titulo: #000080;
-  --titulo-fg: #ffffff;
+/* ==========================================================================
+ * Windows 10 (UWP 2015–2019): claro e escuro, destaque #0078D7.
+ * Base* = preto (claro) ou branco (escuro) com 20/40/60/80/100% de opacidade, como no generic.xaml.
+ * ========================================================================== */
+[data-estilo='win10'] {
+  --font-sans: 'Segoe UI', 'Selawik', system-ui, ui-sans-serif, sans-serif;
   --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
-  --app: #c0c0c0;
-  --card: #ffffff;
-  --face: #c0c0c0;
-  --field: #ffffff;
+  --w10-accent: #0078d7;
+  --w10-base: #000000;
+  --w10-alt: #ffffff;
+  --w10-pagina: #ffffff;
+  --w10-chrome-low: #f2f2f2;
+  --w10-chrome-medium: #e6e6e6;
+  --w10-chrome-medium-low: #f2f2f2;
+  --w10-chrome-high: #cccccc;
+  --w10-off: #7a7a7a;
+  --w10-base-low: color-mix(in srgb, var(--w10-base) 20%, transparent);
+  --w10-base-medium-low: color-mix(in srgb, var(--w10-base) 40%, transparent);
+  --w10-base-medium: color-mix(in srgb, var(--w10-base) 60%, transparent);
+  --w10-alt-medium-low: color-mix(in srgb, var(--w10-alt) 40%, transparent);
+  --w10-alt-medium: color-mix(in srgb, var(--w10-alt) 60%, transparent);
+  --w-gray: var(--w10-base-medium);
+  --titulo: var(--w10-accent);
+  --app: var(--w10-chrome-low);
+  --card: var(--w10-pagina);
+  --field: var(--w10-pagina);
   --fg: #000000;
-  --muted: #2b2b2b;
-  --subtle: #424242;
-  --brand-fg: #000080;
-  --accent-fg: #6b006b;
-  --danger-fg: #990000;
-  --moldura: #000000;
-  --luz: #ffffff;
-  --luz2: #dfdfdf;
-  --sombra: #808080;
-  --w31-disabled-fg: #808080;
-  --w31-disabled-shadow: 1px 1px 0 #ffffff;
-  --w31-bevel: inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
-  --w31-default-bevel: 0 0 0 1px var(--moldura), inset 1px 1px var(--luz), inset 2px 2px var(--luz2), inset -1px -1px var(--sombra);
-}
-[data-estilo='win31'][data-theme='dark'] {
-  --accent: #008080;
-  --accent-600: #006666;
-  --accent-700: #004d4d;
-  --danger-soft: #aa0000;
-  --danger-600: #800000;
-  --danger-700: #5c0000;
-  --ok: #008000;
-  --warn: #6b6b00;
-  --err: #aa0000;
-  --titulo: #800080;
-  --titulo-fg: #ffff00;
-  --app: #181818;
-  --card: #000000;
-  --face: #404040;
-  --field: #000000;
-  --fg: #ffffff;
-  --muted: #c0c0c0;
-  --subtle: #a0a0a0;
-  --brand-fg: #00ffff;
-  --accent-fg: #ffff00;
-  --danger-fg: #ff5555;
-  --moldura: #a8a8a8;
-  --luz: #787878;
-  --luz2: #585858;
-  --sombra: #141414;
-  --w31-disabled-fg: #8a8a8a;
-  --w31-disabled-shadow: none;
-}
-[data-estilo='win31'] :is(.card, .field, :where(#update-banner > div)) {
-  border: 1px solid var(--moldura);
-  box-shadow: none;
-}
-[data-estilo='win31'] :is(.card, :where(#update-banner > div)) {
-  background: var(--card);
-}
-[data-estilo='win31'] .field {
-  background: var(--field);
-  box-shadow: inset 1px 1px var(--sombra);
-}
-[data-estilo='win31'] .field[readonly] {
-  background: var(--face);
-  color: var(--fg);
-}
-[data-estilo='win31'] .barra-app {
-  background: var(--card);
-  border-bottom: 1px solid var(--moldura);
-}
-[data-estilo='win31'] .barra-app .selo-status {
-  background: var(--face);
-  border: 1px solid var(--moldura);
-  color: var(--fg);
-}
-[data-estilo='win31'] .janela {
-  background: var(--card);
-  border: 1px solid var(--moldura);
-  box-shadow: 0 0 0 3px var(--face), 0 0 0 4px var(--moldura);
-}
-[data-estilo='win31'] .janela-titulo {
-  background: var(--titulo);
-  border-bottom: 1px solid var(--moldura);
-  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
-}
-[data-estilo='win31'] .janela-titulo h3 {
-  flex: 1;
-  text-align: center;
-  color: var(--titulo-fg);
-  font-size: 1rem;
-}
-[data-estilo='win31'] .janela-titulo .btn {
-  margin: 0;
-}
-[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha) {
-  background: var(--face);
-  color: var(--btn-fg, var(--fg));
-  border: 1px solid var(--moldura);
-  box-shadow: var(--w31-bevel);
-}
-[data-estilo='win31'] :is(.btn-primary, .nova-os.bg-brand-600) {
-  box-shadow: var(--w31-default-bevel);
-}
-[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
-[data-estilo='win31'] .group:active .nova-os,
-[data-estilo='win31'] .escolha[aria-pressed='true'] {
-  box-shadow: inset 2px 2px var(--sombra);
-}
-[data-estilo='win31'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .nova-os, .escolha):active:not(:disabled),
-[data-estilo='win31'] .group:active .nova-os,
-[data-estilo='win31'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
-  transform: translate(1px, 1px);
-}
-[data-estilo='win31'] :is(.btn-primary, .nova-os.bg-brand-600):active:not(:disabled),
-[data-estilo='win31'] .group:active .nova-os.bg-brand-600,
-[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  box-shadow: 0 0 0 1px var(--moldura), inset 2px 2px var(--sombra);
-}
-[data-estilo='win31'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  outline: 1px dotted var(--fg);
-  outline-offset: -5px;
-}
-[data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)) {
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--fg);
-}
-@media (hover: hover) {
-  [data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
-    background: var(--face);
-    border-color: var(--moldura);
-    box-shadow: var(--w31-bevel);
-  }
-}
-[data-estilo='win31'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
-  background: var(--face);
-  border-color: var(--moldura);
-  box-shadow: inset 2px 2px var(--sombra);
-  transform: translate(1px, 1px);
-}
-[data-estilo='win31'] :is(.btn, .escolha):focus-visible,
-[data-estilo='win31'] .group:focus-visible .nova-os {
-  outline: 1px dotted var(--fg);
-  outline-offset: -5px;
-}
-[data-estilo='win31'] :is(.btn, .escolha):disabled {
-  opacity: 1;
-  color: var(--w31-disabled-fg);
-  text-shadow: var(--w31-disabled-shadow);
-  cursor: default;
-}
-[data-estilo='win31'] :is(.btn:not(.btn-ghost), .escolha):disabled {
-  background: var(--face);
-  box-shadow: var(--w31-bevel);
-}
-[data-estilo='win31'] .painel {
-  background: var(--card);
-  border: 1px solid var(--moldura);
-}
-[data-estilo='win31'] .faixa-cabecalho {
-  background: var(--face);
-  border-bottom: 1px solid var(--moldura);
-}
-[data-estilo='win31'] .janela-rodape {
-  background: var(--face);
-  border-top: 1px solid var(--moldura);
-}
-[data-estilo='win31'].amostra {
-  border-color: var(--moldura);
-}
-[data-estilo='win31'].amostra .amostra-janela {
-  border: 1px solid var(--moldura);
-  box-shadow: inset 0 0 0 1.5px var(--face);
-}
-[data-estilo='win31'].amostra .amostra-titulo {
-  border-bottom: 1px solid var(--moldura);
-}
-[data-estilo='win31'].amostra :is(.amostra-brand, .amostra-accent) {
-  background: var(--face);
-  border: 1px solid var(--moldura);
-}
-[data-estilo='win31'].amostra .amostra-brand {
-  box-shadow: var(--w31-default-bevel);
-}
-[data-estilo='win31'].amostra .amostra-accent {
-  box-shadow: var(--w31-bevel);
-}
-[data-estilo='win31'] .field:focus:not([readonly]):not(.faltando) {
-  box-shadow: inset 1px 1px var(--sombra);
-  outline: 2px solid var(--brand-fg);
-  outline-offset: 0;
-}
-
-/* --- Tema 7: Windows 10 (windows-ui: Segoe UI, Fluent Day/Night, foco inferior) --- */
-[data-estilo='win10'] {
+  --muted: color-mix(in srgb, #000000 80%, var(--w10-pagina));
+  --subtle: color-mix(in srgb, #000000 60%, var(--w10-pagina));
+  --sobre-app: color-mix(in srgb, #000000 60%, var(--w10-chrome-low));
   --brand: #0078d7;
   --brand-600: #0078d7;
-  --brand-700: #0063b1;
+  --brand-700: #005a9e;
+  --brand-fg: #005a9e;
+  /* Ocorrência: o verde da paleta de cores de destaque do Windows 10. */
   --accent: #107c10;
   --accent-600: #107c10;
   --accent-700: #0b5a0b;
-  --danger-soft: #e84756;
+  --accent-fg: #107c10;
+  --danger-soft: #e81123;
   --danger-600: #c50500;
   --danger-700: #9e0400;
+  --danger-fg: #c50500;
   --ok: #107c10;
   --warn: #9d5d00;
   --err: #c50500;
-  --titulo: #0078d7;
-  --amostra-raio: 0.25rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.25rem;
-  --radius-2xl: 0.25rem;
-  --app: #f3f3f3;
-  --card: #ffffff;
-  --field: #ffffff;
-  --fg: #000000;
-  --muted: #4b4b4b;
-  --subtle: #666666;
-  --brand-fg: #0063b1;
-  --accent-fg: #0d6e0d;
-  --danger-fg: #c50500;
-  --w10-barra: #f3f3f3;
-  --w10-borda: #cccccc;
-  --w10-borda-campo: #8a8a8a;
-  --w10-borda-btn: #adadad;
-  --w10-btn: #ededed;
-  --w10-hover: #e2e2e2;
-  --w10-ativo: #d4d4d4;
-  --w10-nao: #323130;
-  --w10-nao-hover: #201f1e;
-  --w10-painel: #f9f9f9;
-  --font-sans: 'Segoe UI', 'Selawik', system-ui, ui-sans-serif, sans-serif;
+  color-scheme: light;
 }
 [data-estilo='win10'][data-theme='dark'] {
-  --accent: #6acb5d;
-  --accent-600: #1e7e34;
-  --accent-700: #166328;
-  --danger-soft: #ff99a3;
-  --warn: #b45309;
-  --titulo: #202020;
-  --app: #111111;
-  --card: #202020;
-  --field: #2b2b2b;
+  --w10-base: #ffffff;
+  --w10-alt: #000000;
+  --w10-pagina: #000000;
+  --w10-chrome-low: #171717;
+  --w10-chrome-medium: #1f1f1f;
+  --w10-chrome-medium-low: #2b2b2b;
+  --w10-chrome-high: #767676;
+  --w10-off: #858585;
+  --app: var(--w10-pagina);
+  --card: var(--w10-chrome-medium);
+  --field: var(--w10-chrome-medium);
   --fg: #ffffff;
-  --muted: #c2c2c2;
-  --subtle: #9e9e9e;
-  --brand-fg: #60cdff;
-  --accent-fg: #6acb5d;
-  --danger-fg: #ff99a3;
-  --w10-barra: #202020;
-  --w10-borda: #383838;
-  --w10-borda-campo: #777777;
-  --w10-borda-btn: #555555;
-  --w10-btn: #333333;
-  --w10-hover: #444444;
-  --w10-ativo: #292929;
-  --w10-nao: #484848;
-  --w10-nao-hover: #585858;
-  --w10-painel: #191919;
+  --muted: color-mix(in srgb, #ffffff 80%, var(--w10-chrome-medium));
+  --subtle: color-mix(in srgb, #ffffff 60%, var(--w10-chrome-medium));
+  --sobre-app: color-mix(in srgb, #ffffff 60%, #000000);
+  --brand-fg: #76b9ed;
+  --accent-fg: #6ccb5f;
+  --danger-fg: #ff99a4;
+  --err: #fff000;
+  color-scheme: dark;
+}
+[data-estilo='win10'] .rounded-full {
+  border-radius: 0;
 }
 [data-estilo='win10'] .barra-app {
-  background: var(--w10-barra);
-  border-bottom: 1px solid var(--w10-borda);
+  background: var(--w10-pagina);
+  border-bottom: 1px solid var(--w10-chrome-medium);
 }
 [data-estilo='win10'] .barra-app .selo-status {
-  background: var(--w10-painel);
-  border: 1px solid var(--w10-borda);
-  border-radius: 0.25rem;
+  background: var(--w10-chrome-medium-low);
+  border: none;
+  border-radius: 0;
   color: var(--fg);
 }
-[data-estilo='win10'] .card {
+[data-estilo='win10'] :is(.card, #update-banner > div) {
   background: var(--card);
-  border: 1px solid var(--w10-borda);
-  border-radius: 0.25rem;
-  box-shadow: none;
+  border: 1px solid var(--w10-chrome-medium);
+  border-radius: 0;
 }
+[data-estilo='win10'][data-theme='dark'] :is(.card, #update-banner > div) {
+  border-color: var(--w10-chrome-medium-low);
+}
+[data-estilo='win10'] .painel {
+  background: var(--w10-chrome-medium-low);
+  border: none;
+  border-radius: 0;
+}
+[data-estilo='win10'] .faixa-cabecalho {
+  background: transparent;
+  border-bottom: 1px solid var(--w10-chrome-medium);
+}
+/* Janela = ContentDialog: fundo da página, borda de 1px no destaque. */
 [data-estilo='win10'] .janela {
-  background: var(--card);
-  border: 1px solid var(--w10-borda);
-  border-radius: 0.25rem;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  background: var(--w10-pagina);
+  border: 1px solid var(--w10-accent);
+  border-radius: 0;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
 }
 [data-estilo='win10'] .janela-titulo {
-  background: var(--titulo);
-  border-bottom: 1px solid var(--w10-borda);
+  background: var(--w10-pagina);
+  border-bottom: none;
 }
-[data-estilo='win10'] .janela-titulo :is(h3, .btn) {
+[data-estilo='win10'] .janela-titulo h3 {
+  color: var(--fg);
+  font-weight: 400;
+  font-size: 1.25rem;
+}
+[data-estilo='win10'] .janela-rodape {
+  background: var(--w10-pagina);
+  border-top: none;
+}
+/* Botão padrão: BaseLow, borda transparente de 2px; hover = borda BaseMediumLow; pressionado = fundo BaseMediumLow. */
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao])), .nova-os) {
+  background: var(--w10-base-low);
+  border: 2px solid transparent;
+  border-radius: 0;
+  color: var(--fg);
+  font-weight: 400;
+}
+/* Botão de destaque (ação principal e encerrar) e escolha marcada (ToggleButton ligado). */
+[data-estilo='win10'] :is(.btn-primary, .btn-accent, .nova-os.bg-brand-600),
+[data-estilo='win10'] .escolha[aria-pressed='true']:where(:not([data-estilo-opcao])) {
+  background: var(--w10-accent);
   color: #ffffff;
 }
-[data-estilo='win10'][data-theme='dark'] .janela-titulo {
-  border-bottom: 2px solid var(--brand-600);
+[data-estilo='win10'] .nova-os.bg-accent-600 {
+  background: var(--accent-600);
+  color: #ffffff;
 }
+@media (hover: hover) {
+  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled),
+  [data-estilo='win10'] .group:hover .nova-os {
+    border-color: var(--w10-base-medium-low);
+  }
+}
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled),
+[data-estilo='win10'] .group:active .nova-os {
+  background: var(--w10-base-medium-low);
+  border-color: transparent;
+  color: var(--fg);
+}
+[data-estilo='win10'] :is(.btn, .escolha):disabled {
+  opacity: 1;
+  background: var(--w10-base-low);
+  border-color: transparent;
+  color: var(--w10-base-medium-low);
+  cursor: default;
+}
+[data-estilo='win10'] :is(.btn, .escolha):focus-visible,
+[data-estilo='win10'] .group:focus-visible .nova-os {
+  outline: 2px solid var(--fg);
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--w10-alt-medium);
+}
+/* Sem moldura (AppBarButton): transparente; hover/pressionado em BaseLow/BaseMediumLow. */
+[data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)) {
+  border: 2px solid transparent;
+  border-radius: 0;
+  color: var(--fg);
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+    background: var(--w10-base-low);
+  }
+}
+[data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
+  background: var(--w10-base-medium-low);
+}
+/* Fechar da janela: botão de legenda (hover #E81123 com X branco; pressionado #F1707A com X preto). */
 [data-estilo='win10'] .janela-titulo .btn {
-  border-radius: 0.25rem;
+  border-radius: 0;
+  color: var(--fg);
 }
 @media (hover: hover) {
   [data-estilo='win10'] .janela-titulo .btn:hover {
@@ -1101,195 +1196,66 @@
   }
 }
 [data-estilo='win10'] .janela-titulo .btn:active {
-  background: #b50d1b;
-  color: #ffffff;
+  background: #f1707a;
+  color: #000000;
 }
+/* Lista de temas: item escolhido = seleção de lista (destaque a 60%). */
+[data-estilo='win10'] .escolha[data-estilo-opcao] {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 0;
+  color: var(--fg);
+}
+@media (hover: hover) {
+  [data-estilo='win10'] .escolha[data-estilo-opcao]:hover {
+    background: color-mix(in srgb, var(--w10-base) 10%, transparent);
+  }
+}
+[data-estilo='win10'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+  background: color-mix(in srgb, var(--w10-accent) 60%, transparent);
+}
+/* Campo: 2px BaseMediumLow; hover BaseMedium; foco = fundo branco, texto preto e borda no destaque (nos dois temas). */
 [data-estilo='win10'] .field {
-  background: var(--field);
-  border: 1px solid var(--w10-borda);
-  border-bottom: 1px solid var(--w10-borda-campo);
-  border-radius: 0.25rem;
-}
-[data-estilo='win10'] .field[readonly] {
-  background: var(--w10-painel);
-  color: var(--muted);
+  background: var(--w10-alt-medium-low);
+  border: 2px solid var(--w10-base-medium-low);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--fg);
+  font-weight: 400;
 }
 @media (hover: hover) {
   [data-estilo='win10'] .field:hover:not([readonly]):not(:focus):not(.faltando) {
-    border-color: var(--w10-borda-campo);
+    background: var(--w10-alt-medium);
+    border-color: var(--w10-base-medium);
   }
 }
 [data-estilo='win10'] .field:focus:not([readonly]):not(.faltando) {
-  border-color: var(--w10-borda);
-  border-bottom: 2px solid var(--brand-600);
+  background: #ffffff;
+  border-color: var(--w10-accent);
   box-shadow: none;
+  color: #000000;
 }
-[data-estilo='win10'] :is(.btn:not(.btn-ghost), .escolha, .nova-os) {
-  border-radius: 0.25rem;
-}
-[data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])) {
-  background: var(--w10-btn);
-  border: 1px solid var(--w10-borda-btn);
-  box-shadow: none;
-}
-[data-estilo='win10'] :is(.btn-neutral, .escolha:not([aria-pressed='true'])) {
+[data-estilo='win10'] .field[readonly] {
+  background: var(--w10-base-low);
+  border-color: transparent;
   color: var(--fg);
 }
-@media (hover: hover) {
-  [data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])):hover:not(:disabled) {
-    background: var(--w10-hover);
-    border-color: var(--w10-borda-campo);
-  }
-}
-[data-estilo='win10'] :is(.btn-neutral, .btn-outline, .escolha:not([aria-pressed='true'])):active:not(:disabled) {
-  background: var(--w10-ativo);
-}
-[data-estilo='win10'] .btn-primary,
-[data-estilo='win10'] .nova-os.bg-brand-600,
-[data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]) {
-  background-color: var(--brand-600);
-  border: 1px solid var(--brand-600);
-  color: #ffffff;
-  box-shadow: none;
-}
-@media (hover: hover) {
-  [data-estilo='win10'] .btn-primary:hover:not(:disabled),
-  [data-estilo='win10'] .nova-os.bg-brand-600:hover,
-  [data-estilo='win10'] .group:hover .nova-os.bg-brand-600,
-  [data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]):hover:not(:disabled) {
-    background-color: var(--brand-700);
-    border-color: var(--brand-700);
-  }
-}
-[data-estilo='win10'] .btn-primary:active:not(:disabled),
-[data-estilo='win10'] .nova-os.bg-brand-600:active,
-[data-estilo='win10'] .group:active .nova-os.bg-brand-600,
-[data-estilo='win10'] .escolha[aria-pressed='true']:not([data-choice='Não']):not([data-estilo-opcao]):active:not(:disabled) {
-  background-color: #005a9e;
-  border-color: #005a9e;
-}
-[data-estilo='win10'] :is(.btn-accent, .nova-os.bg-accent-600) {
-  background-color: var(--accent-600);
-  border: 1px solid var(--accent-600);
-  color: #ffffff;
-  box-shadow: none;
-}
-[data-estilo='win10'] :is(.btn-accent, .nova-os.bg-accent-600):active:not(:disabled),
-[data-estilo='win10'] .group:active .nova-os.bg-accent-600 {
-  background-color: var(--accent-700);
-  border-color: var(--accent-700);
-}
-[data-estilo='win10'] .btn-danger {
-  background: var(--danger-600);
-  border: 1px solid var(--danger-600);
-  color: #ffffff;
-  box-shadow: none;
-}
-@media (hover: hover) {
-  [data-estilo='win10'] .btn-danger:hover:not(:disabled) {
-    background: var(--danger-700);
-    border-color: var(--danger-700);
-  }
-}
-[data-estilo='win10'] .btn-danger:active:not(:disabled) {
-  background: #7a0300;
-  border-color: #7a0300;
-}
-[data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true'] {
-  background: var(--w10-nao);
-  border: 1px solid var(--w10-nao);
-  color: #ffffff;
-  box-shadow: none;
-}
-@media (hover: hover) {
-  [data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true']:hover:not(:disabled) {
-    background: var(--w10-nao-hover);
-    border-color: var(--w10-nao-hover);
-  }
-}
-[data-estilo='win10'] .escolha[data-choice='Não'][aria-pressed='true']:active:not(:disabled) {
-  background: color-mix(in oklab, var(--w10-nao) 80%, #000000);
-  border-color: var(--w10-nao);
-  color: #ffffff;
-}
-[data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn) {
-  border-radius: 0.25rem;
-  border: 1px solid transparent;
-}
-@media (hover: hover) {
-  [data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
-    background: var(--w10-hover);
-    color: var(--fg);
-  }
-}
-[data-estilo='win10'] .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
-  background: var(--w10-ativo);
+[data-estilo='win10'] select.field option {
+  background: var(--w10-chrome-medium-low);
   color: var(--fg);
-}
-[data-estilo='win10'] :is(.btn, .escolha):focus-visible,
-[data-estilo='win10'] .group:focus-visible .nova-os {
-  outline: 1px solid var(--fg);
-  outline-offset: 2px;
-}
-[data-estilo='win10'] :is(.btn, .escolha):disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-[data-estilo='win10'] .escolha[data-estilo-opcao][aria-pressed='true'] {
-  background: color-mix(in oklab, var(--brand-600) 14%, var(--card));
-  border: 1px solid var(--brand-600);
-  box-shadow: inset 3px 0 0 var(--brand-600), inset 0 0 0 1px var(--brand-600);
-  color: var(--fg);
-}
-[data-estilo='win10'] .painel {
-  background: var(--w10-painel);
-  border-color: var(--w10-borda);
-  border-radius: 0.25rem;
-}
-[data-estilo='win10'] .faixa-cabecalho {
-  background: color-mix(in oklab, var(--brand-600) 8%, var(--card));
-  border-bottom: 1px solid var(--w10-borda);
-}
-[data-estilo='win10'] .janela-rodape {
-  background: var(--w10-painel);
-  border-top: 1px solid var(--w10-borda);
-}
-[data-estilo='win10'] #update-banner > div {
-  background: var(--card);
-  border: 1px solid var(--w10-borda);
-  border-radius: 0.25rem;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.12);
 }
 [data-estilo='win10'].amostra .amostra-janela {
-  border: 1px solid var(--w10-borda-btn);
-  border-radius: 0.25rem;
-}
-[data-estilo='win10'][data-theme='dark'].amostra .amostra-titulo {
-  border-bottom: 1.5px solid var(--brand-600);
+  background: var(--w10-pagina);
+  border: 1px solid var(--w10-accent);
 }
 [data-estilo='win10'].amostra .amostra-brand {
-  background: var(--brand-600);
+  background: var(--w10-accent);
 }
 [data-estilo='win10'].amostra .amostra-accent {
-  background: var(--brand-700);
+  background: var(--w10-base-low);
 }
 
-/*
- * Win98, XP e 3.1: todo botão tem a face cinza do sistema; o papel (excluir, encerrar/ocorrência, ação principal)
- * fica na cor do texto e do ícone (--btn-fg, lido pelas regras de face acima), para o eletricista não confundir
- * "Sim, excluir" com "Cancelar".
- */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-danger, .btn-outline.text-danger-fg) {
-  --btn-fg: var(--danger-fg);
-}
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-accent, .btn-outline.text-accent-fg, .nova-os.bg-accent-600) {
-  --btn-fg: var(--accent-fg);
-}
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31']) :is(.btn-outline.text-brand-fg, .nova-os.bg-brand-600) {
-  --btn-fg: var(--brand-fg);
-}
-
-/* Destaque .faltando compartilhado entre os temas Windows. */
+/* --- Falta preencher (os quatro): borda e anel na cor de erro do tema --- */
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando,
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) .field.faltando:focus {
   outline: none;

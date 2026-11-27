@@ -88,7 +88,7 @@ export function initUpdates(): void {
 
   const banner = byId('update-banner');
   const footerEl = footer.closest('footer')!;
-  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: `${BTN_LINK} underline -my-3`, onClick: () => void check('manual') });
+  const checkBtn = h('button', { type: 'button', id: 'btn-check-update', class: `${BTN_LINK} sobre-app underline -my-3`, onClick: () => void check('manual') });
   /** "Procurar atualização" ↔ carregando (ícone girando, desativado) enquanto a consulta do toque não volta. */
   const setChecking = (busy: boolean) => {
     checkBtn.disabled = busy;
