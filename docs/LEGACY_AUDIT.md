@@ -1,5 +1,5 @@
 # Auditoria de Código Legado
-Data: 2026-11-27 (revisada no fim do dia) | Escopo: projeto inteiro (`src/`, `tests/`, `scripts/`, `android/`, `index.html`, docs) | Linha de base dos testes: `pnpm lint` OK, `pnpm test` 67/67, e2e 43/43 (commit `3f41e0a`, `git status` limpo)
+Data: 2026-11-27 (revisada depois da saída do Windows 3.1) | Escopo: projeto inteiro (`src/`, `tests/`, `scripts/`, `android/`, `index.html`, docs) | Linha de base dos testes: `pnpm lint` OK, `pnpm test` 67/67, e2e 43/43 (commit `c3b5cba`, `git status` limpo)
 
 Projeto: TypeScript (Vite, Tailwind 4, Vitest, Playwright) + Kotlin (APK). Comandos: `pnpm lint` (tsc com
 `noUnusedLocals`/`noUnusedParameters`), `pnpm test`, `pnpm test:e2e`, `pnpm check`.
@@ -34,7 +34,10 @@ Resolvidos na reescrita dos temas Windows e no /simplify de 27/11 (commits `414e
 - [x] `border-radius` repetido no Win10/XP — tokens `--radius-*` num bloco comum (98, 3.1 e 10); só card, campo e
   `rounded-full` têm regra própria.
 
-Novos (achados no /simplify de 27/11; não executados):
+Novos (achados no /simplify e no /clear-legacy de 27/11; não executados):
+- [ ] `src/styles.css` (`[data-estilo='win98']`) — `--w-borda-btn: none`, `--w-borda-campo: none` e `--w-raio-btn: 0`
+  só existiam para alternar entre o 98 e o 3.1; com o 3.1 fora, viraram indireção — consolidar: escrever os valores
+  direto nas regras de botão e campo do 98. Evidência: 1 declaração e 1 uso cada (`grep`). Risco Baixo.
 - [ ] `src/styles.css` (≈28 ocorrências) — o X das janelas (`btn('ghost', 'icon')` em `src/ui/feedback.ts`) e as opções
   da janela de temas (`BTN_CHOICE` em `src/theme.ts`) reaproveitam `.btn`/`.escolha` e por isso cada regra de botão
   exclui `.janela-titulo .btn` e `[data-estilo-opcao]` (dentro de `:where()` para não subir a especificidade) —
@@ -50,6 +53,8 @@ Novos (achados no /simplify de 27/11; não executados):
   Risco Alto: um aparelho parado numa versão antiga perderia dados ao atualizar.
 - [ ] `src/storage.ts` — `LEGACY_KEY = 'ferracine_prod:v2'` apaga o protótipo v2 ao abrir. Referência só por string no
   `localStorage`. Remover só junto com o item anterior.
+- Tema Windows 3.1 removido (1.4.18): o id `win31` gravado no aparelho cai na regra geral de tema desconhecido
+  (volta a `moderno`), sem código próprio; há teste e2e. Nada a remover.
 - [ ] `src/theme.ts` — id antigo `retro` vira `win98` (valor gravado no `localStorage` por versões antigas; há teste
   e2e). Mesmo critério: só quando ninguém mais tiver o valor antigo.
 
