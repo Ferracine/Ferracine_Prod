@@ -1,7 +1,10 @@
 import { escolha } from './domain/catalog';
+import { gravarEspelho } from './espelho';
 import { HEADER_FIELDS, SHEETS_KEPT, type Answer, type AppData, type ClosedSheet, type Eletricista, type OrdemServico, type ServiceType, type ShiftHeader, type Tecnico, type OSDraft, type Choice } from './domain/types';
 
 export const STORAGE_KEY = 'ferracine_prod:v3';
+/** Número da última gravação (o espelho no IndexedDB guarda o mesmo número; ver espelho.ts). */
+export const SEQ_KEY = 'ferracine_prod:v3:seq';
 /** Chave do protótipo (antes da 1.1.0): não é lida; é apagada ao abrir para não guardar nomes e matrículas à toa. */
 const LEGACY_KEY = 'ferracine_prod:v2';
 
@@ -158,30 +161,55 @@ export function reabrirDados(d: AppData, sheet: ClosedSheet): void {
  */
 export function loadData(store: KeyValueStore): AppData {
   let raw: string | null = null;
-  let current: unknown = null;
   try {
     raw = store.getItem(STORAGE_KEY);
-    current = raw === null ? null : JSON.parse(raw);
   } catch {
-    return emptyData(); // ilegível: não grava por cima (pode ser o armazenamento que falhou, não o dado)
+    return emptyData(); // sem acesso: não grava por cima (pode ser o armazenamento que falhou, não o dado)
   }
   try {
     store.removeItem(LEGACY_KEY);
   } catch {
     // sem acesso ao armazenamento: tenta de novo na próxima abertura
   }
-  if (!current || typeof current !== 'object') return emptyData();
-  const data = montar(DADOS, converterDados(current as Record<string, unknown>));
-  if (!data) return emptyData();
+  const data = raw === null ? null : montarDados(raw);
+  if (!data) return emptyData(); // ilegível: não grava por cima
   // Cota cheia/modo privado: saveData falha calado e o app segue com os dados convertidos (grava no próximo update()).
   if (JSON.stringify(data) !== raw) saveData(store, data);
   return data;
 }
 
-/** Grava o estado. Retorna false se o navegador recusar (cota cheia, modo privado). */
+/** JSON gravado → estado atual (conversões de versões antigas + esquemas); null se ilegível. */
+export function montarDados(raw: string): AppData | null {
+  let current: unknown;
+  try {
+    current = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  if (!current || typeof current !== 'object') return null;
+  return montar(DADOS, converterDados(current as Record<string, unknown>)) ?? null;
+}
+
+/** Número da última gravação no localStorage (0 = nenhuma ou ilegível). */
+export function lerSeq(store: KeyValueStore): number {
+  try {
+    return Number(store.getItem(SEQ_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Grava o estado com o próximo número de gravação, no localStorage e no espelho do IndexedDB (espelho.ts). Retorna
+ * false se o navegador recusar (cota cheia, modo privado).
+ */
 export function saveData(store: KeyValueStore, data: AppData): boolean {
   try {
-    store.setItem(STORAGE_KEY, JSON.stringify(data));
+    const json = JSON.stringify(data);
+    const seq = lerSeq(store) + 1;
+    store.setItem(STORAGE_KEY, json);
+    store.setItem(SEQ_KEY, String(seq));
+    gravarEspelho({ seq, json });
     return true;
   } catch {
     return false;

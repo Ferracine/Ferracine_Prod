@@ -134,7 +134,11 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
       ),
     ),
     // Nova OS: um botão por tipo; cada um abre a tela da OS em branco com as perguntas daquele tipo.
-    gradeBotoes((['COMERCIAL', 'OCORRENCIA'] as const).map((type) => botaoNovaOS(type, () => p.onNewOS(type)))),
+    // Um embaixo do outro, na largura toda: "Nova Ocorrência" quebrava em duas linhas lado a lado no celular.
+    (() => {
+      const botoes = (['COMERCIAL', 'OCORRENCIA'] as const).map((type) => botaoNovaOS(type, () => p.onNewOS(type)));
+      return gradeBotoes(botoes, new Set(botoes));
+    })(),
     h(
       'div',
       { class: 'card p-6 space-y-4' },

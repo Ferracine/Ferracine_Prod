@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { espelhoRows } from '../../src/domain/espelho';
 import { formatDateBR, formatHorario, mesmaPessoa, osLabel, sheetFileName, sheetLabel, todayISO } from '../../src/domain/format';
 import type { AppData } from '../../src/domain/types';
-import { cancelarDados, emptyData, encerrarDados, type KeyValueStore, loadData, pushSheet, reabrirDados, removerFolha, saveData, STORAGE_KEY } from '../../src/storage';
+import { espelhoMaisNovo } from '../../src/espelho';
+import { cancelarDados, emptyData, encerrarDados, type KeyValueStore, lerSeq, SEQ_KEY, loadData, pushSheet, reabrirDados, removerFolha, saveData, STORAGE_KEY } from '../../src/storage';
 import { startDraft } from '../../src/domain/ordem';
 import { baseHeader as header, finishedOS } from './fixtures';
 
@@ -211,6 +212,17 @@ describe('armazenamento', () => {
     // Sem turno aberto, encerrar não faz nada.
     encerrarDados(d, 'x');
     expect(d.sheets).toEqual([corrigida, antiga]);
+  });
+
+  it('cada gravação leva o próximo número; o espelho do IndexedDB só vale se for mais novo que o localStorage', () => {
+    const store = memoryStore();
+    expect(lerSeq(store)).toBe(0);
+    saveData(store, emptyData());
+    saveData(store, emptyData());
+    expect(store.items.get(SEQ_KEY)).toBe('2');
+    expect(espelhoMaisNovo(2, null)).toBe(false);
+    expect(espelhoMaisNovo(2, { seq: 2, json: '{}' })).toBe(false); // empate: o localStorage chegou ao disco
+    expect(espelhoMaisNovo(2, { seq: 3, json: '{}' })).toBe(true); // o último passo só está no espelho
   });
 
   it('cancelar turno: descarta cabeçalho, OSs e rascunho sem criar folha; a folha reaberta volta ao histórico no lugar dela', () => {

@@ -4,7 +4,8 @@ import { osLabel, plural, sheetFileName, sheetLabel } from './domain/format';
 import * as ordem from './domain/ordem';
 import { SHEETS_KEPT, type AppData, type ClosedSheet, type OrdemServico, type OSDraft, type ShiftHeader } from './domain/types';
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
-import { cancelarDados, encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
+import { espelhoMaisNovo, lerEspelho } from './espelho';
+import { cancelarDados, encerrarDados, type KeyValueStore, lerSeq, loadData, montarDados, reabrirDados, removerFolha, saveData, SEQ_KEY } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
 import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando, pausarToques } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast } from './ui/feedback';
@@ -607,4 +608,20 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   });
 
   render();
+
+  // O localStorage pode ter perdido o último passo (o Chrome grava em disco com atraso e o Android pode ter matado o
+  // app): se o espelho do IndexedDB for mais novo, ele vale.
+  void lerEspelho().then((g) => {
+    if (!espelhoMaisNovo(lerSeq(store), g)) return;
+    const recuperado = montarDados(g.json);
+    if (!recuperado) return;
+    try {
+      store.setItem(SEQ_KEY, String(g.seq)); // a próxima gravação continua a contagem do espelho
+    } catch {
+      // sem armazenamento: o persist abaixo avisa
+    }
+    data = recuperado;
+    persist();
+    render();
+  });
 }

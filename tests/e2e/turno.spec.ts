@@ -820,6 +820,24 @@ test('temas: id antigo "retro" vira Windows 98 e tema removido volta ao padrão'
   await expect(page.locator('html')).toHaveAttribute('data-estilo', 'moderno');
 });
 
+test('localStorage perdeu o último passo (app morto antes de gravar em disco): o espelho do IndexedDB devolve', async ({ page }) => {
+  await iniciarTurno(page);
+  const antes = await page.evaluate(() => ({ json: localStorage.getItem('ferracine_prod:v3'), seq: localStorage.getItem('ferracine_prod:v3:seq') }));
+  await novaOS(page, 'comercial', '709', '555');
+  await salvar(page);
+  await expect(page.getByTestId('os-item')).toHaveCount(1);
+  // Simula o Chrome sem ter gravado em disco: o localStorage volta ao estado anterior (sem a OS).
+  await page.evaluate((a) => {
+    localStorage.setItem('ferracine_prod:v3', a.json!);
+    localStorage.setItem('ferracine_prod:v3:seq', a.seq!);
+  }, antes);
+  await page.reload();
+  await expect(page.getByTestId('os-item')).toHaveCount(1);
+  await expect(page.getByTestId('os-item')).toContainText('OS 555');
+  // E o localStorage foi regravado com o estado recuperado.
+  expect(await page.evaluate(() => localStorage.getItem('ferracine_prod:v3'))).toContain('"osNumber":"555"');
+});
+
 test('OS em preenchimento sobrevive ao recarregar a página', async ({ page }) => {
   await iniciarTurno(page);
   await novaOS(page, 'comercial', '28', '789');
