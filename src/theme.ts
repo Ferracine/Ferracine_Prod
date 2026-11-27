@@ -1,6 +1,6 @@
 import { Check, Moon, Palette, Sun } from 'lucide';
 import { androidBridge } from './platform';
-import { botaoDoTopo, BTN_CHOICE, ESCOLHA_OFF, ESCOLHA_ON, h, icon } from './ui/dom';
+import { botaoDoTopo, BTN_CHOICE, BTN_OPCAO, ESCOLHA_OFF, ESCOLHA_ON, h, icon } from './ui/dom';
 import { closeModal, openModal } from './ui/feedback';
 
 /**
@@ -183,7 +183,7 @@ function escolherEstilo(botaoTemaTopo: HTMLButtonElement): void {
           type: 'button',
           'data-estilo-opcao': e.id,
           'aria-pressed': String(selecionado),
-          class: `${BTN_CHOICE} w-full justify-start text-left gap-3 p-3 min-h-16 ${selecionado ? 'border-brand bg-brand/10 text-fg' : ESCOLHA_OFF}`,
+          class: `${BTN_OPCAO} w-full text-left gap-3 p-3 min-h-16 ${selecionado ? 'border-brand bg-brand/10 text-fg' : ESCOLHA_OFF}`,
           onClick: () => {
             guardar(ESTILO_KEY, e.id);
             applyEstilo(e.id);

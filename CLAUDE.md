@@ -145,10 +145,10 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   no `:root`) porque a miniatura da janela de temas (`.amostra`) usa as do tema que mostra. Tema novo: id em
   `ESTILOS`, na regex do script do `<head>` e um bloco de variáveis claro/escuro + acabamento em `styles.css`. O PDF
   não muda com o tema.
-- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost` e
+- Botões (padrão em `dom.ts`): `btn(tom, tamanho)` (único jeito de estilizar botão; o tema é montado em JS por isso) com tom `primary`/`neutral`/`danger`/`accent`/`outline`/`ghost`/`fechar` (o X das janelas) e
   tamanho `lg` (56 px, ação principal da tela), `md` (48 px, padrão), `sm` (44 px) e `icon` (44 × 44); raio único
   `rounded-xl`; nada abaixo de 44 px de toque. `BTN_LINK` para links de ação, `BTN_CHOICE` para SIM/NÃO e
-  Solo/Dupla. Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou o marcado como largo ocupa a linha). Nas
+  Solo/Dupla, `BTN_OPCAO` para item de lista de opções (lista de temas). Grupo de botões lado a lado: `gradeBotoes` (colunas iguais; o ímpar ou o marcado como largo ocupa a linha). Nas
   janelas, as ações ficam empilhadas na largura toda. Botões do topo: `botaoDoTopo` (dom.ts). Não escreva classes de botão
   soltas.
 - Ícones: logo Energisa (`src/assets/energisa.svg`) no topo do app e no PDF; a prancheta (`public/icon.png`) é o

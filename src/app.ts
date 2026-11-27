@@ -6,7 +6,7 @@ import { SHEETS_KEPT, type AppData, type ClosedSheet, type OrdemServico, type OS
 import { androidBridge, blobToBase64, SAVED_PREFIX } from './platform';
 import { cancelarDados, encerrarDados, type KeyValueStore, loadData, reabrirDados, removerFolha, saveData } from './storage';
 import { dashboardScreen } from './ui/dashboard-screen';
-import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando } from './ui/dom';
+import { botaoDoTopo, byId, CALLOUT, h, marcarFaltando, pausarToques } from './ui/dom';
 import { closeModal, confirmModal, isModalOpen, openModal, showToast } from './ui/feedback';
 import { type AcaoFolha, type FolhasProps, listaFolhas } from './ui/folhas';
 import { headerScreen } from './ui/header-screen';
@@ -457,10 +457,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
   /** A folha vai para o topo do histórico com "PDF não baixado" até o eletricista baixar (`encerrarDados`). */
   function encerrar(): void {
     update((d) => encerrarDados(d, new Date().toISOString()));
-    // Toque duplo: o 2º toque cairia na tela do cabeçalho ou na janela "Produção encerrada", que acabaram de aparecer.
-    const alvos = [root, byId('modal')];
-    for (const el of alvos) el.style.pointerEvents = 'none';
-    setTimeout(() => alvos.forEach((el) => (el.style.pointerEvents = '')), 400);
+    pausarToques(); // o 2º toque de um toque duplo cairia na tela do cabeçalho ou na janela "Produção encerrada"
     // Só a produção que acabou de ser encerrada (as anteriores ficam no histórico do topo).
     const sheet = data.sheets[0];
     if (sheet) abrirFolhas(sheet);

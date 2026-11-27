@@ -363,61 +363,60 @@
 }
 
 /* Botões e escolhas (SIM/NÃO, Solo/Dupla): face do sistema, texto do botão. */
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha) {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha) {
   background: var(--w-face);
   color: var(--w-face-fg);
-  border: var(--w-borda-btn);
-  border-radius: var(--w-raio-btn);
+  border: none;
   box-shadow: var(--bisel);
 }
 /* Botão padrão (ação principal da tela): a moldura extra do sistema. */
 [data-estilo='win98'] .btn.btn-primary {
   box-shadow: var(--bisel-padrao);
 }
-[data-estilo='win98'] :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha):active:not(:disabled) {
+[data-estilo='win98'] :is(.btn:not(.btn-ghost), .escolha):active:not(:disabled) {
   box-shadow: var(--bisel-ativo);
 }
 [data-estilo='win98'] .btn.btn-primary:active:not(:disabled) {
   box-shadow: var(--bisel-padrao-ativo);
 }
 /* Botão sem moldura (fechar dos avisos, ações discretas): só ganha relevo ao tocar. */
-[data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn) {
+[data-estilo='win98'] .btn-ghost {
   background: transparent;
   color: var(--fg);
   border: 1px solid transparent;
 }
 @media (hover: hover) {
-  [data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn):hover:not(:disabled) {
+  [data-estilo='win98'] .btn-ghost:hover:not(:disabled) {
     background: var(--w-face);
     color: var(--w-face-fg);
     box-shadow: var(--bisel);
   }
 }
-[data-estilo='win98'] .btn-ghost:not(.janela-titulo .btn):active:not(:disabled) {
+[data-estilo='win98'] .btn-ghost:active:not(:disabled) {
   background: var(--w-face);
   color: var(--w-face-fg);
   box-shadow: var(--bisel-ativo);
 }
 /* Escolha marcada: botão travado afundado (no 98, com a trama de ButtonHilight). */
-[data-estilo='win98'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+[data-estilo='win98'] .escolha[aria-pressed='true'] {
   background: var(--w-travado);
   color: var(--w-face-fg);
   box-shadow: var(--bisel-ativo);
 }
 /* Lista de temas: o item escolhido fica na cor de seleção do sistema. */
-[data-estilo='win98'] .escolha[data-estilo-opcao] {
+[data-estilo='win98'] .opcao {
   background: var(--w-window);
   color: var(--w-window-fg);
   border: 1px solid transparent;
   box-shadow: none;
 }
-[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+[data-estilo='win98'] .opcao[aria-pressed='true'] {
   background: var(--w-sel);
   color: var(--w-sel-fg);
   outline: 1px dotted var(--w-sel-fg);
   outline-offset: -3px;
 }
-[data-estilo='win98'] .escolha[data-estilo-opcao][aria-pressed='true'] * {
+[data-estilo='win98'] .opcao[aria-pressed='true'] * {
   color: inherit;
 }
 /* Foco: retângulo pontilhado por dentro do botão. */
@@ -443,7 +442,7 @@
   color: var(--w-titulo-fg);
   font-size: 1rem;
 }
-[data-estilo='win98'] .janela-titulo .btn {
+[data-estilo='win98'] .btn-fechar {
   margin: 0;
 }
 [data-estilo='win98'] .janela-rodape {
@@ -453,7 +452,7 @@
 [data-estilo='win98'] .field {
   background: var(--w-window);
   color: var(--w-window-fg);
-  border: var(--w-borda-campo);
+  border: none;
   box-shadow: var(--bisel-campo);
   font-weight: 400;
 }
@@ -479,9 +478,6 @@
   --w-light: #dfdfdf;
   --w-dk: #000000;
   --w-gray-relevo: 1px 1px 0 var(--w-hilight);
-  --w-borda-btn: none;
-  --w-borda-campo: none;
-  --w-raio-btn: 0;
   /* Botão travado: trama 2x2 de ButtonHilight sobre ButtonFace (como a barra de rolagem do 98). */
   --w-travado: repeating-conic-gradient(var(--w-hilight) 0 25%, var(--w-face) 0 50%) 0 0 / 2px 2px;
   --bisel: inset -1px -1px var(--w-dk), inset 1px 1px var(--w-hilight), inset -2px -2px var(--w-shadow), inset 2px 2px var(--w-light);
@@ -727,7 +723,7 @@
   color: #215dc6;
 }
 /* Botões */
-[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))) {
+[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha) {
   background: var(--xp-btn);
   border: 1px solid var(--xp-borda-btn);
   border-radius: 3px;
@@ -739,32 +735,32 @@
   box-shadow: var(--xp-foco);
 }
 @media (hover: hover) {
-  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled) {
+  [data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):hover:not(:disabled) {
     box-shadow: var(--xp-hover);
   }
 }
-[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled),
-[data-estilo='xp'] .escolha[aria-pressed='true']:not([data-estilo-opcao]) {
+[data-estilo='xp'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):active:not(:disabled),
+[data-estilo='xp'] .escolha[aria-pressed='true'] {
   background: var(--xp-btn-ativo);
   box-shadow: none;
 }
-[data-estilo='xp'] :is(.btn:where(:not(.janela-titulo .btn)), .escolha):focus-visible {
+[data-estilo='xp'] :is(.btn:where(:not(.btn-fechar)), .escolha):focus-visible {
   outline: 1px dotted #000000;
   outline-offset: -4px;
   box-shadow: var(--xp-foco);
 }
-[data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)) {
+[data-estilo='xp'] .btn-ghost {
   border: 1px solid transparent;
   color: var(--fg);
 }
 @media (hover: hover) {
-  [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+  [data-estilo='xp'] .btn-ghost:hover:not(:disabled) {
     background: var(--xp-btn);
     border-color: var(--xp-borda-btn);
     box-shadow: var(--xp-hover);
   }
 }
-[data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
+[data-estilo='xp'] .btn-ghost:active:not(:disabled) {
   background: var(--xp-btn-ativo);
   border-color: var(--xp-borda-btn);
 }
@@ -777,7 +773,7 @@
   cursor: default;
 }
 /* Fechar da janela: o botão vermelho da barra de título. */
-[data-estilo='xp'] .janela-titulo .btn {
+[data-estilo='xp'] .btn-fechar {
   margin: 0;
   background: var(--xp-fechar);
   border: 1px solid #ffffff;
@@ -785,29 +781,29 @@
   color: #ffffff;
 }
 @media (hover: hover) {
-  [data-estilo='xp'] .janela-titulo .btn:hover {
+  [data-estilo='xp'] .btn-fechar:hover {
     background: var(--xp-fechar-hover);
   }
 }
-[data-estilo='xp'] .janela-titulo .btn:active {
+[data-estilo='xp'] .btn-fechar:active {
   background: var(--xp-fechar-ativo);
 }
-[data-estilo='xp'] .janela-titulo .btn:focus-visible {
+[data-estilo='xp'] .btn-fechar:focus-visible {
   outline: 1px dotted #ffffff;
   outline-offset: -3px;
 }
 /* Lista de temas: item escolhido na cor de seleção. */
-[data-estilo='xp'] .escolha[data-estilo-opcao] {
+[data-estilo='xp'] .opcao {
   background: var(--xp-window);
   border: 1px solid var(--xp-grupo-borda);
   color: #000000;
 }
-[data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+[data-estilo='xp'] .opcao[aria-pressed='true'] {
   background: var(--xp-sel);
   border-color: var(--xp-sel);
   color: #ffffff;
 }
-[data-estilo='xp'] .escolha[data-estilo-opcao][aria-pressed='true'] * {
+[data-estilo='xp'] .opcao[aria-pressed='true'] * {
   color: inherit;
 }
 /* Campos */
@@ -951,7 +947,7 @@
   border-top: none;
 }
 /* Botão padrão: BaseLow, borda transparente de 2px; hover = borda BaseMediumLow; pressionado = fundo BaseMediumLow. */
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))) {
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha) {
   background: var(--w10-base-low);
   border: 2px solid transparent;
   color: var(--fg);
@@ -959,16 +955,16 @@
 }
 /* Botão de destaque: só a ação principal (como no Windows 10); e a escolha marcada (ToggleButton ligado). */
 [data-estilo='win10'] .btn.btn-primary,
-[data-estilo='win10'] .escolha[aria-pressed='true']:where(:not([data-estilo-opcao])) {
+[data-estilo='win10'] .escolha[aria-pressed='true'] {
   background: var(--w10-accent);
   color: #ffffff;
 }
 @media (hover: hover) {
-  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):hover:not(:disabled) {
+  [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):hover:not(:disabled) {
     border-color: var(--w10-base-medium-low);
   }
 }
-[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao]))):active:not(:disabled) {
+[data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .btn-fechar)), .escolha):active:not(:disabled) {
   background: var(--w10-base-medium-low);
   border-color: transparent;
   color: var(--fg);
@@ -986,44 +982,44 @@
   box-shadow: inset 0 0 0 1px var(--w10-alt-medium);
 }
 /* Sem moldura (AppBarButton): transparente; hover/pressionado em BaseLow/BaseMediumLow. */
-[data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)) {
+[data-estilo='win10'] .btn-ghost {
   border: 2px solid transparent;
   color: var(--fg);
 }
 @media (hover: hover) {
-  [data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)):hover:not(:disabled) {
+  [data-estilo='win10'] .btn-ghost:hover:not(:disabled) {
     background: var(--w10-base-low);
   }
 }
-[data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)):active:not(:disabled) {
+[data-estilo='win10'] .btn-ghost:active:not(:disabled) {
   background: var(--w10-base-medium-low);
 }
 /* Fechar da janela: botão de legenda (hover #E81123 com X branco; pressionado #F1707A com X preto). */
-[data-estilo='win10'] .janela-titulo .btn {
+[data-estilo='win10'] .btn-fechar {
   color: var(--fg);
 }
 @media (hover: hover) {
-  [data-estilo='win10'] .janela-titulo .btn:hover {
+  [data-estilo='win10'] .btn-fechar:hover {
     background: #e81123;
     color: #ffffff;
   }
 }
-[data-estilo='win10'] .janela-titulo .btn:active {
+[data-estilo='win10'] .btn-fechar:active {
   background: #f1707a;
   color: #000000;
 }
 /* Lista de temas: item escolhido = seleção de lista (destaque a 60%). */
-[data-estilo='win10'] .escolha[data-estilo-opcao] {
+[data-estilo='win10'] .opcao {
   background: transparent;
   border: 2px solid transparent;
   color: var(--fg);
 }
 @media (hover: hover) {
-  [data-estilo='win10'] .escolha[data-estilo-opcao]:hover {
+  [data-estilo='win10'] .opcao:hover {
     background: color-mix(in srgb, var(--w10-base) 10%, transparent);
   }
 }
-[data-estilo='win10'] .escolha[data-estilo-opcao][aria-pressed='true'] {
+[data-estilo='win10'] .opcao[aria-pressed='true'] {
   background: color-mix(in srgb, var(--w10-accent) 60%, transparent);
 }
 /* Campo: 2px BaseMediumLow; hover BaseMedium; foco = fundo branco, texto preto e borda no destaque (nos dois temas). */

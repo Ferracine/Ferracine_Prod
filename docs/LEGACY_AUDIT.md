@@ -34,17 +34,17 @@ Resolvidos na reescrita dos temas Windows e no /simplify de 27/11 (commits `414e
 - [x] `border-radius` repetido no Win10/XP — tokens `--radius-*` num bloco comum (98, 3.1 e 10); só card, campo e
   `rounded-full` têm regra própria.
 
-Novos (achados no /simplify e no /clear-legacy de 27/11; não executados):
-- [ ] `src/styles.css` (`[data-estilo='win98']`) — `--w-borda-btn: none`, `--w-borda-campo: none` e `--w-raio-btn: 0`
+Novos (achados no /simplify e no /clear-legacy de 27/11; executados no lote 3, commit abaixo):
+- [x] `src/styles.css` (`[data-estilo='win98']`) — `--w-borda-btn: none`, `--w-borda-campo: none` e `--w-raio-btn: 0`
   só existiam para alternar entre o 98 e o 3.1; com o 3.1 fora, viraram indireção — consolidar: escrever os valores
   direto nas regras de botão e campo do 98. Evidência: 1 declaração e 1 uso cada (`grep`). Risco Baixo.
-- [ ] `src/styles.css` (≈28 ocorrências) — o X das janelas (`btn('ghost', 'icon')` em `src/ui/feedback.ts`) e as opções
+- [x] `src/styles.css` (≈28 ocorrências) — o X das janelas (`btn('ghost', 'icon')` em `src/ui/feedback.ts`) e as opções
   da janela de temas (`BTN_CHOICE` em `src/theme.ts`) reaproveitam `.btn`/`.escolha` e por isso cada regra de botão
   exclui `.janela-titulo .btn` e `[data-estilo-opcao]` (dentro de `:where()` para não subir a especificidade) —
-  extrair: classes próprias na origem (`btn-fechar`, `opcao-estilo`) e regras curtas para elas.
-- [ ] `src/app.ts` (`encerrar`) — proteção contra toque duplo desliga `pointerEvents` em `root` e `#modal` à mão —
-  extrair: um helper em `src/ui/dom.ts` que engole o clique fantasma por ~400 ms em captura no `document`, chamado
-  quando a tela troca (`render`) e quando uma janela abre (`openModal`).
+  extrair: classes próprias na origem (tom `fechar` de `btn()` → `.btn-fechar`; `BTN_OPCAO` → `.opcao`). Feito.
+- [x] `src/app.ts` (`encerrar`) — proteção contra toque duplo desliga `pointerEvents` em `root` e `#modal` à mão —
+  extrair: `pausarToques()` em `src/ui/dom.ts` (pausa os toques no `body` por 400 ms). Feito só no `encerrar`: pausar
+  a cada troca de tela engoliria toques legítimos rápidos.
 
 ## Lote 4 (Revisão Manual) — não executar sem decisão item a item
 - [ ] `src/storage.ts` — bloco "Conversões de versões antigas (1.1.0 a 1.4.17)" e a chamada de `converterDados` em

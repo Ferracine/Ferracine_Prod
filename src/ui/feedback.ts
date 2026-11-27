@@ -33,7 +33,7 @@ export function showToast(message: string, type: ToastType = 'info'): void {
 
 export interface ModalAction {
   label: string;
-  variant: Exclude<BtnTom, 'outline' | 'ghost'>;
+  variant: Exclude<BtnTom, 'outline' | 'ghost' | 'fechar'>;
   onClick: () => void;
 }
 
@@ -42,7 +42,7 @@ let lastFocus: Element | null = null;
 export function openModal(title: string, body: Node, actions: ModalAction[]): void {
   lastFocus = document.activeElement;
   const modal = byId('modal');
-  const close = h('button', { type: 'button', class: `${btn('ghost', 'icon')} -my-2 -mr-2`, 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
+  const close = h('button', { type: 'button', class: `${btn('fechar', 'icon')} -my-2 -mr-2`, 'aria-label': 'Fechar janela', onClick: closeModal }, icon(X, 'w-5 h-5'));
   const buttons = actions.map((a) => h('button', { type: 'button', class: btn(a.variant), onClick: a.onClick }, a.label));
   // Uma ação embaixo da outra na largura toda (rótulos como "Continuar preenchendo" não cabem lado a lado no
   // celular); a de confirmar fica embaixo, perto do polegar.

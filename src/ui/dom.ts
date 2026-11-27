@@ -129,6 +129,8 @@ const BTN_TOM = {
   accent: 'bg-accent-600 hover:bg-accent-700 text-white',
   outline: 'bg-fg/5 border border-fg/10 hover:bg-fg/10', // cor do texto/ícone fica com quem usa
   ghost: 'text-muted hover:bg-fg/10 hover:text-fg',
+  /** X das janelas: igual ao ghost, mas com gancho próprio (`btn-fechar`): os temas Windows o desenham como botão da barra de título. */
+  fechar: 'text-muted hover:bg-fg/10 hover:text-fg',
 } as const;
 export type BtnTom = keyof typeof BTN_TOM;
 
@@ -148,6 +150,18 @@ export const ESCOLHA_OFF = 'border-fg/15 bg-fg/5 text-fg';
 
 /** Escolha entre opções (SIM/NÃO, Solo/Dupla): cor de fundo e borda vêm de quem usa, conforme o estado. */
 export const BTN_CHOICE = 'escolha flex items-center justify-center gap-2 rounded-xl border-2 font-extrabold transition-all';
+
+/** Item de uma lista de opções numa janela (ex.: a lista de temas): `aria-pressed` marca o escolhido. */
+export const BTN_OPCAO = 'opcao flex items-center gap-2 rounded-xl border-2 font-extrabold transition-all';
+
+/**
+ * Pausa os toques na página por `ms` (toque duplo: o 2º toque cairia na tela ou na janela que acabou de aparecer).
+ * Os avisos (toasts) continuam tocáveis; não fazem nada ao toque.
+ */
+export function pausarToques(ms = 400): void {
+  document.body.style.pointerEvents = 'none';
+  setTimeout(() => (document.body.style.pointerEvents = ''), ms);
+}
 
 /** Botão do topo (histórico, tema...) no lugar reservado no index.html: o `<span>` com o id já guarda o espaço. */
 export function botaoDoTopo(slot: HTMLElement, node: IconNode, rotulo: string, onClick: () => void): HTMLButtonElement {
