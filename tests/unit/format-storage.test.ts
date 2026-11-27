@@ -171,6 +171,28 @@ describe('armazenamento', () => {
     expect(loaded.draft?.answers).toEqual({ infoAdicional: { kind: 'text', value: 'DIFICULDADE: Chuva' } });
   });
 
+  it('ocorrência até a 1.4.17: callback, defeito, dispositivo e alteração na UC vão para o começo de Informações adicionais', () => {
+    const base = { osNumber: '1', serviceType: 'OCORRENCIA', serviceCode: '508', registradaEm: 'x' };
+    const antigas = {
+      callback: { kind: 'choice', choice: 'Sim' },
+      defeito: { kind: 'text', value: ' FUSÍVEL ' },
+      dispositivo: { kind: 'skipped' },
+      alteracaoUC: { kind: 'text', value: 'TROCA DE DISJUNTOR' },
+      ditais: { kind: 'choice', choice: 'Não' },
+    };
+    const comInfo = { ...base, id: 'a', answers: { ...antigas, infoAdicional: { kind: 'text', value: 'POSTE ALAGADO' } } };
+    const semNada = { ...base, id: 'b', answers: { dispositivo: { kind: 'text', value: '  ' } } };
+    const folha = { header, ordens: [comInfo], fechadaEm: 'x', tecnicos: [], baixadaEm: 'x' };
+    const loaded = loadData(memoryStore({ [STORAGE_KEY]: JSON.stringify({ ...emptyData(), ordens: [comInfo, semNada], sheets: [folha], reaberta: folha }) }));
+    const info = 'CALLBACK: SIM; DEFEITO: FUSÍVEL; ALTERAÇÃO UC: TROCA DE DISJUNTOR; POSTE ALAGADO';
+    expect(loaded.ordens[0]?.answers).toEqual({ ditais: { kind: 'choice', choice: 'Não' }, infoAdicional: { kind: 'text', value: info } });
+    expect(loaded.ordens[1]?.answers).toEqual({});
+    expect(loaded.sheets[0]?.ordens[0]?.answers.infoAdicional).toEqual({ kind: 'text', value: info });
+    expect(loaded.reaberta?.ordens[0]?.answers.infoAdicional).toEqual({ kind: 'text', value: info });
+    // No PDF continua em INFORMAÇÃO ADICIONAL, com os mesmos rótulos.
+    expect(espelhoRows(loaded.ordens)[0]?.info).toBe(`DITAIS: Não; ${info}`);
+  });
+
   it('encerrar → editar (reabrir) → encerrar de novo: a folha volta ao turno e depois ao topo do histórico', () => {
     const os = finishedOS('1', 'COMERCIAL', '28', {}, 'o1');
     const antiga = { header: { ...header, nome1: 'VELHA' }, ordens: [], fechadaEm: 'x', tecnicos: [], baixadaEm: 'x' };

@@ -260,7 +260,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     editingHeader = false;
     update((d) => {
       d.header = header;
-      if (!d.reaberta) d.lastHeader = header; // corrigir uma folha reaberta não muda o próximo turno // preenche o próximo turno
+      if (!d.reaberta) d.lastHeader = header; // preenche o próximo turno (corrigir uma folha reaberta não muda)
     });
     showToast(wasEditing ? 'Cabeçalho atualizado.' : 'Turno iniciado! Registro de OSs liberado.', 'success');
   }
@@ -463,7 +463,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     setTimeout(() => alvos.forEach((el) => (el.style.pointerEvents = '')), 400);
     // Só a produção que acabou de ser encerrada (as anteriores ficam no histórico do topo).
     const sheet = data.sheets[0];
-    if (sheet) abrirFolhas('Produção encerrada', () => (data.sheets.includes(sheet) ? [sheet] : []), false);
+    if (sheet) abrirFolhas(sheet);
     showToast('Turno encerrado. Toque em "Baixar PDF" para salvar a folha.', 'success');
   }
 
@@ -530,26 +530,26 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
     }
   }
 
-  /**
-   * Janela de folhas aberta agora: título, quais folhas mostra (histórico = todas; ao encerrar = só a encerrada) e se
-   * volta mesmo vazia depois de excluir (o histórico volta e diz que não há folhas).
-   */
-  let janelaFolhas: { titulo: string; folhas: () => readonly ClosedSheet[]; voltaVazia: boolean } | null = null;
+  /** Janela de folhas aberta por último: o histórico (todas) ou "Produção encerrada" (só a que acabou de encerrar). */
+  let janelaFolhas: 'historico' | ClosedSheet = 'historico';
+
+  const folhasDaJanela = (j: typeof janelaFolhas): readonly ClosedSheet[] => (j === 'historico' ? data.sheets : data.sheets.filter((s) => s === j));
 
   function folhasProps(folhas: readonly ClosedSheet[]): FolhasProps {
     return { sheets: folhas, canShare: shareSupported, turnoAberto: !!data.header, onAcao: acaoFolha };
   }
 
   /** Janela com folhas e as ações de cada uma (Baixar, Abrir, Compartilhar, Editar, Excluir). */
-  function abrirFolhas(titulo: string, folhas: () => readonly ClosedSheet[], voltaVazia: boolean): void {
+  function abrirFolhas(j: typeof janelaFolhas): void {
     void loadPdfModule().catch(() => undefined); // Abrir/Compartilhar logo após o toque precisam do gerador pronto
-    janelaFolhas = { titulo, folhas, voltaVazia };
-    openModal(titulo, listaFolhas(folhasProps(folhas())), [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }]);
+    janelaFolhas = j;
+    const titulo = j === 'historico' ? 'Últimas folhas encerradas' : 'Produção encerrada';
+    openModal(titulo, listaFolhas(folhasProps(folhasDaJanela(j))), [{ label: 'Fechar', variant: 'neutral', onClick: closeModal }]);
   }
 
   /** Botão do topo: o histórico só aparece por aqui. */
   function abrirHistorico(): void {
-    abrirFolhas('Últimas folhas encerradas', () => data.sheets, true);
+    abrirFolhas('historico');
   }
 
   function acaoFolha(sheet: ClosedSheet, acao: AcaoFolha): void {
@@ -581,7 +581,7 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
 
   /** Troca só a lista da janela de folhas aberta (redesenhar a tela perderia o digitado). */
   function atualizarListasDeFolhas(): void {
-    if (janelaFolhas) document.querySelector('[role="dialog"] [data-lista="folhas"]')?.replaceWith(listaFolhas(folhasProps(janelaFolhas.folhas())));
+    document.querySelector('[role="dialog"] [data-lista="folhas"]')?.replaceWith(listaFolhas(folhasProps(folhasDaJanela(janelaFolhas))));
   }
 
   /** Não redesenha a tela (perderia o que estiver sendo digitado); depois de excluir, a janela de folhas volta. */
@@ -597,7 +597,8 @@ export function startApp(root: HTMLElement, store: KeyValueStore): void {
         }, false);
         atualizarListasDeFolhas();
         showToast('Folha excluída do histórico.', 'success');
-        if (voltar && (voltar.voltaVazia || voltar.folhas().length)) abrirFolhas(voltar.titulo, voltar.folhas, voltar.voltaVazia);
+        // O histórico volta (mesmo vazio, dizendo que não há folhas); "Produção encerrada" da folha excluída, não.
+        if (voltar === 'historico') abrirFolhas(voltar);
       },
     );
   }

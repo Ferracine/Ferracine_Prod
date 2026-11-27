@@ -122,7 +122,7 @@ export function initUpdates(): void {
     banner.replaceChildren(
       h(
         'div',
-        { class: 'bg-card border border-brand/40 rounded-2xl p-4 flex items-center gap-3 shadow-lg' },
+        { class: 'aviso bg-card border border-brand/40 rounded-2xl p-4 flex items-center gap-3 shadow-lg' },
         icon(busy ? LoaderCircle : CloudDownload, `w-6 h-6 shrink-0 text-brand-fg${busy ? ' animate-spin' : ''}`),
         h('p', { class: 'flex-1 text-sm font-semibold text-fg', 'data-testid': 'update-text' }, text),
         busy ? null : h('button', { type: 'button', id: 'btn-update', class: btn('primary'), onClick: () => install(info) }, 'Atualizar'),

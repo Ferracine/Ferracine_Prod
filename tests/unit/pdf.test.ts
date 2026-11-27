@@ -38,19 +38,18 @@ function comercial(n: number): OrdemServico {
 /** Ocorrência com todas as perguntas respondidas (o pior caso para o espaço da INFORMAÇÃO ADICIONAL). */
 function ocorrenciaCompleta(n: number): OrdemServico {
   return finishedOS(`16438545${n}`, 'OCORRENCIA', '508', {
-    callback: { kind: 'choice', choice: 'Sim' },
     horaIni: { kind: 'text', value: '08:15' },
     kmIni: { kind: 'text', value: '45210' },
     tipo: { kind: 'text', value: 'Falta de energia' },
-    defeito: { kind: 'text', value: 'Fusível queimado' },
-    dispositivo: { kind: 'text', value: 'Chave fusível' },
     ditais: { kind: 'choice', choice: 'Sim' },
     kmFin: { kind: 'text', value: '45235' },
-    alteracaoUC: { kind: 'text', value: 'Troca do disjuntor do padrão' },
+    clientePresente: { kind: 'choice', choice: 'Sim' },
+    ramal: { kind: 'choice', choice: 'Sim' },
     medidorInstNum: { kind: 'text', value: `N62${n}` },
     leituraInst: { kind: 'text', value: '7788' },
     horaFin: { kind: 'text', value: '09:40' },
-    infoAdicional: { kind: 'text', value: 'Acesso difícil ao poste' },
+    // Como uma ocorrência da 1.4.17 convertida: as perguntas que saíram ficam no começo da caixa.
+    infoAdicional: { kind: 'text', value: 'CALLBACK: SIM; DEFEITO: Fusível queimado; DISP.: Chave fusível; ALTERAÇÃO UC: Troca do disjuntor do padrão; Acesso difícil ao poste' },
   }, `id-${n}`);
 }
 
@@ -120,10 +119,10 @@ describe('PDF do Espelho de Campo', () => {
 
   it('nada é cortado: textos longos quebram linha', () => {
     const longo = 'Religação de unidade consumidora com troca de ramal e disjuntor danificado pela chuva';
-    const os = finishedOS('1', 'OCORRENCIA', '508', { defeito: { kind: 'text', value: `${longo} ${longo}` } });
+    const os = finishedOS('1', 'OCORRENCIA', '508', { tipo: { kind: 'text', value: `${longo} ${longo}` } });
     const text = flat(pdfText(buildSheetPdf(header, [os], tecnicos)));
     expect(text).not.toContain('...');
-    expect(text).toContain(`Defeito: ${longo} ${longo}`);
+    expect(text).toContain(`Tipo: ${longo} ${longo}`);
   });
 
   it('mais de 3 técnicos: o rodapé ganha linhas e todos aparecem', () => {

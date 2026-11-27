@@ -61,8 +61,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   eletricistas começam com a dupla dos últimos cabeçalhos) e `reaberta` (a folha original enquanto ela é corrigida). `loadData`: lê, roda as conversões de versões antigas
   sobre o JSON cru (bloco `// --- Conversões de versões antigas` no fim do arquivo: `lastSheet`, eletricistas,
   número do rascunho do assistente, `migrateAnswers` com os medidores da 1.4.1–1.4.4, a cópia escondida do número
-  em `answers.os` e a pergunta de dificuldade até a 1.4.12, que vira "Informações adicionais"), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
-  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.16 ou mais
+  em `answers.os`, a pergunta de dificuldade até a 1.4.12 e as perguntas que só a ocorrência tinha até a 1.4.17, que
+  viram "Informações adicionais"), monta tudo pelos **esquemas** e **grava já no formato atual** se mudou; dado ilegível não é
+  sobrescrito. O bloco de conversões pode sair inteiro quando todos os aparelhos já tiverem aberto a 1.4.18 ou mais
   nova. Esquemas (`Esquema<T>` + `montar`): um leitor por campo de cada tipo (`DADOS`, `OS`, `RASCUNHO`, `FOLHA`,
   `TECNICO`, `ELETRICISTA`, `CABECALHO`); campo novo no tipo, mesmo opcional, sem leitor **não compila** (se
   compilasse, a primeira abertura o apagaria). Leitor devolve `INVALIDO` para descartar o item (OS sem id, tipo
@@ -73,9 +74,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   (types.ts). Mudança incompatível: suba a versão e escreva a migração. Campo novo que só acrescenta (ex.: `sheets`
   no lugar de `lastSheet`) fica na v3 com detecção na carga: subir a versão faria um APK antigo descartar tudo.
 - Ocorrência = as mesmas perguntas da comercial (`OCORRENCIA = COMERCIAL` no catálogo, 1.4.18). As que só a
-  ocorrência tinha até a 1.4.17 (callback, defeito, dispositivo, alteração na UC) ficam em `PERGUNTAS_ANTIGAS`:
-  `visibleQuestions` as inclui quando respondidas (PDF, "Ver respostas") e `finalize` as mantém no lápis; OS nova não
-  as pergunta.
+  ocorrência tinha até a 1.4.17 (callback, defeito, dispositivo, alteração na UC) viram texto no começo de
+  "Informações adicionais" ao abrir (`migrateAnswers`, bloco de conversões do storage: "CALLBACK: SIM; DEFEITO: ...").
+  O PDF segue com a informação e dá para corrigir pelo lápis.
 - `src/app.ts`: controlador. Tela derivada do estado (`editingHeader`/sem header → cabeçalho; `editing` → edição;
   `draft` → OS nova; senão painel). OS nova e edição usam a mesma `osScreen` (`src/ui/os-screen.ts`); a OS nova
   grava o rascunho a cada alteração (`onChange`, sem redesenhar). O painel tem um "+" por tipo (`#btn-new-comercial`, `#btn-new-ocorrencia`):
@@ -126,8 +127,9 @@ web com `pnpm preview` + `adb reverse tcp:4173 tcp:4173` e `http://localhost:417
   biséis (`--bisel`, `--bisel-padrao`, `--bisel-ativo`, `--bisel-campo`...). Todo botão tem a face do sistema; o
   principal (`.btn-primary`) é o "botão padrão". Escuros: High Contrast Black (98), LCD Reversed - Dark (3.1), Royale
   Noir (XP: só moldura/barras escuras, janelas claras) e o escuro do 10. Ganchos além dos de baixo: `.painel` (item
-  de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status` e `.sobre-app` (texto direto sobre o fundo
-  do app, cor `--sobre-app`). Seletores longos de `:not()` vão dentro de `:where()` (senão o botão comum vence o de
+  de lista/bloco), `.faixa-cabecalho`, `.janela-rodape`, `.selo-status`, `.aviso` (aviso de atualização) e
+  `.sobre-app` (texto direto sobre o fundo do app, cor `--sobre-app`); o "+" de OS nova leva `btn-primary`/`btn-accent`
+  (os ganchos de `btn()`). Seletores longos de `:not()` vão dentro de `:where()` (senão o botão comum vence o de
   destaque pela especificidade).
 - Aparência em dois eixos (`src/theme.ts` + script no `<head>` do index.html, que aplica antes da pintura): **estilo**
   `data-estilo` (chave `ferracine_prod:estilo`) e **claro/escuro** `data-theme` (chave `ferracine_prod:theme`; sem

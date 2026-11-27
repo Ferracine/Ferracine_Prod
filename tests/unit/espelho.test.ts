@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { questionsFor } from '../../src/domain/catalog';
 import { espelhoRows } from '../../src/domain/espelho';
-import { DITAIS_NAO, finishedOS } from './fixtures';
+import { finishedOS } from './fixtures';
 
 describe('linhas do Espelho de Campo', () => {
   it('toda pergunta sem coluna própria tem rótulo curto para INFORMAÇÃO ADICIONAL', () => {
@@ -56,22 +56,6 @@ describe('linhas do Espelho de Campo', () => {
     });
     expect(espelhoRows([os])[0]).toMatchObject({ medidorInstalado: 'UC-1', leituraInstalado: '42', medidorRetirado: '', leituraRetirado: '' });
     expect(espelhoRows([os])[0]?.info).not.toContain('novo medidor');
-  });
-
-  it('ocorrência salva antes da 1.4.18: callback, defeito, dispositivo e alteração na UC continuam em INFORMAÇÃO ADICIONAL', () => {
-    const os = finishedOS('', 'OCORRENCIA', '508', {
-      callback: { kind: 'choice', choice: 'Sim' },
-      horaIni: { kind: 'text', value: '10:00' },
-      tipo: { kind: 'text', value: 'Falta de energia' },
-      defeito: { kind: 'text', value: 'Fusível' },
-      dispositivo: { kind: 'text', value: 'Chave fusível' },
-      ...DITAIS_NAO,
-      alteracaoUC: { kind: 'text', value: 'Troca de disjuntor' },
-      infoAdicional: { kind: 'text', value: 'Poste em área alagada' },
-    });
-    const [row] = espelhoRows([os]);
-    expect(row).toMatchObject({ os: 'S/N', codigo: '508', horaIni: '10:00', kmIni: '', clientePresente: '' });
-    expect(row?.info).toBe('Tipo: Falta de energia; DITAIS: Não; Callback: Sim; Defeito: Fusível; Disp.: Chave fusível; Alteração UC: Troca de disjuntor; Poste em área alagada');
   });
 
   it('perguntas puladas não entram em INFORMAÇÃO ADICIONAL', () => {

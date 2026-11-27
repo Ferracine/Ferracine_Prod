@@ -58,41 +58,12 @@ const COMERCIAL: readonly Question[] = [
   INFO_ADICIONAL,
 ];
 
-/** Ocorrência: as mesmas perguntas da comercial, na mesma ordem (pedido do dono, 1.4.18). */
-const OCORRENCIA: readonly Question[] = COMERCIAL;
-
 /**
- * Perguntas que só a ocorrência tinha até a 1.4.17. OS nova não as pergunta, mas as OSs já salvas (turno aberto e
- * folhas do histórico) guardam as respostas: `visibleQuestions` as inclui quando respondidas, para o PDF e o
- * "Ver respostas" não perderem o que foi registrado, e `finalize` as mantém ao salvar pelo lápis.
+ * Ocorrência: as mesmas perguntas da comercial, na mesma ordem (pedido do dono, 1.4.18). As que só ela tinha até a
+ * 1.4.17 (callback, defeito, dispositivo, alteração na UC) viram texto em "Informações adicionais" ao abrir
+ * (`migrateAnswers`, storage.ts).
  */
-const PERGUNTAS_ANTIGAS: readonly Question[] = [
-  { id: 'callback', text: 'Tentou callback?', type: 'yesno', short: 'Callback' },
-  { id: 'defeito', text: 'Qual foi o defeito?', type: 'text', short: 'Defeito' },
-  { id: 'dispositivo', text: 'Qual dispositivo manobrado?', type: 'text', short: 'Disp.' },
-  { id: 'alteracaoUC', text: 'Deseja informar alguma alteração feita na UC do cliente?', type: 'text', short: 'Alteração UC' },
-];
-
-/** Perguntas antigas com resposta nesta OS (texto em branco não conta). */
-export function antigasRespondidas(answers: Record<string, Answer>): readonly Question[] {
-  return PERGUNTAS_ANTIGAS.filter((q) => {
-    const a = answers[q.id];
-    return a?.kind === 'choice' || (a?.kind === 'text' && a.value.trim() !== '');
-  });
-}
-
-/** Inclui as perguntas antigas antes de "Informações adicionais", que continua a última. */
-function comAntigas(perguntas: readonly Question[], answers: Record<string, Answer>): readonly Question[] {
-  const antigas = antigasRespondidas(answers);
-  if (!antigas.length) return perguntas;
-  const fim = perguntas.at(-1)?.id === INFO_ADICIONAL.id ? perguntas.length - 1 : perguntas.length;
-  return [...perguntas.slice(0, fim), ...antigas, ...perguntas.slice(fim)];
-}
-
-/** Perguntas da tela da OS (nova e lápis): as do tipo e as antigas que a OS já tinha respondido (para corrigir). */
-export function perguntasDaTela(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
-  return comAntigas(questionsFor(type), answers);
-}
+const OCORRENCIA: readonly Question[] = COMERCIAL;
 
 const QUESTIONS: Record<ServiceType, readonly Question[]> = { COMERCIAL, OCORRENCIA };
 
@@ -107,8 +78,5 @@ export function isVisible(q: Question, answers: Record<string, Answer>): boolean
 
 /** Perguntas que valem com estas respostas (as escondidas por `showIf` ficam de fora). */
 export function visibleQuestions(type: ServiceType, answers: Record<string, Answer>): readonly Question[] {
-  return comAntigas(
-    questionsFor(type).filter((q) => isVisible(q, answers)),
-    answers,
-  );
+  return questionsFor(type).filter((q) => isVisible(q, answers));
 }

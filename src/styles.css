@@ -293,7 +293,7 @@
  * ========================================================================== */
 
 /* --- Comum aos quatro --------------------------------------------------- */
-:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .btn:active, .escolha:active, .group:active .nova-os) {
+:is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os) {
   scale: 1;
 }
 :is([data-estilo='win98'], [data-estilo='xp'], [data-estilo='win31'], [data-estilo='win10']) :is(.btn, .escolha, .nova-os, .card, .janela) {
@@ -318,15 +318,48 @@
  * ========================================================================== */
 :is([data-estilo='win98'], [data-estilo='win31']) {
   --font-sans: 'WIN95FA', 'MS Sans Serif', Arial, ui-sans-serif, sans-serif;
+  /* A fonte do sistema só tem o peso normal: negrito falso borra os pixels. */
+  font-synthesis: none;
+  /* Cores do sistema e paleta do app iguais no 98 e no 3.1 claros (cada tema declara só o que muda). */
+  --w-face: #c0c0c0;
+  --w-face-fg: #000000;
+  --w-hilight: #ffffff;
+  --w-shadow: #808080;
+  --w-window: #ffffff;
+  --w-window-fg: #000000;
+  --w-sel: #000080;
+  --w-sel-fg: #ffffff;
+  --w-gray: #808080;
+  --w-titulo-fg: #ffffff;
+  --field: #ffffff;
+  --fg: #000000;
+  --muted: #000000;
+  --subtle: #000000;
+  --brand: #000080;
+  --brand-600: #000080;
+  --brand-700: #00005c;
+  --brand-fg: #000080;
+  --accent: #800080;
+  --accent-600: #800080;
+  --accent-700: #5c005c;
+  --accent-fg: #800080;
+  --danger-soft: #ff0000;
+  --danger-600: #800000;
+  --danger-700: #5c0000;
+  --danger-fg: #800000;
+  --ok: #008000;
+  --warn: #808000;
+  --err: #ff0000;
+}
+/* Cantos retos (98, 3.1 e 10): as utilidades rounded-* leem --radius-*; card e campo têm raio próprio. */
+:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) {
   --amostra-raio: 0;
   --radius-md: 0;
   --radius-lg: 0;
   --radius-xl: 0;
   --radius-2xl: 0;
-  /* A fonte do sistema só tem o peso normal: negrito falso borra os pixels. */
-  font-synthesis: none;
 }
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.rounded-full, .card, .field, .nova-os) {
+:is([data-estilo='win98'], [data-estilo='win31'], [data-estilo='win10']) :is(.rounded-full, .card, .field) {
   border-radius: 0;
 }
 
@@ -339,7 +372,7 @@
   box-shadow: var(--bisel);
 }
 /* Botão padrão (ação principal da tela): a moldura extra do sistema. */
-:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn-primary, .nova-os.bg-brand-600) {
+:is([data-estilo='win98'], [data-estilo='win31']) :is(.btn, .nova-os).btn-primary {
   box-shadow: var(--bisel-padrao);
 }
 :is([data-estilo='win98'], [data-estilo='win31']) :is(.btn:not(.btn-ghost), .janela-titulo .btn, .escolha):active:not(:disabled),
@@ -347,7 +380,7 @@
   box-shadow: var(--bisel-ativo);
 }
 :is([data-estilo='win98'], [data-estilo='win31']) .btn-primary:active:not(:disabled),
-:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os.bg-brand-600 {
+:is([data-estilo='win98'], [data-estilo='win31']) .group:active .nova-os.btn-primary {
   box-shadow: var(--bisel-padrao-ativo);
 }
 /* Botão sem moldura (fechar dos avisos, ações discretas): só ganha relevo ao tocar. */
@@ -433,8 +466,6 @@
   color: var(--w-face-fg);
 }
 :is([data-estilo='win98'], [data-estilo='win31']) .field:focus:not([readonly]):not(.faltando) {
-  border: var(--w-borda-campo);
-  box-shadow: var(--bisel-campo);
   outline: 1px dotted var(--w-window-fg);
   outline-offset: -4px;
 }
@@ -445,24 +476,13 @@
 :is([data-estilo='win98'], [data-estilo='win31']) .lbl {
   font-weight: 400;
   letter-spacing: 0;
-  color: var(--fg);
 }
 
 /* --- Windows 98: "Windows Standard" (claro) e "High Contrast Black" (escuro) --- */
 [data-estilo='win98'] {
-  --w-face: #c0c0c0;
-  --w-face-fg: #000000;
-  --w-hilight: #ffffff;
   --w-light: #dfdfdf;
-  --w-shadow: #808080;
   --w-dk: #000000;
-  --w-window: #ffffff;
-  --w-window-fg: #000000;
-  --w-sel: #000080;
-  --w-sel-fg: #ffffff;
-  --w-gray: #808080;
   --w-gray-relevo: 1px 1px 0 var(--w-hilight);
-  --w-titulo-fg: #ffffff;
   --w-borda-btn: none;
   --w-borda-campo: none;
   --w-raio-btn: 0;
@@ -480,26 +500,7 @@
   /* Paleta do app */
   --app: #008080;
   --card: #c0c0c0;
-  --field: #ffffff;
-  --fg: #000000;
-  --muted: #000000;
-  --subtle: #000000;
   --sobre-app: #ffffff;
-  --brand: #000080;
-  --brand-600: #000080;
-  --brand-700: #00005c;
-  --brand-fg: #000080;
-  --accent: #800080;
-  --accent-600: #800080;
-  --accent-700: #5c005c;
-  --accent-fg: #800080;
-  --danger-soft: #ff0000;
-  --danger-600: #800000;
-  --danger-700: #5c0000;
-  --danger-fg: #800000;
-  --ok: #008000;
-  --warn: #808000;
-  --err: #ff0000;
   color-scheme: light;
 }
 [data-estilo='win98'][data-theme='dark'] {
@@ -508,12 +509,10 @@
   --w-hilight: #c0c0c0;
   /* ButtonLight do registro é #D0B0B8 (rosado, resto de dado); fica no cinza do esquema. */
   --w-light: #808080;
-  --w-shadow: #808080;
   --w-dk: #ffffff;
   --w-window: #000000;
   --w-window-fg: #ffffff;
   --w-sel: #800080;
-  --w-sel-fg: #ffffff;
   --w-gray: #00ff00;
   --w-gray-relevo: none;
   --w-travado: repeating-conic-gradient(#808080 0 25%, #000000 0 50%) 0 0 / 2px 2px;
@@ -524,7 +523,6 @@
   --fg: #ffffff;
   --muted: #ffffff;
   --subtle: #ffffff;
-  --sobre-app: #ffffff;
   --brand: #800080;
   --brand-600: #800080;
   --brand-700: #5c005c;
@@ -533,16 +531,10 @@
   --accent-600: #008000;
   --accent-700: #005c00;
   --accent-fg: #00ff00;
-  --danger-soft: #ff0000;
-  --danger-600: #800000;
-  --danger-700: #5c0000;
   --danger-fg: #ff0000;
-  --ok: #008000;
-  --warn: #808000;
-  --err: #ff0000;
   color-scheme: dark;
 }
-[data-estilo='win98'] :is(.card, #update-banner > div) {
+[data-estilo='win98'] :is(.card, .aviso) {
   background: var(--w-face);
   border: none;
   box-shadow: var(--bisel-janela);
@@ -595,19 +587,9 @@
 
 /* --- Windows 3.1: "Windows Default" (claro) e "LCD Reversed - Dark" (escuro) --- */
 [data-estilo='win31'] {
-  --w-face: #c0c0c0;
-  --w-face-fg: #000000;
-  --w-hilight: #ffffff;
-  --w-shadow: #808080;
   --w-frame: #000000;
-  --w-window: #ffffff;
-  --w-window-fg: #000000;
-  --w-sel: #000080;
-  --w-sel-fg: #ffffff;
-  --w-gray: #808080;
   --w-gray-relevo: none;
   --w-borda-ativa: #c0c0c0;
-  --w-titulo-fg: #ffffff;
   /* Botão do 3.1: moldura de 1px (cantos cortados), 2px de realce e 2px de sombra; padrão com moldura dupla. */
   --w-borda-btn: 1px solid var(--w-frame);
   --w-borda-campo: 1px solid var(--w-frame);
@@ -621,26 +603,7 @@
   --titulo: #000080;
   --app: #c0c0c0;
   --card: #ffffff;
-  --field: #ffffff;
-  --fg: #000000;
-  --muted: #000000;
-  --subtle: #000000;
   --sobre-app: #000000;
-  --brand: #000080;
-  --brand-600: #000080;
-  --brand-700: #00005c;
-  --brand-fg: #000080;
-  --accent: #800080;
-  --accent-600: #800080;
-  --accent-700: #5c005c;
-  --accent-fg: #800080;
-  --danger-soft: #ff0000;
-  --danger-600: #800000;
-  --danger-700: #5c0000;
-  --danger-fg: #800000;
-  --ok: #008000;
-  --warn: #808000;
-  --err: #ff0000;
   color-scheme: light;
 }
 [data-estilo='win31'][data-theme='dark'] {
@@ -649,8 +612,6 @@
   --w-shadow: #80807f;
   --w-window: #800000;
   --w-window-fg: #ffffff;
-  --w-sel: #000080;
-  --w-sel-fg: #ffffff;
   --w-borda-ativa: #808000;
   --w-titulo-fg: #000000;
   --titulo: #808000;
@@ -662,8 +623,6 @@
   --subtle: #ffffff;
   --sobre-app: #ffffff;
   --brand: #ffff00;
-  --brand-600: #000080;
-  --brand-700: #00005c;
   --brand-fg: #ffff00;
   --accent: #c0c0c0;
   --accent-600: #808000;
@@ -676,7 +635,7 @@
 [data-estilo='win31'][data-theme='dark'] .field::placeholder {
   color: #c0c0c0;
 }
-[data-estilo='win31'] :is(.card, #update-banner > div) {
+[data-estilo='win31'] :is(.card, .aviso) {
   background: var(--w-window);
   color: var(--w-window-fg);
   border: 1px solid var(--w-frame);
@@ -716,7 +675,6 @@
   border-bottom: 1px solid var(--w-frame);
 }
 [data-estilo='win31'] .field:focus:not([readonly]):not(.faltando) {
-  border: 1px solid var(--w-frame);
   outline: 1px solid var(--w-frame);
   outline-offset: 0;
 }
@@ -812,16 +770,10 @@
   --titulo: var(--xp-barra);
   --app: #0f1626;
   --card: #ebe9ed;
-  --field: #ffffff;
-  --fg: #000000;
-  --muted: #000000;
-  --subtle: #000000;
-  --sobre-app: #ffffff;
   --brand: #335ea8;
   --brand-600: #335ea8;
   --brand-700: #26467e;
   --brand-fg: #2b4f8f;
-  color-scheme: light;
 }
 [data-estilo='xp'] .barra-app {
   background: var(--xp-barra);
@@ -836,7 +788,7 @@
   border-radius: 3px;
   color: var(--fg);
 }
-[data-estilo='xp'] :is(.card, #update-banner > div) {
+[data-estilo='xp'] :is(.card, .aviso) {
   background: var(--xp-face);
   border: 1px solid var(--xp-grupo-borda);
   border-radius: 3px;
@@ -869,7 +821,6 @@
 [data-estilo='xp'] .painel {
   background: var(--xp-window);
   border: 1px solid var(--xp-grupo-borda);
-  border-radius: 3px;
 }
 /* Faixa do cabeçalho: o título de grupo dos painéis do XP (branco → azul claro, texto azul). */
 [data-estilo='xp'] .faixa-cabecalho {
@@ -888,7 +839,7 @@
   font-weight: 400;
   box-shadow: var(--xp-btn-anel);
 }
-[data-estilo='xp'] :is(.btn-primary, .nova-os.bg-brand-600) {
+[data-estilo='xp'] .btn-primary {
   box-shadow: var(--xp-foco);
 }
 @media (hover: hover) {
@@ -911,7 +862,6 @@
 }
 [data-estilo='xp'] .btn-ghost:where(:not(.janela-titulo .btn)) {
   border: 1px solid transparent;
-  border-radius: 3px;
   color: var(--fg);
 }
 @media (hover: hover) {
@@ -979,10 +929,6 @@
 [data-estilo='xp'] .field[readonly] {
   background: var(--xp-face);
 }
-[data-estilo='xp'] .field:focus:not([readonly]):not(.faltando) {
-  border-color: var(--xp-campo-borda);
-  box-shadow: none;
-}
 [data-estilo='xp'] select.field option {
   background: #ffffff;
   color: #000000;
@@ -1009,11 +955,6 @@
  * ========================================================================== */
 [data-estilo='win10'] {
   --font-sans: 'Segoe UI', 'Selawik', system-ui, ui-sans-serif, sans-serif;
-  --amostra-raio: 0;
-  --radius-md: 0;
-  --radius-lg: 0;
-  --radius-xl: 0;
-  --radius-2xl: 0;
   --w10-accent: #0078d7;
   --w10-base: #000000;
   --w10-alt: #ffffff;
@@ -1021,8 +962,6 @@
   --w10-chrome-low: #f2f2f2;
   --w10-chrome-medium: #e6e6e6;
   --w10-chrome-medium-low: #f2f2f2;
-  --w10-chrome-high: #cccccc;
-  --w10-off: #7a7a7a;
   --w10-base-low: color-mix(in srgb, var(--w10-base) 20%, transparent);
   --w10-base-medium-low: color-mix(in srgb, var(--w10-base) 40%, transparent);
   --w10-base-medium: color-mix(in srgb, var(--w10-base) 60%, transparent);
@@ -1062,8 +1001,6 @@
   --w10-chrome-low: #171717;
   --w10-chrome-medium: #1f1f1f;
   --w10-chrome-medium-low: #2b2b2b;
-  --w10-chrome-high: #767676;
-  --w10-off: #858585;
   --app: var(--w10-pagina);
   --card: var(--w10-chrome-medium);
   --field: var(--w10-chrome-medium);
@@ -1077,9 +1014,6 @@
   --err: #fff000;
   color-scheme: dark;
 }
-[data-estilo='win10'] .rounded-full {
-  border-radius: 0;
-}
 [data-estilo='win10'] .barra-app {
   background: var(--w10-pagina);
   border-bottom: 1px solid var(--w10-chrome-medium);
@@ -1087,21 +1021,18 @@
 [data-estilo='win10'] .barra-app .selo-status {
   background: var(--w10-chrome-medium-low);
   border: none;
-  border-radius: 0;
   color: var(--fg);
 }
-[data-estilo='win10'] :is(.card, #update-banner > div) {
+[data-estilo='win10'] :is(.card, .aviso) {
   background: var(--card);
   border: 1px solid var(--w10-chrome-medium);
-  border-radius: 0;
 }
-[data-estilo='win10'][data-theme='dark'] :is(.card, #update-banner > div) {
+[data-estilo='win10'][data-theme='dark'] :is(.card, .aviso) {
   border-color: var(--w10-chrome-medium-low);
 }
 [data-estilo='win10'] .painel {
   background: var(--w10-chrome-medium-low);
   border: none;
-  border-radius: 0;
 }
 [data-estilo='win10'] .faixa-cabecalho {
   background: transparent;
@@ -1111,7 +1042,6 @@
 [data-estilo='win10'] .janela {
   background: var(--w10-pagina);
   border: 1px solid var(--w10-accent);
-  border-radius: 0;
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.3);
 }
 [data-estilo='win10'] .janela-titulo {
@@ -1131,17 +1061,16 @@
 [data-estilo='win10'] :is(.btn:where(:not(.btn-ghost, .janela-titulo .btn)), .escolha:where(:not([data-estilo-opcao])), .nova-os) {
   background: var(--w10-base-low);
   border: 2px solid transparent;
-  border-radius: 0;
   color: var(--fg);
   font-weight: 400;
 }
 /* Botão de destaque (ação principal e encerrar) e escolha marcada (ToggleButton ligado). */
-[data-estilo='win10'] :is(.btn-primary, .btn-accent, .nova-os.bg-brand-600),
+[data-estilo='win10'] :is(.btn-primary, .btn-accent),
 [data-estilo='win10'] .escolha[aria-pressed='true']:where(:not([data-estilo-opcao])) {
   background: var(--w10-accent);
   color: #ffffff;
 }
-[data-estilo='win10'] .nova-os.bg-accent-600 {
+[data-estilo='win10'] .nova-os.btn-accent {
   background: var(--accent-600);
   color: #ffffff;
 }
@@ -1173,7 +1102,6 @@
 /* Sem moldura (AppBarButton): transparente; hover/pressionado em BaseLow/BaseMediumLow. */
 [data-estilo='win10'] .btn-ghost:where(:not(.janela-titulo .btn)) {
   border: 2px solid transparent;
-  border-radius: 0;
   color: var(--fg);
 }
 @media (hover: hover) {
@@ -1186,7 +1114,6 @@
 }
 /* Fechar da janela: botão de legenda (hover #E81123 com X branco; pressionado #F1707A com X preto). */
 [data-estilo='win10'] .janela-titulo .btn {
-  border-radius: 0;
   color: var(--fg);
 }
 @media (hover: hover) {
@@ -1203,7 +1130,6 @@
 [data-estilo='win10'] .escolha[data-estilo-opcao] {
   background: transparent;
   border: 2px solid transparent;
-  border-radius: 0;
   color: var(--fg);
 }
 @media (hover: hover) {
@@ -1218,7 +1144,6 @@
 [data-estilo='win10'] .field {
   background: var(--w10-alt-medium-low);
   border: 2px solid var(--w10-base-medium-low);
-  border-radius: 0;
   box-shadow: none;
   color: var(--fg);
   font-weight: 400;
@@ -1232,7 +1157,6 @@
 [data-estilo='win10'] .field:focus:not([readonly]):not(.faltando) {
   background: #ffffff;
   border-color: var(--w10-accent);
-  box-shadow: none;
   color: #000000;
 }
 [data-estilo='win10'] .field[readonly] {

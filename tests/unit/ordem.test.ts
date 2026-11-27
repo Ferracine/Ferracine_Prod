@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { perguntasDaTela, questionsFor } from '../../src/domain/catalog';
+import { questionsFor } from '../../src/domain/catalog';
 import type { Answer, OSDraft } from '../../src/domain/types';
 import * as ordem from '../../src/domain/ordem';
 import { espelhoRows } from '../../src/domain/espelho';
@@ -138,14 +138,14 @@ describe('OS nova (tela da OS)', () => {
       osNumber: '1',
       serviceType: 'OCORRENCIA',
       serviceCode: '508',
-      answers: { tipo: { kind: 'text', value: '  ' }, infoAdicional: { kind: 'text', value: ' \n ' }, callback: { kind: 'text', value: 'x' } },
+      answers: { tipo: { kind: 'text', value: '  ' }, infoAdicional: { kind: 'text', value: ' \n ' }, ramal: { kind: 'text', value: 'x' } },
     };
     const os = ordem.finalize(d, 'x', new Date());
     expect(os.answers.tipo).toEqual({ kind: 'skipped' });
     expect(os.answers.infoAdicional).toEqual({ kind: 'skipped' });
     const relato = ordem.finalize({ ...d, answers: { infoAdicional: { kind: 'text', value: ' POSTE\n\n  CAÍDO \n' } } }, 'x', new Date());
     expect(relato.answers.infoAdicional).toEqual({ kind: 'text', value: 'POSTE CAÍDO' });
-    expect(os.answers.callback).toEqual({ kind: 'skipped' });
+    expect(os.answers.ramal).toEqual({ kind: 'skipped' });
   });
 
   it('isUnchanged: OS recém-aberta sai sem confirmação; número, texto ou SIM/NÃO contam como preenchido', () => {
@@ -154,7 +154,7 @@ describe('OS nova (tela da OS)', () => {
     expect(ordem.isUnchanged({ ...d, serviceCode: '508' })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { tipo: { kind: 'text', value: '' } } })).toBe(true); // texto apagado
     expect(ordem.isUnchanged({ ...d, osNumber: '12' })).toBe(false);
-    expect(ordem.isUnchanged({ ...d, answers: { callback: { kind: 'choice', choice: 'Sim' } } })).toBe(false);
+    expect(ordem.isUnchanged({ ...d, answers: { ramal: { kind: 'choice', choice: 'Sim' } } })).toBe(false);
     expect(ordem.isUnchanged({ ...d, answers: { tipo: { kind: 'text', value: 'Falta' } } })).toBe(false);
     // Número do medidor novo digitado e depois escondido (SIM desmarcado): não conta.
     const comercial = ordem.startDraft('COMERCIAL');
@@ -171,42 +171,10 @@ describe('OS nova (tela da OS)', () => {
     expect(rows[11]).toMatchObject({ question: 'Informações adicionais', display: 'Chuva' });
   });
 
-  it('ocorrência salva antes da 1.4.18: callback, defeito, dispositivo e alteração na UC continuam nas respostas', () => {
-    const os = finishedOS('7', 'OCORRENCIA', '503', {
-      ...DITAIS_NAO,
-      callback: { kind: 'choice', choice: 'Sim' },
-      defeito: { kind: 'text', value: 'Fusível' },
-      dispositivo: { kind: 'skipped' },
-      infoAdicional: { kind: 'text', value: 'Chuva' },
-    });
-    const perguntas = ordem.answerRows(os).map((r) => r.question);
-    // Só as respondidas, antes de "Informações adicionais" (que continua a última).
-    expect(perguntas.slice(-3)).toEqual(['Tentou callback?', 'Qual foi o defeito?', 'Informações adicionais']);
-    expect(perguntas).not.toContain('Qual dispositivo manobrado?');
-    // Nova OS não pergunta mais.
-    expect(questionsFor('OCORRENCIA').map((q) => q.id)).not.toContain('callback');
-  });
 });
 
 describe('edição completa de OS (lápis)', () => {
   const base = () => finishedOS('100', 'OCORRENCIA', '508', { ...DITAIS_NAO, tipo: { kind: 'text', value: 'Falta' } }, 'id-9');
-
-  it('ocorrência salva antes da 1.4.18: a tela do lápis mostra as perguntas antigas respondidas, para corrigir', () => {
-    const answers = { defeito: { kind: 'text', value: 'FUZIVEL' }, callback: { kind: 'text', value: '  ' } } as const;
-    const ids = perguntasDaTela('OCORRENCIA', answers).map((q) => q.id);
-    expect(ids.slice(-2)).toEqual(['defeito', 'infoAdicional']);
-    expect(ids).not.toContain('callback'); // texto em branco não conta como respondida
-    expect(perguntasDaTela('OCORRENCIA', {}).map((q) => q.id)).toEqual(questionsFor('OCORRENCIA').map((q) => q.id));
-  });
-
-  it('ocorrência salva antes da 1.4.18: o lápis não apaga callback, defeito e as outras perguntas antigas', () => {
-    const os = finishedOS('5', 'OCORRENCIA', '508', { ...DITAIS_NAO, defeito: { kind: 'text', value: 'Fusível' }, callback: { kind: 'choice', choice: 'Não' } });
-    const r = ordem.applyEdit(os, { osNumber: '5', serviceCode: '508', answers: { ...os.answers, kmIni: { kind: 'text', value: '10' } } });
-    if (!r.ok) throw new Error(r.error);
-    expect(r.os.answers).toMatchObject({ defeito: { kind: 'text', value: 'Fusível' }, callback: { kind: 'choice', choice: 'Não' }, kmIni: { kind: 'text', value: '10' } });
-    // OS nova não grava essas perguntas.
-    expect(finishedOS('6', 'OCORRENCIA', '508', DITAIS_NAO).answers).not.toHaveProperty('defeito');
-  });
 
   it('altera número, código e respostas mantendo id e horário de registro', () => {
     const os = base();

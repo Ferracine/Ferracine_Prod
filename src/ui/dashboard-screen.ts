@@ -31,10 +31,13 @@ export const TYPE_BADGE: Record<ServiceType, string> = {
 
 const BADGE = 'text-[11px] font-bold px-2 py-0.5 rounded-md';
 
-/** "+" de cada tipo: Comercial = ciano do logo, Ocorrência = laranja do logo (classes por extenso para o Tailwind). */
+/**
+ * "+" de cada tipo: Comercial = cor principal, Ocorrência = cor de destaque (classes por extenso para o Tailwind).
+ * `btn-primary`/`btn-accent`: os mesmos ganchos de tema de `btn()` (styles.css).
+ */
 const PLUS_COLORS: Record<ServiceType, string> = {
-  COMERCIAL: 'bg-brand-600 hover:bg-brand-700 shadow-brand/30',
-  OCORRENCIA: 'bg-accent-600 hover:bg-accent-700 shadow-accent/30',
+  COMERCIAL: 'btn-primary bg-brand-600 hover:bg-brand-700 shadow-brand/30',
+  OCORRENCIA: 'btn-accent bg-accent-600 hover:bg-accent-700 shadow-accent/30',
 };
 
 /** "+" de nova OS: círculo colorido do tipo com o rótulo embaixo; a coluna inteira é a área de toque. */
@@ -82,6 +85,9 @@ function osRow(os: OrdemServico, index: number, p: DashboardProps): HTMLElement 
   );
 }
 
+/** Linhas na ordem escolhida (o # de cada OS é a posição na folha e não muda). */
+const ordenar = (linhas: HTMLElement[], decrescente: boolean) => (decrescente ? linhas.reverse() : linhas);
+
 export function dashboardScreen(p: DashboardProps): HTMLElement {
   const { header, ordens } = p;
   const list =
@@ -92,7 +98,7 @@ export function dashboardScreen(p: DashboardProps): HTMLElement {
           h('p', { class: 'text-sm font-semibold text-muted' }, 'Nenhuma Ordem de Serviço registrada ainda.'),
           h('p', { class: 'text-xs text-subtle mt-1' }, 'Toque no + Comercial ou no + Ocorrência para registrar a primeira OS do turno.'),
         )
-      : h('ul', { class: 'space-y-3', 'data-testid': 'os-list' }, (p.decrescente ? [...ordens.keys()].reverse() : [...ordens.keys()]).map((i) => osRow(ordens[i]!, i, p)));
+      : h('ul', { class: 'space-y-3', 'data-testid': 'os-list' }, ordenar(ordens.map((os, i) => osRow(os, i, p)), p.decrescente));
 
   const bodycams = [header.bodycam1, header.bodycam2].map((b) => b.trim()).filter(Boolean).join(' / ');
   // Uma informação por linha, rótulo à esquerda e valor à direita (o eletricista 2 só se houver dupla).

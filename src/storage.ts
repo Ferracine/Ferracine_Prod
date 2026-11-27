@@ -112,6 +112,11 @@ export function removerFolha(sheets: readonly ClosedSheet[], sheet: ClosedSheet)
 export function encerrarDados(d: AppData, fechadaEm: string): void {
   if (!d.header) return;
   d.sheets = pushSheet(d.sheets, { header: d.header, ordens: d.ordens, fechadaEm, tecnicos: d.tecnicos, baixadaEm: '' });
+  limparTurno(d);
+}
+
+/** Sem turno aberto: cabeçalho, OSs, rascunho e a folha reaberta saem. */
+function limparTurno(d: AppData): void {
   d.reaberta = null;
   d.header = null;
   d.ordens = [];
@@ -124,10 +129,7 @@ export function encerrarDados(d: AppData, fechadaEm: string): void {
  */
 export function cancelarDados(d: AppData): void {
   if (d.reaberta) d.sheets = [...d.sheets, d.reaberta].sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm)).slice(0, SHEETS_KEPT);
-  d.reaberta = null;
-  d.header = null;
-  d.ordens = [];
-  d.draft = null;
+  limparTurno(d);
 }
 
 /** "Editar" uma folha encerrada: ela volta a ser o turno aberto (cabeçalho e OSs) e sai do histórico. */
@@ -176,10 +178,10 @@ export function saveData(store: KeyValueStore, data: AppData): boolean {
   }
 }
 
-// --- Conversões de versões antigas (1.1.0 a 1.4.15) ----------------------
+// --- Conversões de versões antigas (1.1.0 a 1.4.17) ----------------------
 // Rodam antes dos esquemas, sobre o JSON cru. Desde a 1.4.9 o app grava no formato atual ao abrir; a última conversão
-// (`baixadaEm` das folhas antigas) é da 1.4.16. Quando todos os aparelhos já tiverem aberto a 1.4.16 ou mais nova, este
-// bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
+// (perguntas que só a ocorrência tinha) é da 1.4.18. Quando todos os aparelhos já tiverem aberto a 1.4.18 ou mais nova,
+// este bloco inteiro (até o fim do arquivo) pode sair, junto com a chamada de `converterDados` em `loadData`.
 
 function converterDados(d: Record<string, unknown>): Record<string, unknown> {
   // `lastSheet`: até a 1.4.4 só a última folha encerrada era guardada; vira o primeiro item do histórico.
@@ -189,6 +191,7 @@ function converterDados(d: Record<string, unknown>): Record<string, unknown> {
     ordens: Array.isArray(d.ordens) ? d.ordens.map(converterOS) : d.ordens,
     draft: converterRascunho(d.draft),
     sheets: sheets.map(converterFolha),
+    reaberta: d.reaberta ? converterFolha(d.reaberta) : d.reaberta,
     eletricistas: Array.isArray(d.eletricistas) ? d.eletricistas : eletricistasDosCabecalhos(normalizeHeader(d.header), normalizeHeader(d.lastHeader)),
   };
 }
@@ -240,6 +243,14 @@ function eletricistasDosCabecalhos(...headers: (ShiftHeader | null)[]): Eletrici
   return out;
 }
 
+/** Perguntas que só a ocorrência tinha até a 1.4.17, com o rótulo que o PDF usava. */
+const PERGUNTAS_SO_DA_OCORRENCIA = [
+  ['callback', 'CALLBACK'],
+  ['defeito', 'DEFEITO'],
+  ['dispositivo', 'DISP.'],
+  ['alteracaoUC', 'ALTERAÇÃO UC'],
+] as const;
+
 /** Resposta como as versões antigas gravavam: o SIM/NÃO podia levar um complemento (`detail`). */
 type RespostaAntiga = Exclude<Answer, { kind: 'choice' }> | { kind: 'choice'; choice: Choice; detail?: string };
 
@@ -253,6 +264,9 @@ type RespostaAntiga = Exclude<Answer, { kind: 'choice' }> | { kind: 'choice'; ch
  *   medidor?" (`novoMedidor`, `novoMedidorNum`/`novoLeitura`), com o mesmo Espelho de Campo de antes.
  * - Ocorrência: a 1.4.1 tinha SIM/NÃO + número e a 1.4.2/1.4.3 só o número, as duas em `medidorInst`; vira
  *   `medidorInstNum` (NÃO ou SIM sem número ficam em branco).
+ * - Ocorrência até a 1.4.17: callback, defeito, dispositivo manobrado e alteração na UC saíram (a ocorrência tem as
+ *   perguntas da comercial). O que foi respondido vai para o começo de "Informações adicionais", com os rótulos que o
+ *   PDF usava ("CALLBACK: SIM; DEFEITO: ..."): o PDF segue com a informação e dá para corrigir pelo lápis.
  */
 function migrateAnswers(type: ServiceType, answers: Record<string, RespostaAntiga>): Record<string, Answer> {
   const { os: _copiaDoNumero, dificuldade, ...out } = answers;
@@ -264,6 +278,16 @@ function migrateAnswers(type: ServiceType, answers: Record<string, RespostaAntig
     return n ? { kind: 'text', value: n } : undefined;
   };
   if (type === 'OCORRENCIA') {
+    const antigas = PERGUNTAS_SO_DA_OCORRENCIA.flatMap(([id, rotulo]) => {
+      const a = out[id];
+      delete out[id];
+      const v = a?.kind === 'choice' ? a.choice.toUpperCase() : a?.kind === 'text' ? a.value.trim() : '';
+      return v ? [`${rotulo}: ${v}`] : [];
+    });
+    if (antigas.length) {
+      const info = out.infoAdicional?.kind === 'text' ? out.infoAdicional.value.trim() : '';
+      out.infoAdicional = { kind: 'text', value: [...antigas, ...(info ? [info] : [])].join('; ') };
+    }
     if (out.medidorInst) {
       out.medidorInstNum = numero(out.medidorInst) ?? { kind: 'skipped' };
       delete out.medidorInst;
